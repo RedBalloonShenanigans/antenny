@@ -405,15 +405,14 @@ class AntKontrol:
         self._pinmode = False
         
     def do_move_mode(self):
-        el_delta_deg = (self._el_direction) * (self._el_target - self._el_last)
+        el_delta_deg = self._el_target - self._el_last
         az_delta_deg = self._az_target - self._az_last
 
         if self._el_moving or self._pinmode:
-            # goes from 0 - 360
+            # goes from 0 - 180, or whaterver max is
             if abs(el_delta_deg) < self._el_max_rate:
-                if abs(el_delta_deg) > 0.1: #to prevent hunting
-                    self._el_last = self._el_target
-                    self._servo_mux.position(EL_SERVO_INDEX, self._el_last)
+                self._el_last = self._el_target
+                self._servo_mux.position(EL_SERVO_INDEX, self._el_last)
                 self._el_moving = False
             else:
                 if el_delta_deg > 0:
@@ -422,15 +421,12 @@ class AntKontrol:
                     self._el_last = self._el_last - self._el_max_rate
                 self._servo_mux.position(EL_SERVO_INDEX, self._el_last)
                 self._el_moving = True
-            if self._el_last < 0:
-                self._el_last = 360.0 - self._el_last
             
         if self._az_moving or self._pinmode:
-            # -90 - to 90
+
             if abs(az_delta_deg) < self._az_max_rate:
-                if abs(az_delta_deg) > 0.1: #to prevent hunting
-                    self._az_last = self._az_target
-                    self._servo_mux.position(AZ_SERVO_INDEX, self._az_last)
+                self._az_last = self._az_target
+                self._servo_mux.position(AZ_SERVO_INDEX, self._az_last)
                 self._az_moving = False
             else:
                 if az_delta_deg > 0:
