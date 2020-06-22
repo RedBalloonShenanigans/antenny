@@ -106,7 +106,10 @@ class AntKontrol:
 
     def __init__(self):
         self.telem = TelemetrySenderUDP()
-        self._el_direction = -1
+
+        self._az_direction = -1
+        self._el_direction = 1
+        
         # locks
         self.bno_lock = _thread.allocate_lock()
         self._loop = uasyncio.get_event_loop()
@@ -133,27 +136,32 @@ class AntKontrol:
         self._target_elevation_degree = None
 
         self._bno = BNO055(self._i2c_bno055, sign=(0,0,0))
-        
-        self._servo_mux.position(EL_SERVO_INDEX, 90)
-        self._servo_mux.position(AZ_SERVO_INDEX, 90)
-
-        self._el_last = self._el_target = 90.0
-        self._az_last = self._az_target = 90.0
-
-        self._el_moving = False
-        self._az_moving = False
-
-        self._el_max_rate = .05
-        self._az_max_rate = .05
-
-        self._el_offset = self._az_offset = 0.0
-        
+                
         self._euler = None
         self._pinned_euler = None
         self._pinned_servo_pos = None
         time.sleep(5)
         self.conf_bno()
         time.sleep(1)
+
+        self._servo_mux.position(EL_SERVO_INDEX, 90)
+        time.sleep(0.1)
+        self._servo_mux.position(AZ_SERVO_INDEX, 90)
+        time.sleep(0.1)
+
+        cur_orientation = self._bno.euler()
+        self._el_target = self._el_last = cur_orientation[EL_SERVO_INDEX]
+        self._az_target = self._az_last = cur_orientation[AZ_SERVO_INDEX]
+        self._el_last_raw = 90.0
+        self._az_last_raw = 90.0
+        self.do_euler_calib()
+        
+        self._el_moving = False
+        self._az_moving = False
+
+        self._el_max_rate = .1
+        self._az_max_rate = .1
+
         self._orientation_thread = _thread.start_new_thread(self.update_orientation, ())
         logging.info("starting screen thread")
         self._screen_thread = _thread.start_new_thread(self.display_status, ())
@@ -403,37 +411,52 @@ class AntKontrol:
         self._pinned_euler = None
         self._pinned_servo_pos = None
         self._pinmode = False
+
+    def do_euler_calib(self):
+        cur_imu = self._bno.euler()
+        self._el_target = cur_imu[EL_SERVO_INDEX]
+        self._az_target = cur_imu[AZ_SERVO_INDEX]
+        
+        self._el_offset = cur_imu[EL_SERVO_INDEX] - self._el_last_raw
+        self._az_offset = cur_imu[AZ_SERVO_INDEX] - self._az_last_raw
+
         
     def do_move_mode(self):
-        el_delta_deg = self._el_target - self._el_last
-        az_delta_deg = self._az_target - self._az_last
+        el_delta_deg = self._el_target - ((self._el_last_raw + self._el_offset) % 360)
+        az_delta_deg = self._az_target - (self._az_last_raw - self._az_offset)
+
+        print("delta {} = {} - {} - {}".format(az_delta_deg, self._az_target, \
+                                               self._az_last_raw, self._az_offset)) 
 
         if self._el_moving or self._pinmode:
             # goes from 0 - 180, or whaterver max is
             if abs(el_delta_deg) < self._el_max_rate:
-                self._el_last = self._el_target
-                self._servo_mux.position(EL_SERVO_INDEX, self._el_last)
+                self._el_last_raw = self._el_last_raw + el_delta_deg
+                self._servo_mux.position(EL_SERVO_INDEX, self._el_last_raw)
+                self._servo_mux.release(EL_SERVO_INDEX)
                 self._el_moving = False
             else:
                 if el_delta_deg > 0:
-                    self._el_last = self._el_last + self._el_max_rate
+                    self._el_last_raw = self._el_last_raw + self._el_max_rate * self._el_direction
                 else:
-                    self._el_last = self._el_last - self._el_max_rate
-                self._servo_mux.position(EL_SERVO_INDEX, self._el_last)
+                    self._el_last_raw = self._el_last_raw - self._el_max_rate * self._el_direction
+                self._servo_mux.position(EL_SERVO_INDEX, self._el_last_raw)
                 self._el_moving = True
             
         if self._az_moving or self._pinmode:
-
+            # -90 to +90, but antenny can only move from 0 - 90
+            print(az_delta_deg)
             if abs(az_delta_deg) < self._az_max_rate:
-                self._az_last = self._az_target
-                self._servo_mux.position(AZ_SERVO_INDEX, self._az_last)
+                self._az_last_raw = self._az_last_raw + az_delta_deg
+                self._servo_mux.position(AZ_SERVO_INDEX, self._az_last_raw)
+                self._servo_mux.release(AZ_SERVO_INDEX)
                 self._az_moving = False
             else:
                 if az_delta_deg > 0:
-                    self._az_last = self._az_last + self._az_max_rate
+                    self._az_last_raw = self._az_last_raw + self._az_max_rate * self._az_direction
                 else:
-                    self._az_last = self._az_last - self._az_max_rate
-                self._servo_mux.position(AZ_SERVO_INDEX, self._az_last)
+                    self._az_last_raw = self._az_last_raw - self._az_max_rate * self._az_direction
+                self._servo_mux.position(AZ_SERVO_INDEX, self._az_last_raw)
                 self._az_moving = True
 
     def do_pin_mode(self):
@@ -462,14 +485,14 @@ class AntKontrol:
                         self.do_pin_mode()
                     else:
                         self.do_move_mode()
+                    time.sleep(0.1)
                 except Exception as e:
-                    logging.info(e)
-                    
-            time.sleep(0.05)
+                    logging.info(e)                    
+            time.sleep(0.1)
 
     def set_el_deg(self, deg):
         self._el_moving = True
-        self._el_target = deg
+        self._el_target = deg 
 
     def set_az_deg(self, deg):
         self._az_moving = True
@@ -478,7 +501,7 @@ class AntKontrol:
 
     @property
     def az(self):
-        return self._az_last
+        return self._az_last_raw
 
     @az.setter
     def az(self, deg):
