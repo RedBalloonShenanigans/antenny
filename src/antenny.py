@@ -29,10 +29,10 @@ class AntGPS:
         self.timestamp = None
         self.speed = None
         self.course = None
-        
+
     def start(self):
         self.update_gps()
-        
+
     def _update_gps(self):
         g_sentence = self._gps_uart.readline()
         while g_sentence:
@@ -50,14 +50,14 @@ class AntGPS:
             self.course = self._gps.course
 
             g_sentence = self._gps_uart.readline()
-            
+
     def update_gps(self):
         while True:
             try:
                 self._update_gps()
             except Exception as e:
                 logging.info(e)
-                
+
             time.sleep(1)
 
 
@@ -109,13 +109,13 @@ class AntKontrol:
 
         self._az_direction = -1
         self._el_direction = 1
-        
+
         # locks
         self.bno_lock = _thread.allocate_lock()
         self._loop = uasyncio.get_event_loop()
         self._gps = AntGPS()
         self._gps_thread = _thread.start_new_thread(self._gps.start, ())
-        
+
         self._i2c_servo_mux = machine.I2C(0, scl=Pin(21, Pin.OUT, Pin.PULL_DOWN), \
                                           sda=Pin(22, Pin.OUT, Pin.PULL_DOWN))
 
@@ -136,7 +136,7 @@ class AntKontrol:
         self._target_elevation_degree = None
 
         self._bno = BNO055(self._i2c_bno055, sign=(0,0,0))
-                
+
         self._euler = None
         self._pinned_euler = None
         self._pinned_servo_pos = None
@@ -155,7 +155,7 @@ class AntKontrol:
         self._el_last_raw = 90.0
         self._az_last_raw = 90.0
         self.do_euler_calib()
-        
+
         self._el_moving = False
         self._az_moving = False
 
@@ -180,11 +180,11 @@ class AntKontrol:
             self._servo_mux.degrees[1] = calib[1]
             self._el_offset = calib[2]
             self._az_offset = calib[3]
-            
+
     def conf_bno(self):
         with self.bno_lock:
             logging.info('Initializing BNO055')
-            
+
             self._bno.mode(0)
             time.sleep(0.1)
             self._bno.orient()
@@ -193,11 +193,11 @@ class AntKontrol:
             time.sleep(0.1)
             self._bno.mode(0x0C)
             logging.info('done initializing')
-        
+
     def update_az_el(self, az_degree, el_degree):
         self._target_azimuth_degree = az_degree
         self._target_elevation_degree = el_degree
-        
+
 
     def _measure_az(self, min_angle, max_angle):
         with self.bno_lock:
@@ -296,7 +296,7 @@ class AntKontrol:
         print ("a-center: {}".format(a_center))
         self._euler = self._bno.euler()
         self._az_offset = a_center-90.0
-        
+
     def auto_calibration(self):
         # read from BNO055 sensor, move antenna
         # soft home, etc
@@ -345,7 +345,7 @@ class AntKontrol:
 
         print("[{}] - [{}] [{}] - [{}]".format(x1,x2,y1,y2))
 
-        
+
     def calibrate_elevation(self):
         #while not self._bno.calibrated():
         #    self._bno.set_offsets()
@@ -364,7 +364,7 @@ class AntKontrol:
                                                           y_angle=y_angle,\
                                                           err_val=err_val))
             time.sleep(0.2)
-        
+
     def touch(self):
         #self._status_bno = self._bno.calibrated()
         #self._euler = self._bno.euler()
@@ -372,7 +372,7 @@ class AntKontrol:
         self._gps_position = [self._gps.latitude, self._gps.longitude]
         self._elevation_servo_position = self._servo_mux.position(EL_SERVO_INDEX)
         self._azimuth_servo_position = self._servo_mux.position(AZ_SERVO_INDEX)
-        
+
     def updateTelem(self):
         self.telem.updateTelem({'euler': self._euler})
         self.telem.updateTelem({'last_time': utime.ticks_ms()})
@@ -388,7 +388,7 @@ class AntKontrol:
             try:
                 self.touch()
                 self._screen.fill(0)
-                
+
                 self._screen.text("{:08.3f}".format(self._euler[0]), 0, 0)
                 self._screen.text("{:08.3f}".format(self._euler[1]), 0, 8)
                 self._screen.text("{:08.3f}".format(self._euler[2]), 0, 16)
@@ -406,7 +406,7 @@ class AntKontrol:
         self._pinned_euler = self._euler
         self._pinned_servo_pos = [self._el_last, self._az_last]
         self._pinmode = True
-        
+
     def unpin(self):
         self._pinned_euler = None
         self._pinned_servo_pos = None
@@ -416,17 +416,17 @@ class AntKontrol:
         cur_imu = self._bno.euler()
         self._el_target = cur_imu[EL_SERVO_INDEX]
         self._az_target = cur_imu[AZ_SERVO_INDEX]
-        
+
         self._el_offset = cur_imu[EL_SERVO_INDEX] - self._el_last_raw
         self._az_offset = cur_imu[AZ_SERVO_INDEX] - self._az_last_raw
 
-        
+
     def do_move_mode(self):
         el_delta_deg = self._el_target - ((self._el_last_raw + self._el_offset) % 360)
         az_delta_deg = self._az_target - (self._az_last_raw - self._az_offset)
 
         print("delta {} = {} - {} - {}".format(az_delta_deg, self._az_target, \
-                                               self._az_last_raw, self._az_offset)) 
+                                               self._az_last_raw, self._az_offset))
 
         if self._el_moving or self._pinmode:
             # goes from 0 - 180, or whaterver max is
@@ -442,7 +442,7 @@ class AntKontrol:
                     self._el_last_raw = self._el_last_raw - self._el_max_rate * self._el_direction
                 self._servo_mux.position(EL_SERVO_INDEX, self._el_last_raw)
                 self._el_moving = True
-            
+
         if self._az_moving or self._pinmode:
             # -90 to +90, but antenny can only move from 0 - 90
             print(az_delta_deg)
@@ -475,29 +475,29 @@ class AntKontrol:
             except:
                 print("BOO")
                 None
-                
+
     def move_loop(self):
         while True:
             while self._az_moving or self._el_moving or self._pinmode:
                 try:
-                    
+
                     if self._pinned_euler:
                         self.do_pin_mode()
                     else:
                         self.do_move_mode()
                     time.sleep(0.1)
                 except Exception as e:
-                    logging.info(e)                    
+                    logging.info(e)
             time.sleep(0.1)
 
     def set_el_deg(self, deg):
         self._el_moving = True
-        self._el_target = deg 
+        self._el_target = deg
 
     def set_az_deg(self, deg):
         self._az_moving = True
         self._az_target = deg
-        
+
 
     @property
     def az(self):
@@ -513,7 +513,7 @@ class AntKontrol:
 
     @az.setter
     def c_az(self, deg):
-        self.set_az_deg(deg+ self._az_offset) 
+        self.set_az_deg(deg+ self._az_offset)
 
     @property
     def c_el(self):
@@ -521,7 +521,7 @@ class AntKontrol:
 
     @az.setter
     def c_el(self, deg):
-        self.set_el_deg(deg + self._el_offset) 
+        self.set_el_deg(deg + self._el_offset)
 
     @property
     def el(self):
