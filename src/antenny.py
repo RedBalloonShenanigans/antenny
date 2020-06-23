@@ -12,13 +12,16 @@ from servtor import ServTor
 from micropyGPS import MicropyGPS
 import socket
 
-EL_SERVO_INDEX = 0
-AZ_SERVO_INDEX = 1
+import config as cfg
+
+EL_SERVO_INDEX = cfg.get("elevation_servo_index")
+AZ_SERVO_INDEX = cfg.get("azimuth_servo_index")
 
 class AntGPS:
     def __init__(self):
         self._gps_uart = machine.UART(1, 9600)
-        self._gps_uart.init(tx=33, rx=27)
+        self._gps_uart.init(tx=cfg.get("gps_uart_tx"),
+                rx=cfg.get("gps_uart_rx"))
         self._gps = MicropyGPS()
         self._loop = uasyncio.get_event_loop()
 
@@ -70,14 +73,14 @@ class TelemetrySenderUDP:
         self.cur_telem['euler'] = ()
         self.cur_telem['gps'] = ()
         self.cur_telem['last_time'] = 0
-        self.dstaddr = "224.11.11.11"
-        self.dstport = 31337
+        self.dstaddr = cfg.get("telem_destaddr")
+        self.dstport = cfg.get("telem_destport")
         self.mcast_send_socket = None
         self.initSocket()
 
     def initSocket(self):
-        self.mcast_send_socket = socket.socket(socket.AF_INET, \
-                                                socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        self.mcast_send_socket = socket.socket(socket.AF_INET,
+                socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         #self.mcast_send_socket.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
 
     def set_destination(self, multicast_ipaddr):
@@ -116,14 +119,19 @@ class AntKontrol:
         self._gps = AntGPS()
         self._gps_thread = _thread.start_new_thread(self._gps.start, ())
 
-        self._i2c_servo_mux = machine.I2C(0, scl=Pin(21, Pin.OUT, Pin.PULL_DOWN), \
-                                          sda=Pin(22, Pin.OUT, Pin.PULL_DOWN))
+        self._i2c_servo_mux = machine.I2C(0, scl=Pin(cfg.get("i2c_servo_scl"),
+            Pin.OUT, Pin.PULL_DOWN), sda=Pin(cfg.get("i2c_servo_sda"), Pin.OUT,
+                Pin.PULL_DOWN))
 
-        self._i2c_bno055 = machine.I2C(1, scl=machine.Pin(19, Pin.OUT, Pin.PULL_DOWN), \
-                                       sda=machine.Pin(23, Pin.OUT, Pin.PULL_DOWN))
+        self._i2c_bno055 = machine.I2C(1,
+                scl=machine.Pin(cfg.get("i2c_bno_scl"), Pin.OUT,
+                    Pin.PULL_DOWN), sda=machine.Pin(cfg.get("i2c_bno_sda"),
+                        Pin.OUT, Pin.PULL_DOWN))
         # on [60] ssd1306
-        self._i2c_screen = machine.I2C(-1, scl=machine.Pin(25, Pin.OUT, Pin.PULL_DOWN), \
-                                       sda=machine.Pin(26, Pin.OUT, Pin.PULL_DOWN))
+        self._i2c_screen = machine.I2C(-1,
+                scl=machine.Pin(cfg.get("i2c_screen_scl"), Pin.OUT,
+                    Pin.PULL_DOWN), sda=machine.Pin(cfg.get("i2c_screen_sda"),
+                        Pin.OUT, Pin.PULL_DOWN))
         self._pinmode = False
         # Sync time
         # Find latitude and longitude
@@ -159,8 +167,8 @@ class AntKontrol:
         self._el_moving = False
         self._az_moving = False
 
-        self._el_max_rate = .1
-        self._az_max_rate = .1
+        self._el_max_rate = cfg.get("elevation_max_rate")
+        self._az_max_rate = cfg.get("azimuth_max_rate")
 
         self._orientation_thread = _thread.start_new_thread(self.update_orientation, ())
         logging.info("starting screen thread")
