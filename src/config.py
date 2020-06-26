@@ -9,7 +9,7 @@ import os
 # Global variables and default values
 #####################################
 
-CONFIG_FILENAME = "config.json"
+CONFIG_FILENAME = ""
 _config = None
 _defaults = {
                 # Elevation/azimuth servo defaults
@@ -51,7 +51,6 @@ def _save():
         ujson.dump(_config, f)
 
 
-
 ####################
 # Inteface functions
 ####################
@@ -63,8 +62,20 @@ def reload():
         with open(CONFIG_FILENAME, "r") as f:
             _config = ujson.load(f)
     except OSError:
+        print("OSError on reload")
         _config = {}
 
+def new(name):
+    global CONFIG_FILENAME
+    CONFIG_FILENAME = name
+    with open(CONFIG_FILENAME, "w") as f:
+        ujson.dump(_defaults, f)
+    reload()
+
+def switch(name):
+    global CONFIG_FILENAME
+    CONFIG_FILENAME = name
+    reload()
 
 def get(key):
     global _config
@@ -78,6 +89,9 @@ def get(key):
     else:
         return _config[key]
 
+def get_default(key):
+    global _defaults
+    return _defaults[key]
 
 def set(key, value):
     global _config
@@ -134,6 +148,9 @@ def remove_backup():
     except OSError:
         pass
 
+
+def current_file():
+    return CONFIG_FILENAME
 
 ###################################
 # Main function -- loaded on import
