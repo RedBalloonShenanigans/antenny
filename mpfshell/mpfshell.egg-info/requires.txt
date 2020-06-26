@@ -1,0 +1,3 @@
+pyserial
+colorama
+websocket_client

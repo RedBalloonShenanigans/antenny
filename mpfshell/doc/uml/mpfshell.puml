@@ -1,0 +1,10 @@
+@startuml
+
+class Pyboard
+class MpFileExplorer
+class MpFileShell
+
+Pyboard <|- MpFileExplorer
+MpFileExplorer <- MpFileShell
+
+@enduml

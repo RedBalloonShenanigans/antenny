@@ -1,0 +1,12 @@
+Metadata-Version: 1.1
+Name: mpfshell
+Version: 0.9.1
+Summary: A simple shell based file explorer for ESP8266 and WiPy Micropython devices.
+Home-page: https://github.com/wendlers/mpfshell
+Author: Stefan Wendler
+Author-email: sw@kaltpost.de
+License: UNKNOWN
+Download-URL: https://github.com/wendlers/mpfshell/archive/0.8.1.tar.gz
+Description: UNKNOWN
+Keywords: micropython,shell,file transfer,development
+Platform: UNKNOWN

@@ -1,0 +1,3 @@
+[console_scripts]
+mpfshell = mp.mpfshell:main
+
