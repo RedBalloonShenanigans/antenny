@@ -6,14 +6,18 @@
 
 2016-06-21, sw@kaltpost.de
 
-A simple shell based file explorer for ESP8266 and WiPy
-[Micropython](https://github.com/micropython/micropython) based devices.
+A FORK of a simple shell based file explorer for ESP8266 and WiPy
+[Micropython](https://github.com/micropython/micropython) based devices, modified for
+the Antenny project.
 
 The shell is a helper for up/downloading files to the ESP8266 (over serial line and Websockets)
 and WiPy (serial line and telnet). It basically offers commands to list and upload/download
 files on the flash FS of the device.
 
+New features:
+
 ![mpfshell](./doc/screenshot.png)
+
 
 Main features:
 

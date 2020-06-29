@@ -196,8 +196,11 @@ class MpFileShell(cmd.Cmd):
             self.do_exec("config.set(\"%s\", %s)" % (key, val))
 
     def __config_get(self, key):
-        command = "config.get(\"{}\")".format(key).encode('utf-8')
-        return self.fe.eval_string_mode(command).decode()
+        command = "config.get(\"{}\")".format(key)
+        return self.fe.eval_string_expr(command)
+
+    def __which_config(self):
+        return self.fe.eval_string_expr("config.current_file()")
 
     def do_exit(self, args):
         """exit
@@ -251,7 +254,6 @@ class MpFileShell(cmd.Cmd):
         """ls
         List remote files.
         """
-
         if self.__is_open():
             try:
                 files = self.fe.ls(add_details=True)
@@ -776,10 +778,20 @@ class MpFileShell(cmd.Cmd):
     complete_edit = complete_get
 
     def do_setup(self, args):
-        """setup
-        Interactive script to populate the initial config file.
+        """setup <CONFIG_FILE>
+        Interactive script to populate a config file.
+        Switches to new config after finishing setup.
         """
-        if self.__is_open():
+        if not len(args):
+            self.__error("Missing argument: <CONFIG_FILE>")
+        
+        elif self.__is_open():
+            s_args = self.__parse_file_names(args)
+            name, = s_args 
+            current = self.__which_config()
+
+            self.do_exec("config.new(\"{}\")".format(name))
+
             print(colorama.Fore.GREEN +
                     "Welcome to Antenny!" +
                     colorama.Fore.RESET)
@@ -790,17 +802,23 @@ class MpFileShell(cmd.Cmd):
                 try:
                     new_val = typ(input(prompt_text))
                 except ValueError:
-                    new_val = config._defaults[k] 
+                    self.__error("Invalid type, setting to default.\nUse \"set\" to" \
+                            "change the parameter")
+                    new_val = self.fe.eval_string_expr("config.get_default(\"{}\")".format(k))
 
                 self.__config_set(k, new_val)
 
+            if self.caching:
+                self.fe.cache = {}
+
             print(colorama.Fore.GREEN +
-                    "\nConfiguration set!\n" +
+                    "\nConfiguration set for \"{}\"!\n".format(name) +
                     colorama.Fore.RESET +
                     "You can use \"set\" to change individual parameters\n" \
-                    "or \"edit config.json\" to change the config file " \
+                    "or \"edit\" to change the config file " \
                     "directly")
         
+
 
     def do_set(self, args):
         """set <CONFIG_PARAM> <NEW_VAL>
@@ -841,8 +859,11 @@ class MpFileShell(cmd.Cmd):
         """configs
         Print a list of all configuration parameters."""
         if self.__is_open():
+        
             print(colorama.Fore.GREEN +
                     "-Config parameters-\n" +
+                    colorama.Fore.CYAN +
+                    "Using \"{}\"".format(self.__which_config()) +
                     colorama.Fore.RESET)
             for key in self.prompts.keys():
                 print(key + ": " + self.__config_get(key))
@@ -869,7 +890,6 @@ class MpFileShell(cmd.Cmd):
     def do_switch(self, args):
         """switch <CONFIG_FILE>
         Switch to using a different config file."""
-        """
         if not len(args):
             self.__error("Missing arguments: <config_file>")
     
@@ -878,10 +898,24 @@ class MpFileShell(cmd.Cmd):
             if len(s_args) > 1:
                 self.__error("Usage: switch <CONFIG_FILE>")
                 return
-            name, = s_args 
-            self.do_exec("config.switch({})".format(name))
-        """
-        pass
+            name, = s_args
+            files = self.fe.ls()
+            if name not in files:
+                self.__error("No such file")
+                return
+            current = self.__which_config()
+            self.do_exec("config.switch(\"{}\")".format(name))
+            print(colorama.Fore.GREEN + 
+                    "Switched from \"{}\"".format(current) +
+                    "to \"{}\"".format(name))
+
+    def complete_switch(self, *args):
+        try:
+            files = self.fe.ls(add_dirs=False)
+        except Exception:
+            files = []
+        current = self.__which_config() 
+        return [f for f in files if f.startswith(args[0]) and f.endswith(".json")]
 
 
 def main():
