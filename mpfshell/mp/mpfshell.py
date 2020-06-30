@@ -51,7 +51,7 @@ class MpFileShell(cmd.Cmd):
             cmd.Cmd.__init__(self, stdout=colorama.initialise.wrapped_stdout)
         else:
             cmd.Cmd.__init__(self)
-        
+
         self.emptyline = lambda : None
 
         if platform.system() == "Windows":
@@ -611,7 +611,7 @@ class MpFileShell(cmd.Cmd):
                 self.__error(str(e))
             except PyboardError as e:
                 self.__error(str(e))
-    
+
     def do_repl(self, args):
         """repl
         Enter Micropython REPL.
@@ -755,7 +755,7 @@ class MpFileShell(cmd.Cmd):
         """
         if not len(args):
             self.__error("Missing argument: <REMOTE_FILE>")
-        
+
         elif self.__is_open():
             try:
                 self.do_get(args)
@@ -767,7 +767,7 @@ class MpFileShell(cmd.Cmd):
                     pass
 
             rfile_name, = self.__parse_file_names(args)
-            if platform.system() == 'Windows':    
+            if platform.system() == 'Windows':
                 EDITOR = os.environ.get('EDITOR', 'notepad')
                 subprocess.call([EDITOR, rfile_name], shell=True)
             else:
@@ -784,10 +784,10 @@ class MpFileShell(cmd.Cmd):
         """
         if not len(args):
             self.__error("Missing argument: <CONFIG_FILE>")
-        
+
         elif self.__is_open():
             s_args = self.__parse_file_names(args)
-            name, = s_args 
+            name, = s_args
             current = self.__which_config()
 
             self.do_exec("config.new(\"{}\")".format(name))
@@ -817,7 +817,7 @@ class MpFileShell(cmd.Cmd):
                     "You can use \"set\" to change individual parameters\n" \
                     "or \"edit\" to change the config file " \
                     "directly")
-        
+
 
 
     def do_set(self, args):
@@ -854,12 +854,12 @@ class MpFileShell(cmd.Cmd):
             return [key for key in self.prompts.keys() if key.startswith(args[0])]
         else:
             return []
-    
+
     def do_configs(self, args):
         """configs
         Print a list of all configuration parameters."""
         if self.__is_open():
-        
+
             print(colorama.Fore.GREEN +
                     "-Config parameters-\n" +
                     colorama.Fore.CYAN +
@@ -892,7 +892,7 @@ class MpFileShell(cmd.Cmd):
         Switch to using a different config file."""
         if not len(args):
             self.__error("Missing arguments: <config_file>")
-    
+
         elif self.__is_open():
             s_args = self.__parse_file_names(args)
             if len(s_args) > 1:
@@ -905,7 +905,7 @@ class MpFileShell(cmd.Cmd):
                 return
             current = self.__which_config()
             self.do_exec("config.switch(\"{}\")".format(name))
-            print(colorama.Fore.GREEN + 
+            print(colorama.Fore.GREEN +
                     "Switched from \"{}\"".format(current) +
                     "to \"{}\"".format(name))
 
@@ -914,8 +914,35 @@ class MpFileShell(cmd.Cmd):
             files = self.fe.ls(add_dirs=False)
         except Exception:
             files = []
-        current = self.__which_config() 
+        current = self.__which_config()
         return [f for f in files if f.startswith(args[0]) and f.endswith(".json")]
+
+    def do_telemetry(self, args):
+        """telemetry
+        Print telemetry data directly from the board. Show data such as motor
+        status, IMU status, etc.
+        """
+        print("Telemetry data:")
+        print("IMU status: ", end="")
+        print(self.fe.eval_string_expr("a.imu_status()"))
+        print("Motor status: ", end="")
+        print(self.fe.eval_string_expr("a.motor_status()"))
+
+    def do_calibrate(self, args):
+        """calibrate
+        Run a calibration routine on antenny to ensure the IMU is set up and
+        oriented correctly.
+        """
+        print("Running calibration routine...")
+        print(self.fe.eval_string_expr("a.calibration_routine()"))
+
+    def do_motortest(self, args):
+        """motortest
+        Test the motors to plot their accuracy against the measured IMU values.
+        """
+        print("Running motor testing routine...")
+        print(self.fe.eval_string_expr("a.motor_test()"))
+
 
 
 def main():
