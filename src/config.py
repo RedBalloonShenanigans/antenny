@@ -90,19 +90,20 @@ def reload():
 
 def new(name):
     """Create a new configuration file and ensure each call to "reload" uses
-    the correct file.
+    the correct file. Does not overwrite if the file already exists.
     """
     global _config_filename
+    global _defaults
 
+    if _config_filename == _defaults["last_loaded"]:
+        set("last_loaded", name)
     _config_filename = name
-    with open(_config_filename, "w") as f:
-        ujson.dump(_defaults, f)
     reload()
 
 
 def switch(name):
     """Switch the configuration file being used."""
-    set("config_filename", name)
+    new(name)
 
 
 def get(key, call_reload=True):
@@ -117,7 +118,7 @@ def get(key, call_reload=True):
         reload()
 
     if key not in _config:
-        get_default(key)
+        get_default(key, call_reload=call_reload)
     else:
         return _config[key]
 
@@ -148,6 +149,9 @@ def print_values():
     """Print the value of all user-set and default keys."""
     global _config
     global _defaults
+
+    print("Using configuration file %s" % _config_filename)
+    print()
 
     if _config:
         print("Config values:")
