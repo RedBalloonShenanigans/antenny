@@ -1,3 +1,11 @@
 # Ignore Vim swap files
 *.swp
 *.swo
+
+# Generated Python files
+*.pyc
+
+# mpfshell build files
+mpfshell/build/*
+mpfshell/dist/*
+mpfshell/mpfshell.egg-info/*
