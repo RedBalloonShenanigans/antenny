@@ -24,6 +24,7 @@
 
 
 import argparse
+# import cmd2 as cmd
 import cmd
 import glob
 import io
@@ -1003,6 +1004,39 @@ class MpFileShell(cmd.Cmd):
         """
         print("Running motor testing routine...")
         print(self.fe.eval_string_expr("a.motor_test()"))
+
+    def do_elevation(self, args):
+        """elevation <ELEVATION>
+        Set the elevation to the level given in degrees by the first argument.
+        """
+        if not len(args):
+            self.__error("Missing argument: <ELEVATION>")
+        try:
+            el = float(args)
+            print(self.fe.eval_string_expr("a.set_el_deg({})".format(el)))
+        except ValueError:
+            print("<ELEVATION> must be a floating point number!")
+
+    def do_azimuth(self, args):
+        """azimuth <AZIMUTH>
+        Set the azimuth to the level given in degrees by the first argument.
+        """
+        if not len(args):
+            self.__error("Missing argument: <AZIMUTH>")
+        try:
+            az = float(args)
+            print(self.fe.eval_string_expr("a.set_az_deg({})".format(az)))
+        except ValueError:
+            print("<AZIMUTH> must be a floating point number!")
+
+    def do_antkontrol(self, args):
+        """antkontrol
+        Create a new global AntKontrol instance
+        """
+        ret, ret_err = self.fe.exec_raw("import antenny")
+        ret, ret_err = self.fe.exec_raw("a = antenny.AntKontrol()")
+        print(ret.decode("utf-8"))
+        print(ret_err.decode("utf-8"))
 
 
 
