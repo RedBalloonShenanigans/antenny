@@ -968,6 +968,14 @@ class MpFileShell(cmd.Cmd):
         except ValueError:
             print("<AZIMUTH> must be a floating point number!")
 
+    def do_antkontrol(self, args):
+        """antkontrol
+        Create a new global AntKontrol instance
+        """
+        ret, ret_err = self.fe.exec_raw("import antenny")
+        ret, ret_err = self.fe.exec_raw("a = antenny.AntKontrol()")
+        print(ret.decode("utf-8"))
+        print(ret_err.decode("utf-8"))
 
 
 
