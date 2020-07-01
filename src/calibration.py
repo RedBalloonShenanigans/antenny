@@ -49,6 +49,9 @@ def calibration_status():
 def save_calibration():
     """
     Save data currently stored in IMU calibration registers to the config file.
+
+    Calibration data consists of sensor offsets and sensor radius: switch into
+    config mode, read/write, then switch out
     """
     try:
         i2c_bno055 = machine.I2C(1, scl=Pin(config.get('i2c_bno_scl'), Pin.OUT, Pin.PULL_UP), \
@@ -87,14 +90,3 @@ def upload_calibration():
     bno.mode(old_mode)
     return True
     
-
-
-
-# Section 3.10.4 of <https://cdn-shop.adafruit.com/datasheets/BST_BNO055_DS000_12.pdf>
-# and 3.6.4
-# Calibration data consists of sensor offsets and sensor radius
-# Switch into config mode, read/write, then switch out
-
-# Reads 1 byte from address
-# bno._read()
-
