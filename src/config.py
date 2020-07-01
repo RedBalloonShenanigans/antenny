@@ -43,6 +43,31 @@ _defaults = {
                 "tank_left": [1,2],
                 "tank_right": [0,3],
                 "tank_motors": [0,1,2,3],
+
+                # IMU calibration - cf. section 3.6.4 "Sensor calibration data" in
+                # Bosch BNO055 datasheet. Default values are all zero
+                "acc_offset_x_lsb": 0,
+                "acc_offset_x_msb": 0,
+                "acc_offset_y_lsb": 0,
+                "acc_offset_y_msb": 0,
+                "acc_offset_z_lsb": 0,
+                "acc_offset_z_msb": 0,
+                "mag_offset_x_lsb": 0,
+                "mag_offset_x_msb": 0,
+                "mag_offset_y_lsb": 0,
+                "mag_offset_y_msb": 0,
+                "mag_offset_z_lsb": 0,
+                "mag_offset_z_msb": 0,
+                "gyr_offset_x_lsb": 0,
+                "gyr_offset_x_msb": 0,
+                "gyr_offset_y_lsb": 0,
+                "gyr_offset_y_msb": 0,
+                "gyr_offset_z_lsb": 0,
+                "gyr_offset_z_msb": 0,
+                "acc_radius_lsb": 0,
+                "acc_radius_msb": 0,
+                "mag_radius_lsb": 0,
+                "mag_radius_msb": 0
             }
 
 
