@@ -15,6 +15,10 @@ _defaults = {
                 # Default configuration file to load
                 "last_loaded": "config.json",
 
+                # Disable optional hardware features
+                "use_gps": False,
+                "use_screen": False,
+
                 # Elevation/azimuth servo defaults
                 "elevation_servo_index": 0,
                 "azimuth_servo_index": 1,
@@ -118,7 +122,7 @@ def get(key, call_reload=True):
         reload()
 
     if key not in _config:
-        get_default(key, call_reload=call_reload)
+        return get_default(key, call_reload=call_reload)
     else:
         return _config[key]
 
