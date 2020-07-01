@@ -351,7 +351,7 @@ class AntKontrol:
         self._euler = self._bno.euler()
         y2 = self._euler[1]
 
-        print("[{}] - [{}] [{}] - [{}]".format(x1,x2,y1,y2))
+        return ("[{}] - [{}] [{}] - [{}]".format(x1,x2,y1,y2))
 
 
     def calibrate_elevation(self):
@@ -563,3 +563,25 @@ class AntKontrol:
             self._servo_mux.speed(i, abs(speed))
         for i in self.TANK_LEFT:
             self._servo_mux.speed(i, -1*abs(speed))
+
+    def imu_status(self):
+        output = ""
+        output += 'Temperature {}°C'.format(self._bno.temperature()) + "\n"
+        output += 'Mag       x {:5.0f}    y {:5.0f}     z {:5.0f}'.format(*self._bno.mag()) + "\n"
+        output += 'Gyro      x {:5.0f}    y {:5.0f}     z {:5.0f}'.format(*self._bno.gyro()) + "\n"
+        output += 'Accel     x {:5.1f}    y {:5.1f}     z {:5.1f}'.format(*self._bno.accel()) + "\n"
+        output += 'Lin acc.  x {:5.1f}    y {:5.1f}     z {:5.1f}'.format(*self._bno.lin_acc()) + "\n"
+        output += 'Gravity   x {:5.1f}    y {:5.1f}     z {:5.1f}'.format(*self._bno.gravity()) + "\n"
+        output += 'Heading     {:4.0f} roll {:4.0f} pitch {:4.0f}'.format(*self._bno.euler()) + "\n"
+        return output
+
+    def motor_status(self):
+        # TODO
+        pass
+
+    def calibration_routine(self):
+        return self.auto_calibration()
+
+    def motor_test(self):
+        # TODO
+        pass
