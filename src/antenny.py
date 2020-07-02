@@ -172,6 +172,8 @@ class AntKontrol:
 
         self._orientation_thread = _thread.start_new_thread(self.update_orientation, ())
         logging.info("starting screen thread")
+        self._run_telem_thread = True
+        self._telem_thread = _thread.start_new_thread(self.send_telem, ())
         self._screen_thread = _thread.start_new_thread(self.display_status, ())
         self._move_thread = _thread.start_new_thread(self.move_loop, ())
 
@@ -403,9 +405,16 @@ class AntKontrol:
                 #self._screen.text("{:08.3f}".format(self._gps_position[0]), 64, 0)
                 #self._screen.text("{:08.3f}".format(self._gps_position[1]), 64, 8)
                 self._screen.show()
+            except Exception as e:
+                logging.info("here{}".format(str(e)))
+            time.sleep(.2)
+
+    def send_telem(self):
+        while self._run_telem_thread:
+            try:
+                self.touch()
                 self.updateTelem()
                 self.telem.sendTelemTick()
-
             except Exception as e:
                 logging.info("here{}".format(str(e)))
             time.sleep(.2)

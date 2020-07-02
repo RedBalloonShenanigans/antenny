@@ -34,6 +34,7 @@ import platform
 import sys
 import tempfile
 import subprocess
+import time
 
 import colorama
 import serial
@@ -940,7 +941,7 @@ class MpFileShell(cmd.Cmd):
         """
         if args:
             self.__error("Usage: calibrate does not take arguments.")
-            return 
+            return
 
         if self.__is_open():
             print("Detecting calibration status ...")
@@ -949,7 +950,7 @@ class MpFileShell(cmd.Cmd):
                 self.__error("Error: BNO055 not detected.")
                 return
 
-            (system_calibration, gyro_calibration, 
+            (system_calibration, gyro_calibration,
                 accel_calibration, magnet_calibration) = data
 
             yes_display_string = colorama.Fore.GREEN + "YES" + colorama.Fore.RESET
@@ -963,7 +964,7 @@ class MpFileShell(cmd.Cmd):
                         yes_display_string if accel_calibration else no_display_string)
                 print("Magnetometer calibrated?",
                         yes_display_string if magnet_calibration else no_display_string, "\n")
-                
+
                 if not gyro_calibration:
                     print(f" - {self.GYRO_CALIBRATION_MESSAGE}")
                 if not accel_calibration:
@@ -977,7 +978,7 @@ class MpFileShell(cmd.Cmd):
         """
         if args:
             self.__error("Usage: save_calibration does not take arguments.")
-            return 
+            return
 
         if self.__is_open():
             status = self.fe.eval_string_expr("calibration.save_calibration()")
@@ -990,7 +991,7 @@ class MpFileShell(cmd.Cmd):
         """
         if args:
             self.__error("Usage: upload_calibration does not take arguments.")
-            return 
+            return
 
         if self.__is_open():
             status = self.fe.eval_string_expr("calibration.upload_calibration()")
@@ -1037,6 +1038,19 @@ class MpFileShell(cmd.Cmd):
         ret, ret_err = self.fe.exec_raw("a = antenny.AntKontrol()")
         print(ret.decode("utf-8"))
         print(ret_err.decode("utf-8"))
+
+    def do_starttelemetry(self, args):
+        """startelemetry
+        Start a telemetry data sender on antenny over UDP. Restarts the
+        telemetry thread if it is already running (which it is by default).
+        """
+        print("Stopping existing telemetry-sending thread...")
+        ret, ret_err = self.fe.exec_raw("a._run_telem_thread = False")
+        time.sleep(1)
+        print("Starting a new telemetry-sending thread...")
+        ret, ret_err = self.fe.exec_raw("a._run_telem_thread = True")
+        self.fe.eval_string_expr("a._telem_thread = antenny._thread.start_new_thread(a.send_telem, ())")
+
 
 
 
