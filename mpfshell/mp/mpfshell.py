@@ -24,6 +24,7 @@
 
 
 import argparse
+# import cmd2 as cmd
 import cmd
 import glob
 import io
@@ -45,6 +46,11 @@ from mp.tokenizer import Tokenizer
 
 
 class MpFileShell(cmd.Cmd):
+
+    GYRO_CALIBRATION_MESSAGE = "To calibrate the gyroscope, let the sensor rest on a level surface for a few seconds."
+    ACCEL_CALIBRATION_MESSAGE = "To calibrate the accelerometer, slowly move the sensor into >=6 distinct orientations, some perpendicular to the xyz axes."
+    MAGNET_CALIBRATION_MESSAGE = "To calibrate the magnetometer, move the sensor in figure-8 shapes through the air a few times."
+
     def __init__(self, color=False, caching=False, reset=False):
         if color:
             colorama.init()
@@ -930,11 +936,67 @@ class MpFileShell(cmd.Cmd):
 
     def do_calibrate(self, args):
         """calibrate
-        Run a calibration routine on antenny to ensure the IMU is set up and
-        oriented correctly.
+        Detect IMU calibration status and provide instructions on how to calibrate if necessary.
         """
-        print("Running calibration routine...")
-        print(self.fe.eval_string_expr("a.calibration_routine()"))
+        if args:
+            self.__error("Usage: calibrate does not take arguments.")
+            return 
+
+        if self.__is_open():
+            print("Detecting calibration status ...")
+            data = eval(self.fe.eval_string_expr("calibration.calibration_status()"))
+            if not data:
+                self.__error("Error: BNO055 not detected.")
+                return
+
+            (system_calibration, gyro_calibration, 
+                accel_calibration, magnet_calibration) = data
+
+            yes_display_string = colorama.Fore.GREEN + "YES" + colorama.Fore.RESET
+            no_display_string = colorama.Fore.RED + "NO" + colorama.Fore.RESET
+
+            print("System calibrated?", f"{yes_display_string}" if system_calibration else no_display_string)
+            if not system_calibration:
+                print("Gyroscope calibrated?",
+                        yes_display_string if gyro_calibration else no_display_string)
+                print("Accelerometer calibrated?",
+                        yes_display_string if accel_calibration else no_display_string)
+                print("Magnetometer calibrated?",
+                        yes_display_string if magnet_calibration else no_display_string, "\n")
+                
+                if not gyro_calibration:
+                    print(f" - {self.GYRO_CALIBRATION_MESSAGE}")
+                if not accel_calibration:
+                    print(f" - {self.ACCEL_CALIBRATION_MESSAGE}")
+                if not magnet_calibration:
+                    print(f" - {self.MAGNET_CALIBRATION_MESSAGE}")
+
+    def do_save_calibration(self, args):
+        """save_calibration
+        Save current IMU calibration data to the current configuration.
+        """
+        if args:
+            self.__error("Usage: save_calibration does not take arguments.")
+            return 
+
+        if self.__is_open():
+            status = self.fe.eval_string_expr("calibration.save_calibration()")
+            if not status:
+                self.__error("Error: BNO055 not detected or error in reading calibration registers.")
+
+    def do_upload_calibration(self, args):
+        """upload_calibration
+        Upload the currently stored calibration data to the connected IMU.
+        """
+        if args:
+            self.__error("Usage: upload_calibration does not take arguments.")
+            return 
+
+        if self.__is_open():
+            status = self.fe.eval_string_expr("calibration.upload_calibration()")
+            if not status:
+                self.__error("Error: BNO055 not detected or error in writing calibration registers.")
+
 
     def do_motortest(self, args):
         """motortest
@@ -942,6 +1004,39 @@ class MpFileShell(cmd.Cmd):
         """
         print("Running motor testing routine...")
         print(self.fe.eval_string_expr("a.motor_test()"))
+
+    def do_elevation(self, args):
+        """elevation <ELEVATION>
+        Set the elevation to the level given in degrees by the first argument.
+        """
+        if not len(args):
+            self.__error("Missing argument: <ELEVATION>")
+        try:
+            el = float(args)
+            print(self.fe.eval_string_expr("a.set_el_deg({})".format(el)))
+        except ValueError:
+            print("<ELEVATION> must be a floating point number!")
+
+    def do_azimuth(self, args):
+        """azimuth <AZIMUTH>
+        Set the azimuth to the level given in degrees by the first argument.
+        """
+        if not len(args):
+            self.__error("Missing argument: <AZIMUTH>")
+        try:
+            az = float(args)
+            print(self.fe.eval_string_expr("a.set_az_deg({})".format(az)))
+        except ValueError:
+            print("<AZIMUTH> must be a floating point number!")
+
+    def do_antkontrol(self, args):
+        """antkontrol
+        Create a new global AntKontrol instance
+        """
+        ret, ret_err = self.fe.exec_raw("import antenny")
+        ret, ret_err = self.fe.exec_raw("a = antenny.AntKontrol()")
+        print(ret.decode("utf-8"))
+        print(ret_err.decode("utf-8"))
 
 
 
