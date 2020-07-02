@@ -17,6 +17,33 @@ import config as cfg
 EL_SERVO_INDEX = cfg.get("elevation_servo_index")
 AZ_SERVO_INDEX = cfg.get("azimuth_servo_index")
 
+# Registers 0x55 through 0x6A are used for storing calibration data. Address
+# reference can be found in BNO055 datasheet, section 4.3 "Register Description"
+IMU_CALIBRATION_REGISTERS = {
+    "acc_offset_x_lsb": 0x55,
+    "acc_offset_x_msb": 0x56,
+    "acc_offset_y_lsb": 0x57,
+    "acc_offset_y_msb": 0x58,
+    "acc_offset_z_lsb": 0x59,
+    "acc_offset_z_msb": 0x5A,
+    "mag_offset_x_lsb": 0x5B,
+    "mag_offset_x_msb": 0x5C,
+    "mag_offset_y_lsb": 0x5D,
+    "mag_offset_y_msb": 0x5E,
+    "mag_offset_z_lsb": 0x5F,
+    "mag_offset_z_msb": 0x60,
+    "gyr_offset_x_lsb": 0x61,
+    "gyr_offset_x_msb": 0x62,
+    "gyr_offset_y_lsb": 0x63,
+    "gyr_offset_y_msb": 0x64,
+    "gyr_offset_z_lsb": 0x65,
+    "gyr_offset_z_msb": 0x66,
+    "acc_radius_lsb": 0x67,
+    "acc_radius_msb": 0x68,
+    "mag_radius_lsb": 0x69,
+    "mag_radius_msb": 0x6A
+}
+
 class AntGPS:
     def __init__(self):
         self._gps_uart = machine.UART(1, 9600)
@@ -585,3 +612,39 @@ class AntKontrol:
     def motor_test(self):
         # TODO
         pass
+
+    def calibration_status(self):
+        """
+        Returns the calibration values of the connected IMU in tuple form:
+        (system, gyro, accelerometer, magnetometer)
+        """
+        return tuple(self._bno.cal_status())
+
+    def save_calibration(self):
+        """
+        Save data currently stored in IMU calibration registers to the config file.
+
+        Calibration data consists of sensor offsets and sensor radius: switch into
+        config mode, read/write, then switch out
+        """
+        old_mode = self._bno.mode(CONFIG_MODE)
+        for register_name, register_address in IMU_CALIBRATION_REGISTERS.items():
+            try:
+                cfg.set(register_name, self._bno._read(register_address))
+            except OSError:
+                return None
+        self._bno.mode(old_mode)
+        return True
+
+    def upload_calibration(self):
+        """
+        Upload stored calibration values to the connected IMU.
+        """
+        old_mode = self._bno.mode(CONFIG_MODE)
+        for register_name, register_address in IMU_CALIBRATION_REGISTERS.items():
+            try:
+                self._bno._write(register_address, cfg.get(register_name))
+            except OSError:
+                return None
+        self._bno.mode(old_mode)
+        return True
