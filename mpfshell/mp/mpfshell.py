@@ -34,6 +34,7 @@ import platform
 import sys
 import tempfile
 import subprocess
+import shutil
 
 import colorama
 import serial
@@ -934,21 +935,22 @@ class MpFileShell(cmd.Cmd):
         print("Motor status: ", end="")
         print(self.fe.eval_string_expr("a.motor_status()"))
 
-    def _calibration_wait_message(self, gyro_calibrated: bool, accel_calibrated: bool, magnet_calibrated: bool) -> str:
+    def _calibration_wait_message(self, gyro_calibrated, accel_calibrated, magnet_calibrated, use_ellipsis=True):
         """
         Generate a human-readable message that indicates which components remain
         to be calibrated, e.g. if all the arguments are True, then it should
         return the string "Waiting for gyroscope, accelerometer and magnetometer
-        to be calibrated".
+        to be calibrated...".
         """
         components = ((['gyroscope'] if not gyro_calibrated else []) +
                       (['accelerometer'] if not accel_calibrated else []) +
                       (['magnetometer'] if not magnet_calibrated else []))
         components_list_string = ', '.join(components[:-2] + [" and ".join(components[-2:])])
         if components:
-            return "Waiting for " + components_list_string + " to be calibrated ..."
+            return ("Waiting for " + components_list_string +
+                    " to be calibrated" + ("..." if use_ellipsis else ""))
         else:
-            return ""
+            return "All components calibrated!"
 
     def do_calibrate(self, args):
         """calibrate
@@ -978,54 +980,77 @@ class MpFileShell(cmd.Cmd):
             accel_calibrated = accel_level > 0
             magnet_calibrated = magnet_level > 0
 
-            print("System calibrated?", f"{yes_display_string}" if system_calibrated else no_display_string)
-            print(" * Gyroscope calibrated?",
-                    f"{yes_display_string} (level {gyro_level}/3)" if gyro_calibrated else no_display_string)
-            print(" * Accelerometer calibrated?",
-                    f"{yes_display_string} (level {accel_level}/3)" if accel_calibrated else no_display_string)
-            print(" * Magnetometer calibrated?",
-                    f"{yes_display_string} (level {accel_level}/3)" if magnet_calibrated else no_display_string, "\n")
-            
-            if not gyro_calibrated:
-                print(f" - {self.GYRO_CALIBRATION_MESSAGE}")
-            if not accel_calibrated:
-                print(f" - {self.ACCEL_CALIBRATION_MESSAGE}")
-            if not magnet_calibrated:
-                print(f" - {self.MAGNET_CALIBRATION_MESSAGE}")
-            if not system_calibrated:
-                print()
-                print(self._calibration_wait_message(gyro_calibrated, accel_calibrated, magnet_calibrated))
+            print("System calibrated?",
+                    f"{yes_display_string}" if system_calibrated else no_display_string)
 
-            # Set a repeat time for the wait message to be displayed again, so
-            # that there is still some form of interaction with the user even
-            # when there are no updates to the IMU status.
-            counter = 1
-            message_repeat_period = 8
+            print("\n")
+            if gyro_calibrated:
+                print(" - Gyroscope is calibrated.")
+            else:
+                print(f" - {self.GYRO_CALIBRATION_MESSAGE}")
+
+            if accel_calibrated:
+                print(" - Accelerometer is calibrated.")
+            else:
+                print(f" - {self.ACCEL_CALIBRATION_MESSAGE}")
+
+            if magnet_calibrated:
+                print(" - Magnetometer is calibrated.")
+            else:
+                print(f" - {self.MAGNET_CALIBRATION_MESSAGE}")
+            print("\n")
+
+            overwrite_old_text = False
+            waiting_dot_count = 4
+            dot_counter = 0
             while not system_calibrated:
+                if overwrite_old_text:
+                    # This magic number 7 is linked to the number of lines
+                    # printed out below in the calibration status panel.
+                    # TODO: constant bad
+                    for i in range(7):
+                        print("\x1b[2A\x1b[2K")
+                else:
+                    overwrite_old_text = True
+                
+                system_level, gyro_level, accel_level, magnet_level = data
+                if not gyro_calibrated and gyro_level > 0:
+                    gyro_calibrated = True
+                if not accel_calibrated and accel_level > 0:
+                    accel_calibrated = True
+                if not magnet_calibrated and magnet_level > 0:
+                    magnet_calibrated = True
+                if not system_calibrated and system_level > 0:
+                    system_calibrated = True
+
+                # Print the calibration status panel: this is the section that
+                # automatically refereshes.
+                waiting_dots = ('.' * dot_counter) + '/' + ('.' * (waiting_dot_count - dot_counter - 1))
+                print("┌ CALIBRATION STATUS")
+                print("│")
+                print("│ * Gyroscope calibrated?",
+                        f"{yes_display_string} (level {gyro_level}/3)" if gyro_calibrated else no_display_string)
+                print("│ * Accelerometer calibrated?",
+                    f"{yes_display_string} (level {accel_level}/3)" if accel_calibrated else no_display_string)
+                print("│ * Magnetometer calibrated?",
+                    f"{yes_display_string} (level {magnet_level}/3)" if magnet_calibrated else no_display_string)
+                print("│")
+                wait_message = self._calibration_wait_message(gyro_calibrated, accel_calibrated, magnet_calibrated, use_ellipsis=False)
+                wait_message += (" " + waiting_dots if wait_message else "")
+
+                # Write the wait message with an appropriate amount of trailing whitespace in order
+                # to clear the line from previous longer writes
+                terminal_width, _ = shutil.get_terminal_size()
+                spacing_length = max(min(terminal_width - 3 - len(wait_message), 20), 0)
+                print(f"└ {wait_message}", " " * spacing_length)
+
+                # Re-fetch calibration data
                 data = eval(self.fe.eval_string_expr("calibration.calibration_status()"))
                 if not data:
                     self.__error("Error connecting to BNO055.")
                     return
 
-                system_level, gyro_level, accel_level, magnet_level = data
-                if not gyro_calibrated and gyro_level > 0:
-                    gyro_calibrated = True
-                    print(f"Gyroscope calibrated: {yes_display_string}")
-                    print(self._calibration_wait_message(gyro_calibrated, accel_calibrated, magnet_calibrated))
-                if not accel_calibrated and accel_level > 0:
-                    accel_calibrated = True
-                    print(f"Accelerometer calibrated: {yes_display_string}")
-                    print(self._calibration_wait_message(gyro_calibrated, accel_calibrated, magnet_calibrated))
-                if not magnet_calibrated and magnet_level > 0:
-                    magnet_calibrated = True
-                    print(f"Magnetometer calibrated: {yes_display_string}")
-                    print(self._calibration_wait_message(gyro_calibrated, accel_calibrated, magnet_calibrated))
-                if not system_calibrated and system_level > 0:
-                    system_calibrated = True
-
-                counter = (counter + 1) % message_repeat_period
-                if counter == 0:
-                    print(self._calibration_wait_message(gyro_calibrated, accel_calibrated, magnet_calibrated))
+                dot_counter = (dot_counter + 1) % waiting_dot_count
 
             print(f"System calibration complete: {yes_display_string}")
             print("Saving calibration data ...")
