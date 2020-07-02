@@ -90,6 +90,8 @@ class MpFileShell(cmd.Cmd):
                 "azimuth_max_rate": ("Servo azimuth max rate: ", float)
         }
 
+        self.antenna_initialized = False
+
     def __del__(self):
         self.__disconnect()
 
@@ -755,31 +757,39 @@ class MpFileShell(cmd.Cmd):
 
     complete_putc = complete_mpyc
 
+    def do_shell(self, s):
+        """! (or shell)
+        Execute any local shell command, as if this were a regular terminal.
+        """
+        os.system(s)
+
     def do_edit(self, args):
-        """edit <REMOTE FILE>
+        """edit <REMOTE_FILE> 
         Copies file over, opens it in your editor, copies back when done.
         """
         if not len(args):
             self.__error("Missing argument: <REMOTE_FILE>")
 
         elif self.__is_open():
+            rfile_name, = self.__parse_file_names(args)
+            local_name = "__board_" + rfile_name
             try:
-                self.do_get(args)
+                self.fe.get(rfile_name, local_name)
             except IOError as e:
                 if "No such file" in str(e):
                     # make new file locally, then copy
-                    # Not implemented yet
-                    self.__error(str(e))
                     pass
+                else:
+                    self.__error(str(e))
+                    return
 
-            rfile_name, = self.__parse_file_names(args)
             if platform.system() == 'Windows':
                 EDITOR = os.environ.get('EDITOR', 'notepad')
-                subprocess.call([EDITOR, rfile_name], shell=True)
+                subprocess.call([EDITOR, local_name], shell=True)
             else:
                 EDITOR = os.environ.get('EDITOR', 'vim')
-                subprocess.call([EDITOR, rfile_name])
-            self.do_put(rfile_name)
+                subprocess.call([EDITOR, local_name])
+            self.fe.put(local_name, rfile_name)
 
     complete_edit = complete_get
 
@@ -823,8 +833,6 @@ class MpFileShell(cmd.Cmd):
                     "You can use \"set\" to change individual parameters\n" \
                     "or \"edit\" to change the config file " \
                     "directly")
-
-
 
     def do_set(self, args):
         """set <CONFIG_PARAM> <NEW_VAL>
@@ -874,25 +882,6 @@ class MpFileShell(cmd.Cmd):
             for key in self.prompts.keys():
                 print(key + ": " + self.__config_get(key))
 
-    def do_clear(self, args):
-        """clear
-        Clear the currently used config file."""
-        """
-        if self.__is_open():
-            self.do_exec("config.clear()")
-        """
-        pass
-
-    def do_revert(self, args):
-        """revert
-        Switch to using the backup config file. Current config
-        will be deleted."""
-        """
-        if self.__is_open():
-            self.do_exec("config.revert()")
-        """
-        pass
-
     def do_switch(self, args):
         """switch <CONFIG_FILE>
         Switch to using a different config file."""
@@ -928,11 +917,12 @@ class MpFileShell(cmd.Cmd):
         Print telemetry data directly from the board. Show data such as motor
         status, IMU status, etc.
         """
-        print("Telemetry data:")
-        print("IMU status: ", end="")
-        print(self.fe.eval_string_expr("a.imu_status()"))
-        print("Motor status: ", end="")
-        print(self.fe.eval_string_expr("a.motor_status()"))
+        if self.antenna_initialized:
+            print("Telemetry data:")
+            print("IMU status: ", end="")
+            print(self.fe.eval_string_expr("a.imu_status()"))
+            print("Motor status: ", end="")
+            print(self.fe.eval_string_expr("a.motor_status()"))
 
     def do_calibrate(self, args):
         """calibrate
@@ -942,7 +932,7 @@ class MpFileShell(cmd.Cmd):
             self.__error("Usage: calibrate does not take arguments.")
             return 
 
-        if self.__is_open():
+        if self.__is_open() and self.antenna_initialized:
             print("Detecting calibration status ...")
             data = eval(self.fe.eval_string_expr("calibration.calibration_status()"))
             if not data:
@@ -979,7 +969,7 @@ class MpFileShell(cmd.Cmd):
             self.__error("Usage: save_calibration does not take arguments.")
             return 
 
-        if self.__is_open():
+        if self.__is_open() and self.antenna_initialized:
             status = self.fe.eval_string_expr("calibration.save_calibration()")
             if not status:
                 self.__error("Error: BNO055 not detected or error in reading calibration registers.")
@@ -992,18 +982,44 @@ class MpFileShell(cmd.Cmd):
             self.__error("Usage: upload_calibration does not take arguments.")
             return 
 
-        if self.__is_open():
+        if self.__is_open() and self.antenna_initialized:
             status = self.fe.eval_string_expr("calibration.upload_calibration()")
             if not status:
                 self.__error("Error: BNO055 not detected or error in writing calibration registers.")
 
 
     def do_motortest(self, args):
-        """motortest
+        """motortest <EL | AZ> <ANGLE>
         Test the motors to plot their accuracy against the measured IMU values.
         """
-        print("Running motor testing routine...")
-        print(self.fe.eval_string_expr("a.motor_test()"))
+        if not len(args):
+            self.__error("Missing arguments: <EL | AZ> <ANGLE>")
+        elif self.__is_open() and self.antenna_initialized:
+            print("Running motor testing routine...")
+            s_args = self.__parse_file_names(args)
+            if len(s_args) != 2:
+                self.__error("Usage: motortest <EL | AZ> <ANGLE>")
+                return
+            error_str = "The first parameter must be EL or AZ. <ANGLE> must be an integer or float"
+            try:
+                motor, pos = s_arsg
+                if motor == "EL":
+                    index = self.__config_get("elevation_servo_index")
+                elif motor == "AZ":
+                    index = self.__config_get("azimuth_servo_index")
+                else:
+                    self.__error(error_str)
+                    return
+                pos = float(pos)
+            except ValueError:
+                self.__error(error_str)
+                return
+            data = self.fe.eval_string_expr("a.motor_test({}, {})".format(index, pos))
+            real_pos, x_angle, y_angle, z_angle = data
+
+            # Need to do math here
+            print("Real IMU angles: %d", real_pos)
+            print("Expected position: %d", real_pos)
 
     def do_elevation(self, args):
         """elevation <ELEVATION>
@@ -1011,11 +1027,12 @@ class MpFileShell(cmd.Cmd):
         """
         if not len(args):
             self.__error("Missing argument: <ELEVATION>")
-        try:
-            el = float(args)
-            print(self.fe.eval_string_expr("a.set_el_deg({})".format(el)))
-        except ValueError:
-            print("<ELEVATION> must be a floating point number!")
+        elif self.__is_open() and self.antenna_initialized:
+            try:
+                el = float(args)
+                print(self.fe.eval_string_expr("a.set_el_deg({})".format(el)))
+            except ValueError:
+                print("<ELEVATION> must be a floating point number!")
 
     def do_azimuth(self, args):
         """azimuth <AZIMUTH>
@@ -1023,18 +1040,23 @@ class MpFileShell(cmd.Cmd):
         """
         if not len(args):
             self.__error("Missing argument: <AZIMUTH>")
-        try:
-            az = float(args)
-            print(self.fe.eval_string_expr("a.set_az_deg({})".format(az)))
-        except ValueError:
-            print("<AZIMUTH> must be a floating point number!")
+        elif self.__is_open() and self.antenna_initialized:
+            try:
+                az = float(args)
+                print(self.fe.eval_string_expr("a.set_az_deg({})".format(az)))
+            except ValueError:
+                print("<AZIMUTH> must be a floating point number!")
 
     def do_antkontrol(self, args):
         """antkontrol
         Create a new global AntKontrol instance
         """
-        ret, ret_err = self.fe.exec_raw("import antenny")
-        ret, ret_err = self.fe.exec_raw("a = antenny.AntKontrol()")
+        try:
+            ret, ret_err = self.fe.exec_raw("import antenny")
+            ret, ret_err = self.fe.exec_raw("a = antenny.AntKontrol()")
+            self.antenna_initialized = True
+        except:
+            self.__error("Antenna not initialized")
         print(ret.decode("utf-8"))
         print(ret_err.decode("utf-8"))
 
