@@ -34,6 +34,7 @@ import platform
 import sys
 import tempfile
 import subprocess
+import time
 import shutil
 
 import colorama
@@ -966,7 +967,7 @@ class MpFileShell(cmd.Cmd):
 
         if self.__is_open():
             print("Detecting calibration status ...")
-            data = eval(self.fe.eval_string_expr("calibration.calibration_status()"))
+            data = eval(self.fe.eval_string_expr("a.calibration_status()"))
             if not data:
                 self.__error("Error connecting to BNO055.")
                 return
@@ -1003,7 +1004,8 @@ class MpFileShell(cmd.Cmd):
             overwrite_old_text = False
             waiting_dot_count = 4
             dot_counter = 0
-            while not system_calibrated:
+            while not (magnet_calibrated and accel_calibrated and gyro_calibrated):
+                time.sleep(0.5)
                 if overwrite_old_text:
                     # This magic number 7 is linked to the number of lines
                     # printed out below in the calibration status panel.
@@ -1045,7 +1047,7 @@ class MpFileShell(cmd.Cmd):
                 print(f"└ {wait_message}", " " * spacing_length)
 
                 # Re-fetch calibration data
-                data = eval(self.fe.eval_string_expr("calibration.calibration_status()"))
+                data = eval(self.fe.eval_string_expr("a.calibration_status()"))
                 if not data:
                     self.__error("Error connecting to BNO055.")
                     return
@@ -1068,7 +1070,7 @@ class MpFileShell(cmd.Cmd):
             return 
 
         if self.__is_open():
-            status = self.fe.eval_string_expr("calibration.save_calibration()")
+            status = self.fe.eval_string_expr("a.save_calibration()")
             if not status:
                 self.__error("Error: BNO055 not detected or error in reading calibration registers.")
 
@@ -1081,7 +1083,7 @@ class MpFileShell(cmd.Cmd):
             return 
 
         if self.__is_open():
-            status = self.fe.eval_string_expr("calibration.upload_calibration()")
+            status = self.fe.eval_string_expr("a.upload_calibration()")
             if not status:
                 self.__error("Error: BNO055 not detected or error in writing calibration registers.")
 
