@@ -953,6 +953,7 @@ class MpFileShell(cmd.Cmd):
         else:
             return "All components calibrated!"
 
+    @antkontrol_exception
     def do_calibrate(self, args):
         """calibrate
         Detect IMU calibration status and provide instructions on how to
