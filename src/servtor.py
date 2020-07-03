@@ -81,6 +81,7 @@ class ServTor:
         step = -1 if start > end else 1
         self._move_data = [index, end, step]
         self.move_timer.init(period=delay, mode=machine.Timer.PERIODIC, callback=self.__move_one)
+        return duty
 
     def release(self, index):
         self.pca9685.duty(index, 0)
