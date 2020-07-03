@@ -609,9 +609,10 @@ class AntKontrol:
     def calibration_routine(self):
         return self.auto_calibration()
 
-    def motor_test(self):
-        # TODO
-        pass
+    def motor_test(self, index, position):
+        pos = self._servo_mux.smooth_move(index, position, 10)
+        x_angle, y_angle, z_angle = self._bno.euler()
+        return (pos, x_angle, y_angle, z_angle)
 
     def calibration_status(self):
         """
@@ -648,3 +649,4 @@ class AntKontrol:
                 return None
         self._bno.mode(old_mode)
         return True
+
