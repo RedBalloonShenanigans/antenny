@@ -92,6 +92,15 @@ class MpFileShell(cmd.Cmd):
 
         self.antenna_initialized = False
 
+    def antkontrol_exception(func):
+        def exception_wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except PyboardError:
+                args[0].__error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
+
+        return exception_wrapper
+
     def __del__(self):
         self.__disconnect()
 
@@ -912,6 +921,7 @@ class MpFileShell(cmd.Cmd):
         current = self.__which_config()
         return [f for f in files if f.startswith(args[0]) and f.endswith(".json")]
 
+    @antkontrol_exception
     def do_telemetry(self, args):
         """telemetry
         Print telemetry data directly from the board. Show data such as motor
@@ -924,6 +934,7 @@ class MpFileShell(cmd.Cmd):
             print("Motor status: ", end="")
             print(self.fe.eval_string_expr("a.motor_status()"))
 
+    @antkontrol_exception
     def do_calibrate(self, args):
         """calibrate
         Detect IMU calibration status and provide instructions on how to calibrate if necessary.
@@ -961,6 +972,7 @@ class MpFileShell(cmd.Cmd):
                 if not magnet_calibration:
                     print(f" - {self.MAGNET_CALIBRATION_MESSAGE}")
 
+    @antkontrol_exception
     def do_save_calibration(self, args):
         """save_calibration
         Save current IMU calibration data to the current configuration.
@@ -974,6 +986,7 @@ class MpFileShell(cmd.Cmd):
             if not status:
                 self.__error("Error: BNO055 not detected or error in reading calibration registers.")
 
+    @antkontrol_exception
     def do_upload_calibration(self, args):
         """upload_calibration
         Upload the currently stored calibration data to the connected IMU.
@@ -987,7 +1000,7 @@ class MpFileShell(cmd.Cmd):
             if not status:
                 self.__error("Error: BNO055 not detected or error in writing calibration registers.")
 
-
+    @antkontrol_exception
     def do_motortest(self, args):
         """motortest <EL | AZ> <ANGLE>
         Test the motors to plot their accuracy against the measured IMU values.
@@ -1021,6 +1034,7 @@ class MpFileShell(cmd.Cmd):
             print("Real IMU angles: %d", real_pos)
             print("Expected position: %d", real_pos)
 
+    @antkontrol_exception
     def do_elevation(self, args):
         """elevation <ELEVATION>
         Set the elevation to the level given in degrees by the first argument.
@@ -1034,6 +1048,7 @@ class MpFileShell(cmd.Cmd):
             except ValueError:
                 print("<ELEVATION> must be a floating point number!")
 
+    @antkontrol_exception
     def do_azimuth(self, args):
         """azimuth <AZIMUTH>
         Set the azimuth to the level given in degrees by the first argument.
@@ -1059,7 +1074,6 @@ class MpFileShell(cmd.Cmd):
             self.__error("Antenna not initialized")
         print(ret.decode("utf-8"))
         print(ret_err.decode("utf-8"))
-
 
 
 def main():
