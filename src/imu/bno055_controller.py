@@ -100,6 +100,8 @@ class Bno055Controller(ImuController):
             self.bno._write(register_address, calibration_profile[register_name])
         self.bno.mode(old_mode)
 
+    # The following are BNO055-specific functions used for imu status check
+
     def temperature(self):
         """Return the temperature detected by the BNO055."""
         return self.bno.temperature()
@@ -118,8 +120,8 @@ class Bno055Controller(ImuController):
 
     def lin_acc(self):
         """Return BNO055 linear acceleration data."""
-        return self.lin_acc()
+        return self.bno.lin_acc()
 
     def gravity(self):
         """Return BNO055 gravity data."""
-        return self.gravity()
+        return self.bno.gravity()
