@@ -1,6 +1,4 @@
-# imports
 import argparse
-# import cmd2 as cmd
 import cmd
 import glob
 import io
@@ -15,12 +13,16 @@ import shutil
 
 import colorama
 import serial
-from mp import mpfshell, version
+from mp import mpfshell
 from mp.mpfshell import MpFileShell
 from mp.conbase import ConError
-from mp.mpfexp import MpFileExplorer, MpFileExplorerCaching, RemoteIOError
+#from mp.mpfexp import MpFileExplorer, MpFileExplorerCaching, RemoteIOError
+from mp.mpfexp import RemoteIOError
 from mp.pyboard import PyboardError
 from mp.tokenizer import Tokenizer
+
+from nyan_explorer import NyanExplorer, NyanExplorerCaching
+
 
 class NyanShell(mpfshell.MpFileShell):
 
@@ -68,25 +70,17 @@ class NyanShell(mpfshell.MpFileShell):
         self.antenna_initialized = False
 
     def __intro(self):
-        self.intro = """
-        ███╗   ██╗██╗   ██╗ █████╗ ███╗   ██╗███████╗ █████╗ ████████╗
-        ████╗  ██║╚██╗ ██╔╝██╔══██╗████╗  ██║██╔════╝██╔══██╗╚══██╔══╝
-        ██╔██╗ ██║ ╚████╔╝ ███████║██╔██╗ ██║███████╗███████║   ██║   
-        ██║╚██╗██║  ╚██╔╝  ██╔══██║██║╚██╗██║╚════██║██╔══██║   ██║   
-        ██║ ╚████║   ██║   ██║  ██║██║ ╚████║███████║██║  ██║   ██║   
-        ╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝   ╚═╝   
-        """
         if self.color:
-            self.intro += (
+            self.intro = (
                 "\n"
                 + colorama.Fore.GREEN
-                + "** Welcome to NyanSat File Shell v%s ** " % version.FULL
+                + "** Welcome to NyanSat File Shell ** "
                 + colorama.Fore.RESET
                 + "\n"
             )
         else:
             self.intro += (
-                "\n** Welcome to NyanSat File Shell v%s **\n" % version.FULL
+                "\n** Welcome to NyanSat File Shell **\n"
             )
 
         self.intro += "-- Running on Python %d.%d using PySerial %s --\n" % (
@@ -94,10 +88,15 @@ class NyanShell(mpfshell.MpFileShell):
             sys.version_info[1],
             serial.VERSION,
         )
+    def __is_open(self):
 
+        if self.fe is None:
+            self._MpFileShell__error("Not connected to device. Use 'open' first.")
+            return False
+
+        return True
 
     def __set_prompt_path(self):
-
         if self.fe is not None:
             pwd = self.fe.pwd()
         else:
@@ -115,44 +114,88 @@ class NyanShell(mpfshell.MpFileShell):
             )
         else:
             self.prompt = "nyanshell [" + pwd + "]> "
+    
+    def __connect(self, port):
+        try:
+            self._MpFileShell__disconnect()
+
+            if self.reset:
+                print("Hard resetting device ...")
+            if self.caching:
+                self.fe = NyanExplorerCaching(port, self.reset)
+            else:
+                self.fe = NyanExplorer(port, self.reset)
+            print("Connected to %s" % self.fe.sysname)
+            self.__set_prompt_path()
+            return True
+        except PyboardError as e:
+            logging.error(e)
+            self._MpFileShell__error(str(e))
+        except ConError as e:
+            logging.error(e)
+            self._MpFileShell__error("Failed to open: %s" % port)
+        except AttributeError as e:
+            logging.error(e)
+            self._MpFileShell__error("Failed to open: %s" % port)
+        return False
 
     def antkontrol_exception(func):
         def exception_wrapper(*args, **kwargs):
             try:
                 return func(*args, **kwargs)
             except PyboardError:
-                args[0].__error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
+                args[0]._MpFileShell__error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
 
         return exception_wrapper
 
-    def __config_set(self, key, val):
+    def _config_set(self, key, val):
         if isinstance(val, int) or isinstance(val, float):
             self.do_exec("config.set(\"%s\", %d)" % (key, val))
         elif isinstance(val, str):
             self.do_exec("config.set(\"%s\", %s)" % (key, val))
 
-    def __config_get(self, key):
+    def _config_get(self, key):
         command = "config.get(\"{}\")".format(key)
         return self.fe.eval_string_expr(command)
 
-    def __which_config(self):
+    def _which_config(self):
         return self.fe.eval_string_expr("config.current_file()")
 
-    def do_shell(self, s):
-        """! (or shell)
-        Execute any local shell command, as if this were a regular terminal.
-        """
-        os.system(s)
+    def do_open(self, args):
+            """open <TARGET>
+            Open connection to device with given target. TARGET might be:
+            - a serial port, e.g.       ttyUSB0, ser:/dev/ttyUSB0
+            - a telnet host, e.g        tn:192.168.1.1 or tn:192.168.1.1,login,passwd
+            - a websocket host, e.g.    ws:192.168.1.1 or ws:192.168.1.1,passwd
+            """
+
+            if not len(args):
+                self._MpFileShell__error("Missing argument: <PORT>")
+                return False
+
+            if (
+                not args.startswith("ser:/dev/")
+                and not args.startswith("ser:COM")
+                and not args.startswith("tn:")
+                and not args.startswith("ws:")
+            ):
+
+                if platform.system() == "Windows":
+                    args = "ser:" + args
+                else:
+                    args = "ser:/dev/" + args
+
+            return self.__connect(args)
 
     def do_edit(self, args):
         """edit <REMOTE_FILE> 
         Copies file over, opens it in your editor, copies back when done.
         """
         if not len(args):
-            self.__error("Missing argument: <REMOTE_FILE>")
+            self._MpFileShell__error("Missing argument: <REMOTE_FILE>")
 
         elif self.__is_open():
-            rfile_name, = self.__parse_file_names(args)
+            rfile_name, = self._MpFileShell__parse_file_names(args)
             local_name = "__board_" + rfile_name
             try:
                 self.fe.get(rfile_name, local_name)
@@ -161,7 +204,7 @@ class NyanShell(mpfshell.MpFileShell):
                     # make new file locally, then copy
                     pass
                 else:
-                    self.__error(str(e))
+                    self._MpFileShell__error(str(e))
                     return
 
             if platform.system() == 'Windows':
@@ -180,12 +223,12 @@ class NyanShell(mpfshell.MpFileShell):
         Switches to new config after finishing setup.
         """
         if not len(args):
-            self.__error("Missing argument: <CONFIG_FILE>")
+            self._MpFileShell__error("Missing argument: <CONFIG_FILE>")
 
         elif self.__is_open():
-            s_args = self.__parse_file_names(args)
+            s_args = self._MpFileShell__parse_file_names(args)
             name, = s_args
-            current = self.__which_config()
+            current = self._which_config()
 
             self.do_exec("config.new(\"{}\")".format(name))
 
@@ -199,11 +242,11 @@ class NyanShell(mpfshell.MpFileShell):
                 try:
                     new_val = typ(input(prompt_text))
                 except ValueError:
-                    self.__error("Invalid type, setting to default.\nUse \"set\" to" \
+                    self._MpFileShell__error("Invalid type, setting to default.\nUse \"set\" to" \
                             "change the parameter")
                     new_val = self.fe.eval_string_expr("config.get_default(\"{}\")".format(k))
 
-                self.__config_set(k, new_val)
+                self._config_set(k, new_val)
 
             if self.caching:
                 self.fe.cache = {}
@@ -219,29 +262,29 @@ class NyanShell(mpfshell.MpFileShell):
         """set <CONFIG_PARAM> <NEW_VAL>
         Set a parameter in the configuration file to a new value."""
         if not len(args):
-            self.__error("missing arguments: <config_param> <new_val>")
+            self._MpFileShell__error("missing arguments: <config_param> <new_val>")
 
         elif self.__is_open():
-            s_args = self.__parse_file_names(args)
+            s_args = self._MpFileShell__parse_file_names(args)
             if len(s_args) < 2:
-                self.__error("Missing argument: <new_val>")
+                self._MpFileShell__error("Missing argument: <new_val>")
                 return
 
             key, new_val = s_args
             try:
-                old_val = self.__config_get(key)
+                old_val = self._config_get(key)
             except:
-                self.__error("No such configuration parameter")
+                self._MpFileShell__error("No such configuration parameter")
                 return
 
             _, typ = self.prompts[key]
             try:
                 new_val = typ(new_val)
             except ValueError:
-                self.__error(str(e))
+                self._MpFileShell__error(str(e))
                 return
 
-            self.__config_set(key, new_val)
+            self._config_set(key, new_val)
             print("Changed " + "\"" + key + "\" from " + str(old_val) + " --> " + str(new_val))
 
     def complete_set(self, *args):
@@ -258,28 +301,28 @@ class NyanShell(mpfshell.MpFileShell):
             print(colorama.Fore.GREEN +
                     "-Config parameters-\n" +
                     colorama.Fore.CYAN +
-                    "Using \"{}\"".format(self.__which_config()) +
+                    "Using \"{}\"".format(self._which_config()) +
                     colorama.Fore.RESET)
             for key in self.prompts.keys():
-                print(key + ": " + self.__config_get(key))
+                print(key + ": " + self._config_get(key))
 
     def do_switch(self, args):
         """switch <CONFIG_FILE>
         Switch to using a different config file."""
         if not len(args):
-            self.__error("Missing arguments: <config_file>")
+            self._MpFileShell__error("Missing arguments: <config_file>")
 
         elif self.__is_open():
-            s_args = self.__parse_file_names(args)
+            s_args = self._MpFileShell__parse_file_names(args)
             if len(s_args) > 1:
-                self.__error("Usage: switch <CONFIG_FILE>")
+                self._MpFileShell__error("Usage: switch <CONFIG_FILE>")
                 return
             name, = s_args
             files = self.fe.ls()
             if name not in files:
-                self.__error("No such file")
+                self._MpFileShell__error("No such file")
                 return
-            current = self.__which_config()
+            current = self._which_config()
             self.do_exec("config.switch(\"{}\")".format(name))
             print(colorama.Fore.GREEN +
                     "Switched from \"{}\"".format(current) +
@@ -290,7 +333,7 @@ class NyanShell(mpfshell.MpFileShell):
             files = self.fe.ls(add_dirs=False)
         except Exception:
             files = []
-        current = self.__which_config()
+        current = self._which_config()
         return [f for f in files if f.startswith(args[0]) and f.endswith(".json")]
 
 
@@ -334,14 +377,14 @@ class NyanShell(mpfshell.MpFileShell):
         the calibration profile to the config at the end.
         """
         if args:
-            self.__error("Usage: calibrate does not take arguments.")
+            self._MpFileShell__error("Usage: calibrate does not take arguments.")
             return 
 
         if self.__is_open() and self.antenna_initialized:
             print("Detecting calibration status ...")
             data = eval(self.fe.eval_string_expr("a.calibration_status()"))
             if not data:
-                self.__error("Error connecting to BNO055.")
+                self._MpFileShell__error("Error connecting to BNO055.")
                 return
 
             yes_display_string = colorama.Fore.GREEN + "YES" + colorama.Fore.RESET
@@ -421,7 +464,7 @@ class NyanShell(mpfshell.MpFileShell):
                 # Re-fetch calibration data
                 data = eval(self.fe.eval_string_expr("a.calibration_status()"))
                 if not data:
-                    self.__error("Error connecting to BNO055.")
+                    self._MpFileShell__error("Error connecting to BNO055.")
                     return
 
                 dot_counter = (dot_counter + 1) % waiting_dot_count
@@ -439,14 +482,14 @@ class NyanShell(mpfshell.MpFileShell):
         Save current IMU calibration data to the current configuration.
         """
         if args:
-            self.__error("Usage: save_calibration does not take arguments.")
+            self._MpFileShell__error("Usage: save_calibration does not take arguments.")
             return 
 
         if self.__is_open() and self.antenna_initialized:
             status = self.fe.eval_string_expr("a.save_calibration()")
 
             if not status:
-                self.__error("Error: BNO055 not detected or error in reading calibration registers.")
+                self._MpFileShell__error("Error: BNO055 not detected or error in reading calibration registers.")
 
     @antkontrol_exception
     def do_upload_calibration(self, args):
@@ -454,14 +497,14 @@ class NyanShell(mpfshell.MpFileShell):
         Upload the currently stored calibration data to the connected IMU.
         """
         if args:
-            self.__error("Usage: upload_calibration does not take arguments.")
+            self._MpFileShell__error("Usage: upload_calibration does not take arguments.")
             return 
 
         if self.__is_open() and self.antenna_initialized:
             status = self.fe.eval_string_expr("a.upload_calibration()")
 
             if not status:
-                self.__error("Error: BNO055 not detected or error in writing calibration registers.")
+                self._MpFileShell__error("Error: BNO055 not detected or error in writing calibration registers.")
 
     @antkontrol_exception
     def do_motortest(self, args):
@@ -469,26 +512,26 @@ class NyanShell(mpfshell.MpFileShell):
         Test the motors to plot their accuracy against the measured IMU values.
         """
         if not len(args):
-            self.__error("Missing arguments: <EL | AZ> <ANGLE>")
+            self._MpFileShell__error("Missing arguments: <EL | AZ> <ANGLE>")
         elif self.__is_open() and self.antenna_initialized:
             print("Running motor testing routine...")
-            s_args = self.__parse_file_names(args)
+            s_args = self._MpFileShell__parse_file_names(args)
             if len(s_args) != 2:
-                self.__error("Usage: motortest <EL | AZ> <ANGLE>")
+                self._MpFileShell__error("Usage: motortest <EL | AZ> <ANGLE>")
                 return
             error_str = "The first parameter must be EL or AZ. <ANGLE> must be an integer or float"
             try:
                 motor, pos = s_arsg
                 if motor == "EL":
-                    index = self.__config_get("elevation_servo_index")
+                    index = self._config_get("elevation_servo_index")
                 elif motor == "AZ":
-                    index = self.__config_get("azimuth_servo_index")
+                    index = self._config_get("azimuth_servo_index")
                 else:
-                    self.__error(error_str)
+                    self._MpFileShell__error(error_str)
                     return
                 pos = float(pos)
             except ValueError:
-                self.__error(error_str)
+                self._MpFileShell__error(error_str)
                 return
             data = self.fe.eval_string_expr("a.motor_test({}, {})".format(index, pos))
             real_pos, x_angle, y_angle, z_angle = data
@@ -503,7 +546,7 @@ class NyanShell(mpfshell.MpFileShell):
         Set the elevation to the level given in degrees by the first argument.
         """
         if not len(args):
-            self.__error("Missing argument: <ELEVATION>")
+            self._MpFileShell__error("Missing argument: <ELEVATION>")
         elif self.__is_open() and self.antenna_initialized:
             try:
                 el = float(args)
@@ -517,7 +560,7 @@ class NyanShell(mpfshell.MpFileShell):
         Set the azimuth to the level given in degrees by the first argument.
         """
         if not len(args):
-            self.__error("Missing argument: <AZIMUTH>")
+            self._MpFileShell__error("Missing argument: <AZIMUTH>")
         elif self.__is_open() and self.antenna_initialized:
             try:
                 az = float(args)
@@ -534,7 +577,7 @@ class NyanShell(mpfshell.MpFileShell):
             ret, ret_err = self.fe.exec_raw("a = antenny.AntKontrol()")
             self.antenna_initialized = True
         except:
-            self.__error("Antenna not initialized")
+            self._MpFileShell__error("Antenna not initialized")
         print(ret.decode("utf-8"))
         print(ret_err.decode("utf-8"))
 
@@ -603,7 +646,7 @@ def main():
     else:
         logging.basicConfig(format=format, level=logging.CRITICAL)
 
-    logging.info("Micropython File Shell v%s started" % version.FULL)
+    logging.info("Micropython File Shell started")
     logging.info(
         "Running on Python %d.%d using PySerial %s"
         % (sys.version_info[0], sys.version_info[1], serial.VERSION)
@@ -660,6 +703,5 @@ def main():
 
 
 if __name__ == "__main__":
-    print("YOOOO")    
     sys.exit(main())
 
