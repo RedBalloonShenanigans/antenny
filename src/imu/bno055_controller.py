@@ -92,7 +92,7 @@ class Bno055Controller(ImuController):
         old_mode = self.bno.mode(CONFIG_MODE)
         profile = {register_name: self.bno._read(register_address)
                    for register_name, register_address in self.CALIBRATION_REGISTERS.items()}
-        self.bno.mode(CONFIG_MODE)
+        self.bno.mode(old_mode)
         return profile
 
     def _set_calibration_profile(self, calibration_profile: Dict[str, int]) -> None:
