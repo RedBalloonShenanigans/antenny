@@ -1,5 +1,4 @@
 
-from typing import Tuple, Dict
 from bno055 import BNO055, CONFIG_MODE
 import machine
 import ujson
@@ -40,13 +39,13 @@ class Bno055Controller(ImuController):
         "mag_radius_msb": 0x6A
     }
 
-    def __init__(self, i2c: machine.I2C, sign: Tuple[int, int, int] = (0, 0, 0)):
-        """Initialize the BNO055, given a micropython machine.I2C connection
+    def __init__(self, i2c: machine.I2C, sign: tuple = (0, 0, 0)):
+        """Initialize the BNO055 from a given micropython machine.I2C connection
         object and an orientation sign integer 3-tuple.
         """
         self.bno = BNO055(i2c, sign=(0, 0, 0))
 
-    def euler(self) -> Tuple[float, float, float]:
+    def euler(self) -> tuple:
         """Return Euler angles in degrees: (heading, roll, pitch)."""
         return self.bno.euler()
 
@@ -86,7 +85,7 @@ class Bno055Controller(ImuController):
             calibration_profile = ujson.load(f)
         self._set_calibration_profile(calibration_profile)
 
-    def _get_calibration_profile(self) -> Dict[str, int]:
+    def _get_calibration_profile(self) -> dict:
         # In order to read or write to the calibration registers, we have to
         # switch into the BNO's config mode, read/write, then switch out
         old_mode = self.bno.mode(CONFIG_MODE)
@@ -95,7 +94,7 @@ class Bno055Controller(ImuController):
         self.bno.mode(old_mode)
         return profile
 
-    def _set_calibration_profile(self, calibration_profile: Dict[str, int]) -> None:
+    def _set_calibration_profile(self, calibration_profile: dict) -> None:
         old_mode = self.bno.mode(CONFIG_MODE)
         for register_name, register_address in self.CALIBRATION_REGISTERS:
             self.bno._write(register_address, calibration_profile[register_name])
