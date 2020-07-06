@@ -99,3 +99,27 @@ class Bno055Controller(ImuController):
         for register_name, register_address in self.CALIBRATION_REGISTERS:
             self.bno._write(register_address, calibration_profile[register_name])
         self.bno.mode(old_mode)
+
+    def temperature(self):
+        """Return the temperature detected by the BNO055."""
+        return self.bno.temperature()
+
+    def mag(self):
+        """Return BNO055 magnetometer data."""
+        return self.bno.mag()
+
+    def gyro(self):
+        """Return BNO055 gyroscope data."""
+        return self.bno.gyro()
+
+    def accel(self):
+        """Return BNO055 accelerometer data."""
+        return self.bno.accel()
+
+    def lin_acc(self):
+        """Return BNO055 linear acceleration data."""
+        return self.lin_acc()
+
+    def gravity(self):
+        """Return BNO055 gravity data."""
+        return self.gravity()
