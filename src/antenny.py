@@ -239,22 +239,20 @@ class AntKontrol:
 
 
     def touch(self):
-        #self._status_bno = self._bno.calibrated()
-        #self._euler = self._bno.euler()
         self._status_gps = self._gps.valid
         self._gps_position = [self._gps.latitude, self._gps.longitude]
         self._elevation_servo_position = self._servo_mux.position(EL_SERVO_INDEX)
         self._azimuth_servo_position = self._servo_mux.position(AZ_SERVO_INDEX)
 
-    def updateTelem(self):
-        self.telem.updateTelem({'euler': self._euler})
-        self.telem.updateTelem({'last_time': utime.ticks_ms()})
-        self.telem.updateTelem({'gps_long': self._gps.longitude})
-        self.telem.updateTelem({'gps_lat': self._gps.latitude})
-        self.telem.updateTelem({'gps_valid': self._gps.valid})
-        self.telem.updateTelem({'gps_altitude': self._gps.altitude})
-        self.telem.updateTelem({'gps_speed': self._gps.speed})
-        self.telem.updateTelem({'gps_course': self._gps.course})
+    def update_telem(self):
+        self.telem.update_telem({'euler': self._euler})
+        self.telem.update_telem({'last_time': utime.ticks_ms()})
+        self.telem.update_telem({'gps_long': self._gps.longitude})
+        self.telem.update_telem({'gps_lat': self._gps.latitude})
+        self.telem.update_telem({'gps_valid': self._gps.valid})
+        self.telem.update_telem({'gps_altitude': self._gps.altitude})
+        self.telem.update_telem({'gps_speed': self._gps.speed})
+        self.telem.update_telem({'gps_course': self._gps.course})
 
     def display_status(self):
         while True:
@@ -266,8 +264,8 @@ class AntKontrol:
                 self._screen.text("{:08.3f}".format(self._euler[1]), 0, 8)
                 self._screen.text("{:08.3f}".format(self._euler[2]), 0, 16)
                 self._screen.show()
-                self.updateTelem()
-                self.telem.sendTelemTick()
+                self.update_telem()
+                self.telem.send_telem_tick()
 
             except Exception as e:
                 logging.info("here{}".format(str(e)))
