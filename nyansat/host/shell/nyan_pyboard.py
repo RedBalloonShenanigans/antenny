@@ -1,5 +1,6 @@
 from mp.pyboard import Pyboard
 
+
 class NyanPyboard(Pyboard):
     """Wrapper for Pyboard that adds eval_string_expr."""
 
