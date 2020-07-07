@@ -1,7 +1,9 @@
 import asyncio
+import json
+from asyncio import Future, BaseTransport, BaseProtocol
 from dataclasses import dataclass
 from random import random
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 from rbs_tui_dom.entity import ObservableEntity, UpdatablePropertyValue, ObservableProperty
 
@@ -46,8 +48,8 @@ class ObservableTelemetryEntity(ObservableEntity[TelemetryEntityData]):
         self.set_model(self._create_entity_data(telemetry))
 
 
-class NyanSatClient:
-    def __init__(self, hostname: str, port: int):
+class NyanSatClient(BaseProtocol):
+    def __init__(self, hostname: str, port: int, disconnect_timeout: float = 2):
         self.telemetry_entity = ObservableTelemetryEntity(TELEMETRY_ENTITY_ID)
         self.is_connected_observable: ObservableProperty[bool] = ObservableProperty("is_connected")
         self.is_connected: UpdatablePropertyValue[bool] = \
@@ -55,13 +57,9 @@ class NyanSatClient:
 
         self._hostname = hostname
         self._port = port
-
-    def _on_telemetry_update(self, raw_data: bytes):
-        data = {
-            "id": TELEMETRY_ENTITY_ID,
-            # Parse the rest
-        }
-        self.telemetry_entity.update_from_model(data)
+        self._disconnect_task: Optional[Future] = None
+        self._transport: Optional[BaseTransport] = None
+        self._disconnect_timeout = disconnect_timeout
 
     def _on_connect(self):
         self.is_connected.value = True
@@ -69,28 +67,28 @@ class NyanSatClient:
     def _on_disconnect(self):
         self.is_connected.value = False
 
-    async def _run_loop(self):
-        await asyncio.sleep(1)
-        mock_data = {
-            "coordinates_lat": -48,
-            "coordinates_lng": 55.54568,
-            "altitude": 1895.54689,
-            "speed": 0.265,
-            "azimuth": -123.4567,
-            "elevation": 59.546879,
-        }
-        self.telemetry_entity.update_from_model(mock_data)
+    async def _run_disconnect_task(self):
+        try:
+            await asyncio.sleep(self._disconnect_timeout)
+            self._on_disconnect()
+        except asyncio.CancelledError:
+            pass
+
+    def datagram_received(self, data: bytes, addr: Tuple[str, int]):
+        if self._disconnect_task:
+            self._disconnect_task.cancel()
+        self._disconnect_task = asyncio.ensure_future(self._run_disconnect_task)
+        self.telemetry_entity.update_from_model(json.loads(data.decode('utf-8')))
         self._on_connect()
-        for i in range(0, 20):
-            await asyncio.sleep(0.5)
-            mock_data["coordinates_lat"] += random()
-            mock_data["coordinates_lng"] += random()
-            mock_data["altitude"] += random()
-            mock_data["speed"] += random()
-            mock_data["azimuth"] += random()
-            mock_data["elevation"] += random()
-            self.telemetry_entity.update_from_model(mock_data)
-        self._on_disconnect()
 
     async def start(self):
-        asyncio.ensure_future(self._run_loop())
+        self._transport, _ = await asyncio.get_event_loop().create_datagram_endpoint(
+            lambda: self,
+            local_addr=(self._hostname, self._port)
+        )
+
+    async def stop(self):
+        if self._transport:
+            self._transport.close()
+        self._transport = None
+        self._on_disconnect()

@@ -1,5 +1,6 @@
 from mp.mpfexp import MpFileExplorer, MpFileExplorerCaching
-from nyan_pyboard import NyanPyboard
+from nyansat.host.shell.nyan_pyboard import NyanPyboard
+
 
 class NyanExplorer(MpFileExplorer, NyanPyboard):
     """Wrapper for MpFileExplorer that includes the new NyanPyboard functionality."""

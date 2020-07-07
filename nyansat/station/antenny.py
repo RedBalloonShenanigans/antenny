@@ -6,11 +6,12 @@ import machine
 import ssd1306
 from machine import Pin
 
-from .gps.gps_basic import BasicGPSController
+from gps.gps_basic import BasicGPSController
 import config as cfg
-from .imu.imu_bno055 import Bno055ImuController
-from .motor.motor_pca9685 import Pca9685Controller
-from .sender import UDPTelemetrySender
+from imu.imu_bno055 import Bno055ImuController
+from motor.motor_pca9685 import Pca9685Controller
+from screen.screen_ssd1306 import Ssd1306ScreenController
+from sender import UDPTelemetrySender
 
 EL_SERVO_INDEX = cfg.get("elevation_servo_index")
 AZ_SERVO_INDEX = cfg.get("azimuth_servo_index")
@@ -62,7 +63,7 @@ class AntKontrol:
             sda=machine.Pin(cfg.get("i2c_screen_sda"), Pin.OUT, Pin.PULL_DOWN),
         )  # on [60] ssd1306
         self._pinmode = False
-        self._screen = ssd1306.SSD1306_I2C(128, 32, self._i2c_screen)
+        self._screen = Ssd1306ScreenController(self._i2c_screen, width=128, height=32)
 
         self._cur_azimuth_degree = None
         self._cur_elevation_degree = None
@@ -246,14 +247,9 @@ class AntKontrol:
     def display_status(self):
         while True:
             try:
-                self._screen.fill(0)
-
-                self._screen.text("{:08.3f}".format(self._euler[0]), 0, 0)
-                self._screen.text("{:08.3f}".format(self._euler[1]), 0, 8)
-                self._screen.text("{:08.3f}".format(self._euler[2]), 0, 16)
-                self._screen.show()
+                self._screen.display(self._imu.euler())
             except Exception as e:
-                logging.info("here{}".format(str(e)))
+                logging.info("Status display error: {}".format(str(e)))
             time.sleep(0.2)
 
     def pin(self):

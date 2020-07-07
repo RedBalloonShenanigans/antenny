@@ -5,7 +5,7 @@ import time
 from micropyGPS import MicropyGPS
 
 import config as cfg
-from .gps import GPSController, GPSStatus
+from gps.gps import GPSController, GPSStatus
 
 
 class BasicGPSController(GPSController):

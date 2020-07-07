@@ -6,13 +6,14 @@ import utime
 
 import ujson
 
-from ..gps.gps import GPSController
-from ..imu.imu import ImuController
+from gps.gps import GPSController
+from imu.imu import ImuController
+from .sender import TelemetrySender
 
 LOGGER = logging.getLogger("station.sender.udp")
 
 
-class UDPTelemetrySender:
+class UDPTelemetrySender(TelemetrySender):
     """Send key-value data over UDP to be displayed on client end."""
 
     def __init__(
@@ -41,13 +42,13 @@ class UDPTelemetrySender:
         imu_position = self._imu_controller.euler()
         gps_status = self._gps_controller.get_status()
         data = ujson.dumps({
-            "euler": imu_position,
             "gps_valid": gps_status.valid,
-            "gps_long": gps_status.longitude,
-            "gps_lat": gps_status.latitude,
-            "gps_altitude": gps_status.altitude,
-            "gps_speed": gps_status.speed,
-            "gps_course": gps_status.course,
+            "coordinates_lng": gps_status.longitude,
+            "coordinates_lat": gps_status.latitude,
+            "altitude": gps_status.altitude,
+            "speed": gps_status.speed,
+            "azimuth": imu_position[1],
+            "elevation": imu_position[0],
             "time": utime.ticks_ms(),
         })
         self._socket.sendto(data, (self._hostname, self._port))
@@ -57,7 +58,7 @@ class UDPTelemetrySender:
             try:
                 self._send_telemetry()
             except Exception:
-                logging.error("Failed to send telemetry", exc_info=True)
+                LOGGER.error("Failed to send telemetry")
             time.sleep(self._interval)
         self._thread = None
 
