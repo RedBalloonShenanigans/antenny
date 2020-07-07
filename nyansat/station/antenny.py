@@ -247,7 +247,7 @@ class AntKontrol:
     def display_status(self):
         while True:
             try:
-                self._screen.display(self.imu.euler())
+                self._screen.display(self._imu.euler())
             except Exception as e:
                 logging.info("Status display error: {}".format(str(e)))
             time.sleep(0.2)
