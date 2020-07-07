@@ -25,12 +25,20 @@ from nyan_explorer import NyanExplorer, NyanExplorerCaching
 
 
 class NyanShell(mpfshell.MpFileShell):
+    """Extension of MPFShell that adds NyanSat-specific features"""
 
     GYRO_CALIBRATION_MESSAGE = "To calibrate the gyroscope, let the sensor rest on a level surface for a few seconds."
     ACCEL_CALIBRATION_MESSAGE = "To calibrate the accelerometer, slowly move the sensor into >=6 distinct orientations,\nsome perpendicular to the xyz axes."
     MAGNET_CALIBRATION_MESSAGE = "To calibrate the magnetometer, move the sensor in figure-8 shapes through the air a few times."
     
     def __init__(self, color=False, caching=False, reset=False):
+        """Creates Cmd-based shell object.
+
+        Keyword arguments:
+        color -- support colored text in the shell
+        caching -- support caching the results of functions like 'ls'
+        reset -- hard reset device via DTR. (serial connection only)
+        """
         if color:
             colorama.init()
             cmd.Cmd.__init__(self, stdout=colorama.initialise.wrapped_stdout)
@@ -52,6 +60,7 @@ class NyanShell(mpfshell.MpFileShell):
 
         self.__intro()
         self.__set_prompt_path()
+
         self.emptyline = lambda : None
         self.prompts = {
                 "gps_uart_tx": ("GPS UART TX pin#: ", int),
@@ -70,6 +79,7 @@ class NyanShell(mpfshell.MpFileShell):
         self.antenna_initialized = False
 
     def __intro(self):
+        """Text that appears when shell is first launched."""
         if self.color:
             self.intro = (
                 "\n"
@@ -89,7 +99,7 @@ class NyanShell(mpfshell.MpFileShell):
             serial.VERSION,
         )
     def __is_open(self):
-
+        """Check if a connection has been established with an ESP32."""
         if self.fe is None:
             self._MpFileShell__error("Not connected to device. Use 'open' first.")
             return False
@@ -97,6 +107,7 @@ class NyanShell(mpfshell.MpFileShell):
         return True
 
     def __set_prompt_path(self):
+        """Prompt that appears at the beginning of every line in the shell."""
         if self.fe is not None:
             pwd = self.fe.pwd()
         else:
@@ -116,6 +127,11 @@ class NyanShell(mpfshell.MpFileShell):
             self.prompt = "nyanshell [" + pwd + "]> "
     
     def __connect(self, port):
+        """Attempt to connect to the ESP32.
+    
+        Arguments:
+        port -- (see do_open). Specify how to connect to the device.
+        """
         try:
             self._MpFileShell__disconnect()
 
@@ -140,6 +156,7 @@ class NyanShell(mpfshell.MpFileShell):
         return False
 
     def antkontrol_exception(func):
+        """Decorator to handle cases where the AntKontrol object on the ESP32 stops responding."""
         def exception_wrapper(*args, **kwargs):
             try:
                 return func(*args, **kwargs)
@@ -149,43 +166,55 @@ class NyanShell(mpfshell.MpFileShell):
         return exception_wrapper
 
     def _config_set(self, key, val):
+        """Set an individual parameter in the config file.
+
+        Arguments:
+        key -- name of config parameter. Tab complete to see choices.
+        val -- value of paramter
+        """
         if isinstance(val, int) or isinstance(val, float):
             self.do_exec("config.set(\"%s\", %d)" % (key, val))
         elif isinstance(val, str):
             self.do_exec("config.set(\"%s\", %s)" % (key, val))
 
     def _config_get(self, key):
+        """Get the value of an individual config parameter.
+        
+        Arguments:
+        key -- name of config parameter.
+        """
         command = "config.get(\"{}\")".format(key)
         return self.fe.eval_string_expr(command)
 
     def _which_config(self):
+        """Get the name of the currently used config file."""
         return self.fe.eval_string_expr("config.current_file()")
 
     def do_open(self, args):
-            """open <TARGET>
-            Open connection to device with given target. TARGET might be:
-            - a serial port, e.g.       ttyUSB0, ser:/dev/ttyUSB0
-            - a telnet host, e.g        tn:192.168.1.1 or tn:192.168.1.1,login,passwd
-            - a websocket host, e.g.    ws:192.168.1.1 or ws:192.168.1.1,passwd
-            """
+        """open <TARGET>
+        Open connection to device with given target. TARGET might be:
+        - a serial port, e.g.       ttyUSB0, ser:/dev/ttyUSB0
+        - a telnet host, e.g        tn:192.168.1.1 or tn:192.168.1.1,login,passwd
+        - a websocket host, e.g.    ws:192.168.1.1 or ws:192.168.1.1,passwd
+        """
 
-            if not len(args):
-                self._MpFileShell__error("Missing argument: <PORT>")
-                return False
+        if not len(args):
+            self._MpFileShell__error("Missing argument: <PORT>")
+            return False
 
-            if (
-                not args.startswith("ser:/dev/")
-                and not args.startswith("ser:COM")
-                and not args.startswith("tn:")
-                and not args.startswith("ws:")
-            ):
+        if (
+            not args.startswith("ser:/dev/")
+            and not args.startswith("ser:COM")
+            and not args.startswith("tn:")
+            and not args.startswith("ws:")
+        ):
 
-                if platform.system() == "Windows":
-                    args = "ser:" + args
-                else:
-                    args = "ser:/dev/" + args
+            if platform.system() == "Windows":
+                args = "ser:" + args
+            else:
+                args = "ser:/dev/" + args
 
-            return self.__connect(args)
+        return self.__connect(args)
 
     def do_edit(self, args):
         """edit <REMOTE_FILE> 
@@ -288,6 +317,7 @@ class NyanShell(mpfshell.MpFileShell):
             print("Changed " + "\"" + key + "\" from " + str(old_val) + " --> " + str(new_val))
 
     def complete_set(self, *args):
+        """Tab completion for 'set' command."""
         if self.__is_open():
             return [key for key in self.prompts.keys() if key.startswith(args[0])]
         else:
@@ -329,6 +359,7 @@ class NyanShell(mpfshell.MpFileShell):
                     "to \"{}\"".format(name))
 
     def complete_switch(self, *args):
+        """Tab completion for switch command."""
         try:
             files = self.fe.ls(add_dirs=False)
         except Exception:
@@ -382,7 +413,7 @@ class NyanShell(mpfshell.MpFileShell):
 
         if self.__is_open() and self.antenna_initialized:
             print("Detecting calibration status ...")
-            data = eval(self.fe.eval_string_expr("a.calibration_status()"))
+            data = eval(self.fe.eval_string_expr("a.imu.calibration_status()"))
             if not data:
                 self._MpFileShell__error("Error connecting to BNO055.")
                 return
@@ -462,7 +493,7 @@ class NyanShell(mpfshell.MpFileShell):
                 print(f"└ {wait_message}", " " * spacing_length)
 
                 # Re-fetch calibration data
-                data = eval(self.fe.eval_string_expr("a.calibration_status()"))
+                data = eval(self.fe.eval_string_expr("a.imu.calibration_status()"))
                 if not data:
                     self._MpFileShell__error("Error connecting to BNO055.")
                     return
@@ -486,7 +517,7 @@ class NyanShell(mpfshell.MpFileShell):
             return 
 
         if self.__is_open() and self.antenna_initialized:
-            status = self.fe.eval_string_expr("a.save_calibration()")
+            status = self.fe.eval_string_expr("a.imu.save_calibration_profile('calibration.json')")
 
             if not status:
                 self._MpFileShell__error("Error: BNO055 not detected or error in reading calibration registers.")
@@ -501,7 +532,7 @@ class NyanShell(mpfshell.MpFileShell):
             return 
 
         if self.__is_open() and self.antenna_initialized:
-            status = self.fe.eval_string_expr("a.upload_calibration()")
+            status = self.fe.eval_string_expr("a.imu.upload_calibration_profile('calibration.json')")
 
             if not status:
                 self._MpFileShell__error("Error: BNO055 not detected or error in writing calibration registers.")
@@ -584,7 +615,9 @@ class NyanShell(mpfshell.MpFileShell):
 
 
 def main():
-
+    """Entry point into the shell.
+    Parse command line args and create a shell object.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-c",
