@@ -174,9 +174,9 @@ class NyanShell(mpfshell.MpFileShell):
         val -- value of paramter
         """
         if isinstance(val, int) or isinstance(val, float):
-            self.do_exec("config.set(\"%s\", %d)" % (key, val))
+            self.do_exec("a.cfg.set(\"%s\", %d)" % (key, val))
         elif isinstance(val, str):
-            self.do_exec("config.set(\"%s\", %s)" % (key, val))
+            self.do_exec("a.cfg.set(\"%s\", %s)" % (key, val))
 
     def _config_get(self, key):
         """Get the value of an individual config parameter.
@@ -184,12 +184,12 @@ class NyanShell(mpfshell.MpFileShell):
         Arguments:
         key -- name of config parameter.
         """
-        command = "config.get(\"{}\")".format(key)
+        command = "a.cfg.get(\"{}\")".format(key)
         return self.fe.eval_string_expr(command)
 
     def _which_config(self):
         """Get the name of the currently used config file."""
-        return self.fe.eval_string_expr("config.current_file()")
+        return self.fe.eval_string_expr("a.cfg.current_file()")
 
     def do_open(self, args):
         """open <TARGET>
@@ -260,7 +260,7 @@ class NyanShell(mpfshell.MpFileShell):
             name, = s_args
             current = self._which_config()
 
-            self.do_exec("config.new(\"{}\")".format(name))
+            self.do_exec("a.cfg.new(\"{}\")".format(name))
 
             print(colorama.Fore.GREEN +
                     "Welcome to Antenny!" +
@@ -274,7 +274,7 @@ class NyanShell(mpfshell.MpFileShell):
                 except ValueError:
                     self._MpFileShell__error("Invalid type, setting to default.\nUse \"set\" to" \
                             "change the parameter")
-                    new_val = self.fe.eval_string_expr("config.get_default(\"{}\")".format(k))
+                    new_val = self.fe.eval_string_expr("a.cfg.get_default(\"{}\")".format(k))
 
                 self._config_set(k, new_val)
 
@@ -354,7 +354,7 @@ class NyanShell(mpfshell.MpFileShell):
                 self._MpFileShell__error("No such file")
                 return
             current = self._which_config()
-            self.do_exec("config.switch(\"{}\")".format(name))
+            self.do_exec("a.cfg.switch(\"{}\")".format(name))
             print(colorama.Fore.GREEN +
                     "Switched from \"{}\"".format(current) +
                     "to \"{}\"".format(name))
