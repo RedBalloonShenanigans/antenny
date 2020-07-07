@@ -12,69 +12,63 @@ import os
 _config_filename = ""
 _config = None
 _defaults = {
-                # Default configuration file to load
-                "last_loaded": "config.json",
-
-                # Disable optional hardware features
-                "use_gps": False,
-                "use_screen": False,
-
-                # Elevation/azimuth servo defaults
-                "elevation_servo_index": 0,
-                "azimuth_servo_index": 1,
-                "elevation_max_rate": 0.1,
-                "azimuth_max_rate": 0.1,
-
-                # Telemetry settings
-                "telem_destaddr": "224.11.11.11",
-                "telem_destport": "31337",
-
-                # Pins
-                "gps_uart_tx": 33,
-                "gps_uart_rx": 27,
-                "i2c_servo_scl": 21,
-                "i2c_servo_sda": 22,
-                "i2c_bno_scl": 18,
-                "i2c_bno_sda": 23,
-                "i2c_screen_scl": 25,
-                "i2c_screen_sda": 26,
-
-                # Not necessary if antenny isn't a tank
-                "tank_left": [1,2],
-                "tank_right": [0,3],
-                "tank_motors": [0,1,2,3],
-
-                # IMU calibration - cf. section 3.6.4 "Sensor calibration data" in
-                # Bosch BNO055 datasheet. Default values are all zero
-                "acc_offset_x_lsb": 0,
-                "acc_offset_x_msb": 0,
-                "acc_offset_y_lsb": 0,
-                "acc_offset_y_msb": 0,
-                "acc_offset_z_lsb": 0,
-                "acc_offset_z_msb": 0,
-                "mag_offset_x_lsb": 0,
-                "mag_offset_x_msb": 0,
-                "mag_offset_y_lsb": 0,
-                "mag_offset_y_msb": 0,
-                "mag_offset_z_lsb": 0,
-                "mag_offset_z_msb": 0,
-                "gyr_offset_x_lsb": 0,
-                "gyr_offset_x_msb": 0,
-                "gyr_offset_y_lsb": 0,
-                "gyr_offset_y_msb": 0,
-                "gyr_offset_z_lsb": 0,
-                "gyr_offset_z_msb": 0,
-                "acc_radius_lsb": 0,
-                "acc_radius_msb": 0,
-                "mag_radius_lsb": 0,
-                "mag_radius_msb": 0
-            }
-
+    # Default configuration file to load
+    "last_loaded": "config.json",
+    # Disable optional hardware features
+    "use_gps": False,
+    "use_screen": False,
+    # Elevation/azimuth servo defaults
+    "elevation_servo_index": 0,
+    "azimuth_servo_index": 1,
+    "elevation_max_rate": 0.1,
+    "azimuth_max_rate": 0.1,
+    # Telemetry settings
+    "telem_destaddr": "224.11.11.11",
+    "telem_destport": "31337",
+    # Pins
+    "gps_uart_tx": 33,
+    "gps_uart_rx": 27,
+    "i2c_servo_scl": 21,
+    "i2c_servo_sda": 22,
+    "i2c_bno_scl": 18,
+    "i2c_bno_sda": 23,
+    "i2c_screen_scl": 25,
+    "i2c_screen_sda": 26,
+    # Not necessary if antenny isn't a tank
+    "tank_left": [1, 2],
+    "tank_right": [0, 3],
+    "tank_motors": [0, 1, 2, 3],
+    # IMU calibration - cf. section 3.6.4 "Sensor calibration data" in
+    # Bosch BNO055 datasheet. Default values are all zero
+    "acc_offset_x_lsb": 0,
+    "acc_offset_x_msb": 0,
+    "acc_offset_y_lsb": 0,
+    "acc_offset_y_msb": 0,
+    "acc_offset_z_lsb": 0,
+    "acc_offset_z_msb": 0,
+    "mag_offset_x_lsb": 0,
+    "mag_offset_x_msb": 0,
+    "mag_offset_y_lsb": 0,
+    "mag_offset_y_msb": 0,
+    "mag_offset_z_lsb": 0,
+    "mag_offset_z_msb": 0,
+    "gyr_offset_x_lsb": 0,
+    "gyr_offset_x_msb": 0,
+    "gyr_offset_y_lsb": 0,
+    "gyr_offset_y_msb": 0,
+    "gyr_offset_z_lsb": 0,
+    "gyr_offset_z_msb": 0,
+    "acc_radius_lsb": 0,
+    "acc_radius_msb": 0,
+    "mag_radius_lsb": 0,
+    "mag_radius_msb": 0,
+}
 
 
 ####################
 # Internal functions
 ####################
+
 
 def _save():
     global _config
@@ -83,10 +77,10 @@ def _save():
         ujson.dump(_config, f)
 
 
-
 ####################
 # Inteface functions
 ####################
+
 
 def reload():
     """Reload the in-memory configuration key-value store from the config file.
@@ -230,7 +224,6 @@ def remove_backup():
 def current_file():
     """Return the current config filename being used."""
     return _config_filename
-
 
 
 ###################################

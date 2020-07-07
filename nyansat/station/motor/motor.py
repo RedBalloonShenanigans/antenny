@@ -1,22 +1,29 @@
-class MotorController():
+from abc import abstractmethod
+
+
+class MotorController:
     """Interface for servomotor mux controller."""
 
-    def position(self, index, degrees=None, radians=None, us=None, duty=None):
-        return
+    @abstractmethod
+    def set_position(self, index, degrees=None, radians=None, us=None, duty=None):
+        raise NotImplementedError()
 
+    @abstractmethod
     def degrees(self, index):
         """Return the position in degrees of the servo with the given index."""
-        return
+        raise NotImplementedError()
 
+    @abstractmethod
     def smooth_move(self, index, degrees, delay):
         """Move the servo with the given index to a specified position and with
         a given initial delay.
         """
-        return
+        raise NotImplementedError()
 
+    @abstractmethod
     def release(self, index):
         """Set the duty cycle of the servo with the given index to 0."""
-        return
+        raise NotImplementedError()
 
     # @abc.abstractmethod
     # # TODO: NOT NEEDED - this is for TANK

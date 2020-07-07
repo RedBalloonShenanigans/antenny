@@ -16,8 +16,6 @@ import serial
 from mp import mpfshell
 from mp.mpfshell import MpFileShell
 from mp.conbase import ConError
-#from mp.mpfexp import MpFileExplorer, MpFileExplorerCaching, RemoteIOError
-from mp.mpfexp import RemoteIOError
 from mp.pyboard import PyboardError
 from mp.tokenizer import Tokenizer
 
@@ -371,23 +369,6 @@ class NyanShell(mpfshell.MpFileShell):
         return [f for f in files if f.startswith(args[0]) and f.endswith(".json")]
 
 
-    @antkontrol_exception
-    def do_telemetry(self, args):
-        """telemetry
-        Print telemetry data directly from the board. Show data such as motor
-        status, IMU status, etc.
-        """
-        if self.antenna_initialized:
-            if self.telem_receiver is None:
-                port = self._config_get("telem_destport")
-                self.telem_receiver = TelemReceiver(port)
-            try:
-                while True:
-                    print(json.dumps(self.telem_receiver.get(), indent=2))
-            except KeyboardInterrupt:
-                pass
-
-
     def _calibration_wait_message(self, gyro_calibrated, accel_calibrated, magnet_calibrated, use_ellipsis=True):
         """
         Generate a human-readable message that indicates which components remain
@@ -513,7 +494,6 @@ class NyanShell(mpfshell.MpFileShell):
             print("Saving calibration data ...")
             self.do_save_calibration(args=None)
             print("Calibration data is now saved to config.")
-
 
 
     @antkontrol_exception
