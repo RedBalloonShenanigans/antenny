@@ -1,6 +1,9 @@
 [submodule "nyansat/lib/PCA9685"]
-	path = nyansat/lib/PCA9685
+	path = PCA9685
 	url = https://github.com/adafruit/micropython-adafruit-pca9685.git
 [submodule "nyansat/lib/BNO055"]
-	path = nyansat/lib/BNO055
+	path = BNO055
 	url = https://github.com/micropython-IMU/micropython-bno055.git
+[submodule "micropython"]
+	path = micropython
+	url = https://github.com/micropython/micropython.git
