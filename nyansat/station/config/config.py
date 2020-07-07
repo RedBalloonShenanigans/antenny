@@ -6,60 +6,6 @@ import ujson
 import os
 
 
-#####################################
-# Global variables and default values
-#####################################
-
-DEFAULT_CONFIG = {
-    # Default configuration file to load
-    "last_loaded": "config.json",
-    # Disable optional hardware features
-    "use_gps": False,
-    "use_screen": False,
-    # Elevation/azimuth servo defaults
-    "elevation_servo_index": 0,
-    "azimuth_servo_index": 1,
-    "elevation_max_rate": 0.1,
-    "azimuth_max_rate": 0.1,
-    # Telemetry settings
-    "telem_destaddr": "224.11.11.11",
-    "telem_destport": "31337",
-    # Pins
-    "gps_uart_tx": 33,
-    "gps_uart_rx": 27,
-    "i2c_servo_scl": 21,
-    "i2c_servo_sda": 22,
-    "i2c_bno_scl": 18,
-    "i2c_bno_sda": 23,
-    "i2c_screen_scl": 25,
-    "i2c_screen_sda": 26,
-    # IMU calibration - cf. section 3.6.4 "Sensor calibration data" in
-    # Bosch BNO055 datasheet. Default values are all zero
-    "acc_offset_x_lsb": 0,
-    "acc_offset_x_msb": 0,
-    "acc_offset_y_lsb": 0,
-    "acc_offset_y_msb": 0,
-    "acc_offset_z_lsb": 0,
-    "acc_offset_z_msb": 0,
-    "mag_offset_x_lsb": 0,
-    "mag_offset_x_msb": 0,
-    "mag_offset_y_lsb": 0,
-    "mag_offset_y_msb": 0,
-    "mag_offset_z_lsb": 0,
-    "mag_offset_z_msb": 0,
-    "gyr_offset_x_lsb": 0,
-    "gyr_offset_x_msb": 0,
-    "gyr_offset_y_lsb": 0,
-    "gyr_offset_y_msb": 0,
-    "gyr_offset_z_lsb": 0,
-    "gyr_offset_z_msb": 0,
-    "acc_radius_lsb": 0,
-    "acc_radius_msb": 0,
-    "mag_radius_lsb": 0,
-    "mag_radius_msb": 0,
-}
-
-
 ############
 # Main class
 ############
@@ -68,9 +14,60 @@ class ConfigRepository:
     """Used for getting, setting, loading, and storing configuration file
     values.
     """
+
+    DEFAULT_CONFIG = {
+        # Default configuration file to load
+        "last_loaded": "config.json",
+        # Disable optional hardware features
+        "use_gps": False,
+        "use_screen": False,
+        # Elevation/azimuth servo defaults
+        "elevation_servo_index": 0,
+        "azimuth_servo_index": 1,
+        "elevation_max_rate": 0.1,
+        "azimuth_max_rate": 0.1,
+        # Telemetry settings
+        "telem_destaddr": "224.11.11.11",
+        "telem_destport": "31337",
+        # Pins
+        "gps_uart_tx": 33,
+        "gps_uart_rx": 27,
+        "i2c_servo_scl": 21,
+        "i2c_servo_sda": 22,
+        "i2c_bno_scl": 18,
+        "i2c_bno_sda": 23,
+        "i2c_screen_scl": 25,
+        "i2c_screen_sda": 26,
+        # IMU calibration - cf. section 3.6.4 "Sensor calibration data" in
+        # Bosch BNO055 datasheet. Default values are all zero
+        "acc_offset_x_lsb": 0,
+        "acc_offset_x_msb": 0,
+        "acc_offset_y_lsb": 0,
+        "acc_offset_y_msb": 0,
+        "acc_offset_z_lsb": 0,
+        "acc_offset_z_msb": 0,
+        "mag_offset_x_lsb": 0,
+        "mag_offset_x_msb": 0,
+        "mag_offset_y_lsb": 0,
+        "mag_offset_y_msb": 0,
+        "mag_offset_z_lsb": 0,
+        "mag_offset_z_msb": 0,
+        "gyr_offset_x_lsb": 0,
+        "gyr_offset_x_msb": 0,
+        "gyr_offset_y_lsb": 0,
+        "gyr_offset_y_msb": 0,
+        "gyr_offset_z_lsb": 0,
+        "gyr_offset_z_msb": 0,
+        "acc_radius_lsb": 0,
+        "acc_radius_msb": 0,
+        "mag_radius_lsb": 0,
+        "mag_radius_msb": 0,
+    }
+
     def __init__(self, config_filename: str = "") -> None:
-        self._config = None
+        self._config = {}
         self._config_filename = config_filename
+        self.reload()
 
     def _save(self) -> None:
         """Dump in-memory configuration values to a file on the board."""
@@ -85,7 +82,7 @@ class ConfigRepository:
         Note: it is possible to enter an infinite loop if configs have
         "last_loaded" values that point to one another.
         """
-        last_loaded = self._config["last_loaded"]
+        last_loaded = ConfigRepository.DEFAULT_CONFIG.get("last_loaded")
 
         try:
             if self._config_filename:
@@ -100,13 +97,13 @@ class ConfigRepository:
                     last_loaded = self._config.get("last_loaded",
                                                    self._config_filename)
         except OSError:
-            self._config = DEFAULT_CONFIG
+            self._config = dict(ConfigRepository.DEFAULT_CONFIG)
 
     def new(self, name: str) -> None:
         """Create a new configuration file and ensure each call to "reload" uses
         the correct file. Does not overwrite if the file already exists.
         """
-        if self._config_filename == self._config["last_loaded"]:
+        if self._config_filename == ConfigRepository.DEFAULT_CONFIG["last_loaded"]:
             self.set("last_loaded", name)
         self._config_filename = name
         self.reload()
@@ -135,7 +132,7 @@ class ConfigRepository:
         """
         if call_reload and self._config is None:
             self.reload()
-        return self._config[key]
+        return ConfigRepository.DEFAULT_CONFIG[key]
 
     def set(self, key: str, value) -> None:
         """Set the value for a key in-memory and save it to the file system."""
@@ -159,13 +156,10 @@ class ConfigRepository:
         else:
             print("No non-default configuration values set!")
 
-        # TODO: Remove
-        """
         print("Default values:")
-        for key, val in self._config.items():
+        for key, val in ConfigRepository.DEFAULT_CONFIG.items():
             print("%s: %s" % (key, ujson.dumps(val)))
         print()
-        """
 
     def clear(self, backup: bool = True) -> None:
         """Erase all user-set keys and back up the configuration file to a .bak
