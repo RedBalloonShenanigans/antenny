@@ -6,7 +6,8 @@ check:
 	@[ "${SERIAL}" ] || ( echo "SERIAL flag is not set\nSet SERIAL to your ESP32's port"; exit 1 )
 
 setup:
-	git submodule update --init --recursive
+	git submodule init
+	git submodule update
 
 nyanshell:
 	pip3 install -r nyanshell/requirements.txt
