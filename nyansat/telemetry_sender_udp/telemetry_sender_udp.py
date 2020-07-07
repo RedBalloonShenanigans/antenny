@@ -4,8 +4,12 @@ import socket
 import ujson
 
 class TelemetrySenderUDP:
+    """Send key-value data over UDP to be displayed on client end."""
 
     def __init__(self):
+        """Create a TelemetrySenderUDP object with destination address and port
+        obtained from the current user-set config.
+        """
         self.socket_lock = _thread.allocate_lock()
         self.cur_telem = {}
         self.cur_telem['euler'] = ()
@@ -14,23 +18,26 @@ class TelemetrySenderUDP:
         self.dstaddr = cfg.get("telem_destaddr")
         self.dstport = cfg.get("telem_destport")
         self.mcast_send_socket = None
-        self.initSocket()
+        self.init_socket()
 
-    def initSocket(self):
+    def init_socket(self):
         self.mcast_send_socket = socket.socket(socket.AF_INET,
                 socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        #self.mcast_send_socket.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
 
     def set_destination(self, multicast_ipaddr):
         self.dstaddr = multicast_ipaddr
-        self.initSocket()
+        self.init_socket()
 
-    def updateTelem(self, dict_vals):
+    def update_telem(self, dict_vals: dict):
+        """Update the key-value mapping to be sent over UDP."""
         for key, val in dict_vals.items():
             with self.socket_lock:
                 self.cur_telem[key] = val
 
-    def sendTelemTick(self):
+    def send_telem_tick(self):
+        """Send the key-value mapping to the destination address and port in
+        JSON string format.
+        """
         with self.socket_lock:
             tick_str = ujson.dumps(self.cur_telem)
             self.mcast_send_socket.sendto(tick_str, (self.dstaddr, self.dstport))

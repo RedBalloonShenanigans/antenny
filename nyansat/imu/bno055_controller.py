@@ -100,6 +100,17 @@ class Bno055Controller(ImuController):
             self.bno._write(register_address, calibration_profile[register_name])
         self.bno.mode(old_mode)
 
+    def calibration_status(self) -> dict:
+        """Return the BNO055-specific calibration status in the form of a
+        str : int dictionary containing calibration levels for the overall
+        system, gyroscope, accelerometer, and magnetometer.
+        """
+        sensor_level, gyro_level, accel_level, magnet_level = tuple(self.bno.cal_status())
+        return {'system': sensor_level,
+                'gyroscope': gyro_level,
+                'accelerometer': accel_level,
+                'magnetometer': magnet_level}
+
     # The following are BNO055-specific functions used for imu status check
 
     def temperature(self):
