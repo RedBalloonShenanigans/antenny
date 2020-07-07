@@ -12,7 +12,7 @@ NyanShell provides a convenient shell interface to communicate with your NyanSat
 
 ### Set up your base station environment
 
-Once your host is set up, you can install NyanSat on your ESP32. First, determine which serial port corresponds to your ESP32. Then from the project directory, run `make nyansat SERIAL=<your ESP32 serial port>` to install it on your ESP32.
+Once your host is set up, you can install NyanSat on your ESP32. First, determine which serial port corresponds to your ESP32. Then from the project directory, run `make nyansat SERIAL=<your ESP32 serial port>` to install it on your ESP32. During this process, you will be asked for your WiFi SSID and Password; this is to establish an internet connection for upip, which will install some dependencies.
 
 ## Features
 
