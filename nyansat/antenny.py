@@ -52,7 +52,7 @@ class AntKontrol:
                     Pin.PULL_DOWN), sda=machine.Pin(cfg.get("i2c_screen_sda"),
                         Pin.OUT, Pin.PULL_DOWN))         # on [60] ssd1306
         self._pinmode = False
-        
+
         self._servo_mux = Pca9685Controller(self._i2c_servo_mux, min_us=500, max_us=2500, degrees=180)
         self._screen = ssd1306.SSD1306_I2C(128, 32, self._i2c_screen)
 
@@ -88,6 +88,8 @@ class AntKontrol:
 
         self._orientation_thread = _thread.start_new_thread(self.update_orientation, ())
         logging.info("starting screen thread")
+        self._run_telem_thread = True
+        self._telem_thread = _thread.start_new_thread(self.send_telem, ())
         self._screen_thread = _thread.start_new_thread(self.display_status, ())
         self._move_thread = _thread.start_new_thread(self.move_loop, ())
 
@@ -264,9 +266,16 @@ class AntKontrol:
                 self._screen.text("{:08.3f}".format(self._euler[1]), 0, 8)
                 self._screen.text("{:08.3f}".format(self._euler[2]), 0, 16)
                 self._screen.show()
-                self.update_telem()
-                self.telem.send_telem_tick()
+            except Exception as e:
+                logging.info("here{}".format(str(e)))
+            time.sleep(.2)
 
+    def send_telem(self):
+        while self._run_telem_thread:
+            try:
+                self.touch()
+                self.updateTelem()
+                self.telem.sendTelemTick()
             except Exception as e:
                 logging.info("here{}".format(str(e)))
             time.sleep(.2)
