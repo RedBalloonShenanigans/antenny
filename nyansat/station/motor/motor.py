@@ -17,8 +17,3 @@ class MotorController(object):
     def release(self, index):
         """Set the duty cycle of the servo with the given index to 0."""
         raise NotImplementedError()
-
-    # @abc.abstractmethod
-    # # TODO: NOT NEEDED - this is for TANK
-    # def speed(self, index, value=None):
-    #     return
