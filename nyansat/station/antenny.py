@@ -93,7 +93,7 @@ class AntKontrol:
         self._el_max_rate = cfg.get("elevation_max_rate")
         self._az_max_rate = cfg.get("azimuth_max_rate")
 
-        self._sender.start()
+#         self._sender.start()
         self._orientation_thread = _thread.start_new_thread(self.update_orientation, ())
         self._screen_thread = _thread.start_new_thread(self.display_status, ())
         self._gps_thread = _thread.start_new_thread(self._gps.run, ())
@@ -280,36 +280,41 @@ class AntKontrol:
             )
         )
 
-        if self._el_moving or self._pinmode:
-            # goes from 0 - 180, or whaterver max is
-            if abs(el_delta_deg) < self._el_max_rate:
-                self._el_last_raw = self._el_last_raw + el_delta_deg
-                self._servo_mux.set_position(EL_SERVO_INDEX, self._el_last_raw)
-                self._servo_mux.release(EL_SERVO_INDEX)
-                self._el_moving = False
-            else:
-                if el_delta_deg > 0:
-                    self._el_last_raw = self._el_last_raw + self._el_max_rate * self._el_direction
-                else:
-                    self._el_last_raw = self._el_last_raw - self._el_max_rate * self._el_direction
-                self._servo_mux.set_position(EL_SERVO_INDEX, self._el_last_raw)
-                self._el_moving = True
+        self._servo_mux.smooth_move(EL_SERVO_INDEX, self._el_target, 10)
+        self._el_moving = False
+        self._servo_mux.smooth_move(AZ_SERVO_INDEX, self._az_target, 10)
+        self._az_moving = False
 
-        if self._az_moving or self._pinmode:
-            # -90 to +90, but antenny can only move from 0 - 90
-            print(az_delta_deg)
-            if abs(az_delta_deg) < self._az_max_rate:
-                self._az_last_raw = self._az_last_raw + az_delta_deg
-                self._servo_mux.set_position(AZ_SERVO_INDEX, self._az_last_raw)
-                self._servo_mux.release(AZ_SERVO_INDEX)
-                self._az_moving = False
-            else:
-                if az_delta_deg > 0:
-                    self._az_last_raw = self._az_last_raw + self._az_max_rate * self._az_direction
-                else:
-                    self._az_last_raw = self._az_last_raw - self._az_max_rate * self._az_direction
-                self._servo_mux.set_position(AZ_SERVO_INDEX, self._az_last_raw)
-                self._az_moving = True
+        #if self._el_moving or self._pinmode:
+        #    # goes from 0 - 180, or whaterver max is
+        #    if abs(el_delta_deg) < self._el_max_rate:
+        #        self._el_last_raw = self._el_last_raw + el_delta_deg
+        #        self._servo_mux.set_position(EL_SERVO_INDEX, self._el_last_raw)
+        #        self._servo_mux.release(EL_SERVO_INDEX)
+        #        self._el_moving = False
+        #    else:
+        #        if el_delta_deg > 0:
+        #            self._el_last_raw = self._el_last_raw + self._el_max_rate * self._el_direction
+        #        else:
+        #            self._el_last_raw = self._el_last_raw - self._el_max_rate * self._el_direction
+        #        self._servo_mux.set_position(EL_SERVO_INDEX, self._el_last_raw)
+        #        self._el_moving = True
+
+        #if self._az_moving or self._pinmode:
+        #    # -90 to +90, but antenny can only move from 0 - 90
+        #    print(az_delta_deg)
+        #    if abs(az_delta_deg) < self._az_max_rate:
+        #        self._az_last_raw = self._az_last_raw + az_delta_deg
+        #        self._servo_mux.set_position(AZ_SERVO_INDEX, self._az_last_raw)
+        #        self._servo_mux.release(AZ_SERVO_INDEX)
+        #        self._az_moving = False
+        #    else:
+        #        if az_delta_deg > 0:
+        #            self._az_last_raw = self._az_last_raw + self._az_max_rate * self._az_direction
+        #        else:
+        #            self._az_last_raw = self._az_last_raw - self._az_max_rate * self._az_direction
+        #        self._servo_mux.set_position(AZ_SERVO_INDEX, self._az_last_raw)
+        #        self._az_moving = True
 
     def do_pin_mode(self):
         delta_x = self._pinned_euler[0] - self._euler[0]
