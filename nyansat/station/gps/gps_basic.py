@@ -4,14 +4,16 @@ import time
 
 from micropyGPS import MicropyGPS
 
-import config as cfg
+import config
 from gps.gps import GPSController, GPSStatus
 
 
 class BasicGPSController(GPSController):
     def __init__(self):
         self._gps_uart = machine.UART(1, 9600)
-        self._gps_uart.init(tx=cfg.get("gps_uart_tx"), rx=cfg.get("gps_uart_rx"))
+        self.cfg = config.ConfigRepository()
+        self._gps_uart.init(tx=self.cfg.get("gps_uart_tx"),
+                            rx=self.cfg.get("gps_uart_rx"))
         self._gps = MicropyGPS()
         self._model = None
 

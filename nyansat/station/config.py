@@ -1,6 +1,7 @@
 # src/config.py
 
 # import json as ujson # Uncomment this line for local testing
+
 import ujson
 import os
 
@@ -9,9 +10,7 @@ import os
 # Global variables and default values
 #####################################
 
-_config_filename = ""
-_config = None
-_defaults = {
+DEFAULT_CONFIG = {
     # Default configuration file to load
     "last_loaded": "config.json",
     # Disable optional hardware features
@@ -34,10 +33,6 @@ _defaults = {
     "i2c_bno_sda": 23,
     "i2c_screen_scl": 25,
     "i2c_screen_sda": 26,
-    # Not necessary if antenny isn't a tank
-    "tank_left": [1, 2],
-    "tank_right": [0, 3],
-    "tank_motors": [0, 1, 2, 3],
     # IMU calibration - cf. section 3.6.4 "Sensor calibration data" in
     # Bosch BNO055 datasheet. Default values are all zero
     "acc_offset_x_lsb": 0,
@@ -65,169 +60,142 @@ _defaults = {
 }
 
 
-####################
-# Internal functions
-####################
+############
+# Main class
+############
 
-
-def _save():
-    global _config
-
-    with open(_config_filename, "w") as f:
-        ujson.dump(_config, f)
-
-
-####################
-# Inteface functions
-####################
-
-
-def reload():
-    """Reload the in-memory configuration key-value store from the config file.
-    Use a default filename if one is not set. The default file may point to a
-    different default config file.
-
-    Note: it is possible to enter an infinite loop if configs have
-    "last_loaded" values that point to one another.
+class ConfigRepository:
+    """Used for getting, setting, loading, and storing configuration file
+    values.
     """
-    global _config
-    global _config_filename
-    last_loaded = _defaults["last_loaded"]
+    def __init__(self, config_filename: str = "") -> None:
+        self._config = None
+        self._config_filename = config_filename
 
-    try:
-        if _config_filename:
-            with open(_config_filename, "r") as f:
-                _config = ujson.load(f)
+    def _save(self) -> None:
+        """Dump in-memory configuration values to a file on the board."""
+        with open(self._config_filename, "w") as f:
+            ujson.dump(self._config, f)
+
+    def reload(self) -> None:
+        """Reload the in-memory configuration key-value store from the config
+        file. Use a default filename if one is not set. The default file may
+        point to a different default config file.
+
+        Note: it is possible to enter an infinite loop if configs have
+        "last_loaded" values that point to one another.
+        """
+        last_loaded = self._config["last_loaded"]
+
+        try:
+            if self._config_filename:
+                with open(self._config_filename, "r") as f:
+                    self._config = ujson.load(f)
+            else:
+                while self._config_filename != last_loaded:
+                    # Set config filename to the default value
+                    self._config_filename = last_loaded
+                    with open(self._config_filename, "r") as f:
+                        self._config = ujson.load(f)
+                    last_loaded = self._config.get("last_loaded",
+                                                   self._config_filename)
+        except OSError:
+            self._config = DEFAULT_CONFIG
+
+    def new(self, name: str) -> None:
+        """Create a new configuration file and ensure each call to "reload" uses
+        the correct file. Does not overwrite if the file already exists.
+        """
+        if self._config_filename == self._config["last_loaded"]:
+            self.set("last_loaded", name)
+        self._config_filename = name
+        self.reload()
+
+    def switch(self, name: str) -> None:
+        """Switch the configuration file being used."""
+        self.new(name)
+
+    def get(self, key: str, call_reload: bool = True):
+        """Get a value from the in-memory key-value store loaded from the
+        configuration file. If no value exists for the key, try and get it from
+        the dictionary of default values. If "call_reload" is true, it will try
+        and reload the config file from storage before checking for the value.
+        """
+        if call_reload and self._config is None:
+            self.reload()
+
+        if key not in self._config:
+            return self.get_default(key, call_reload=call_reload)
         else:
-            while _config_filename != last_loaded:
-                # Set config filename to the default value
-                _config_filename = last_loaded
-                with open(_config_filename, "r") as f:
-                    _config = ujson.load(f)
-                last_loaded = _config.get("last_loaded", _config_filename)
-    except OSError:
-        # print("Config file %s not found while reloading. Creating a new one." %
-        #         _config_filename)
-        _config = {}
+            return self._config[key]
 
+    def get_default(self, key: str, call_reload: bool = True):
+        """Get the default value for a given key. Reload the config file if
+        the flag is set and it is not already loaded in memory.
+        """
+        if call_reload and self._config is None:
+            self.reload()
+        return self._config[key]
 
-def new(name):
-    """Create a new configuration file and ensure each call to "reload" uses
-    the correct file. Does not overwrite if the file already exists.
-    """
-    global _config_filename
-    global _defaults
+    def set(self, key: str, value) -> None:
+        """Set the value for a key in-memory and save it to the file system."""
+        if self._config is None:
+            self.reload()
 
-    if _config_filename == _defaults["last_loaded"]:
-        set("last_loaded", name)
-    _config_filename = name
-    reload()
+        self._config[key] = value
+        self._save()
+        self.reload()
 
+    def print_values(self) -> None:
+        """Print the value of all user-set and default keys."""
+        print("Using configuration file %s" % self._config_filename)
+        print()
 
-def switch(name):
-    """Switch the configuration file being used."""
-    new(name)
+        if self._config:
+            print("Config values:")
+            for key, val in self._config.items():
+                print("%s: %s" % (key, ujson.dumps(val)))
+            print()
+        else:
+            print("No non-default configuration values set!")
 
-
-def get(key, call_reload=True):
-    """Get a value from the in-memory key-value store loaded from the
-    configuration file. If no value exists for the key, try and get it from the
-    dictionary of default values. If "call_reload" is true, it will try and
-    reload the config file from storage before checking for the value.
-    """
-    global _config
-
-    if call_reload and _config is None:
-        reload()
-
-    if key not in _config:
-        return get_default(key, call_reload=call_reload)
-    else:
-        return _config[key]
-
-
-def get_default(key, call_reload=True):
-    """Get the default value for a given key."""
-    global _defaults
-
-    if call_reload and _defaults is None:
-        reload()
-
-    return _defaults[key]
-
-
-def set(key, value):
-    """Set the value for a key in-memory and save it to the file system."""
-    global _config
-
-    if _config is None:
-        reload()
-
-    _config[key] = value
-    _save()
-    reload()
-
-
-def print_values():
-    """Print the value of all user-set and default keys."""
-    global _config
-    global _defaults
-
-    print("Using configuration file %s" % _config_filename)
-    print()
-
-    if _config:
-        print("Config values:")
-        for key, val in _config.items():
+        # TODO: Remove
+        """
+        print("Default values:")
+        for key, val in self._config.items():
             print("%s: %s" % (key, ujson.dumps(val)))
         print()
-    else:
-        print("No non-default configuration values set!")
+        """
 
-    print("Default values:")
-    for key, val in _defaults.items():
-        print("%s: %s" % (key, ujson.dumps(val)))
-    print()
+    def clear(self, backup: bool = True) -> None:
+        """Erase all user-set keys and back up the configuration file to a .bak
+        file by default.
+        """
+        try:
+            if backup:
+                os.rename(self._config_filename,
+                          "%s.bak" % self._config_filename)
+            else:
+                os.remove(self._config_filename)
+        except OSError:
+            pass
+        self.reload()
 
+    def revert(self) -> None:
+        """Revert the current configuration from a backup."""
+        try:
+            os.rename("%s.bak" % self._config_filename, self._config_filename)
+            self.reload()
+        except OSError:
+            pass
 
-def clear(backup=True):
-    """Erase all user-set keys and back up the configuration file to a .bak
-    file by default.
-    """
-    try:
-        if backup:
-            os.rename(_config_filename, "%s.bak" % _config_filename)
-        else:
-            os.remove(_config_filename)
-    except OSError:
-        pass
-    reload()
+    def remove_backup(self) -> None:
+        """Delete a stored backup, if one exists."""
+        try:
+            os.remove("%s.bak" % self._config_filename)
+        except OSError:
+            pass
 
-
-def revert():
-    """Revert the current configuration from a backup."""
-    try:
-        os.rename("%s.bak" % _config_filename, _config_filename)
-        reload()
-    except OSError:
-        pass
-
-
-def remove_backup():
-    """Delete a stored backup, if one exists."""
-    try:
-        os.remove("%s.bak" % _config_filename)
-    except OSError:
-        pass
-
-
-def current_file():
-    """Return the current config filename being used."""
-    return _config_filename
-
-
-###################################
-# Main function -- loaded on import
-###################################
-
-reload()
+    def current_file(self) -> None:
+        """Return the current config filename being used."""
+        return self._config_filename
