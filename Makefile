@@ -1,7 +1,7 @@
 setup:
-	cd lib/BNO055; git checkout -b 4422248bc82a79b4aec9cc90599f28de60e37c76
-	cd lib/PCA9685; git checkout -b 0fea2736f99a2840f0d644be866f6abd5bc14b48
-	cd lib/micropython; git checkout -b c2317a3a8d5f184de2f816078d91be699274b94
+	cd lib/BNO055; git checkout 4422248bc82a79b4aec9cc90599f28de60e37c76
+	cd lib/PCA9685; git checkout 0fea2736f99a2840f0d644be866f6abd5bc14b48
+	cd lib/micropython; git checkout c2317a3a8d5f184de2f816078d91be699274b94
 	git submodule init
 	git submodule update
 

@@ -9,4 +9,4 @@
 	url = https://github.com/micropython/micropython.git
 [submodule "lib/rbs-tui-dom"]
 	path = lib/rbs-tui-dom
-	url = https://github.com/RedBalloonShenanigans/tui-dom.git
+	url = https://github.com/ballon-rouge/tui-dom.git
