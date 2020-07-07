@@ -6,11 +6,11 @@ import machine
 import ssd1306
 from machine import Pin
 
-from .gps.gps_basic import BasicGPSController
+from gps.gps_basic import BasicGPSController
 import config as cfg
-from .imu.imu_bno055 import Bno055ImuController
-from .motor.motor_pca9685 import Pca9685Controller
-from .sender import UDPTelemetrySender
+from imu.imu_bno055 import Bno055ImuController
+from motor.motor_pca9685 import Pca9685Controller
+from sender import UDPTelemetrySender
 
 EL_SERVO_INDEX = cfg.get("elevation_servo_index")
 AZ_SERVO_INDEX = cfg.get("azimuth_servo_index")

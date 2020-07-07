@@ -1,26 +1,28 @@
-from attr import dataclass
-from typing import Dict, Tuple
-
 from bno055 import BNO055, CONFIG_MODE
 import machine
 import ujson
 
-from .imu import ImuController, ImuStatus, ImuCalibrationStatus
+from imu.imu import ImuController, ImuStatus, ImuCalibrationStatus
 
 
-@dataclass
 class Bno055ImuStatus(ImuStatus):
-    euler: Tuple[float, float, float]
-    temperature: float
-    magnetometer: Tuple[float, float, float]
-    gyroscope: Tuple[float, float, float]
-    accelerometer: Tuple[float, float, float]
-    linear_accelerometer: Tuple[float, float, float]
-    gravity: Tuple[float, float, float]
+
+    __slots__ = ['euler', 'temperature', 'magnetometer', 'gyroscope', 'accelerometer', 'linear_acccelerometer',
+                 'gravity']
+    def __init__(self, euler: tuple(float, float, float), temperature: float, magnetometer: tuple(float, float, float),
+                 gyroscope: tuple(float, float, float), accelerometer: tuple(float, float, float),
+                 linear_accelerometer: tuple(float, float, float), gravity: tuple(float, float, float)):
+        self.euler = euler
+        self.temperature = temperature
+        self.magnetometer = magnetometer
+        self.gyroscope = gyroscope
+        self.accelerometer = accelerometer
+        self.linear_accelerometer = linear_accelerometer
+        self.gravity = gravity
 
     def to_string(self) -> str:
         lines = [
-            f"Temperature {self.temperature}°C",
+            "Temperature {}°C".format(self.temperature),
             "Mag        x {:5.0f}    y {:5.0f}     z {:5.0f}".format(*self.magnetometer),
             "Gyro       x {:5.0f}    y {:5.0f}     z {:5.0f}".format(*self.gyroscope),
             "Accel      x {:5.1f}    y {:5.1f}     z {:5.1f}".format(*self.accelerometer),
@@ -31,12 +33,13 @@ class Bno055ImuStatus(ImuStatus):
         return "\n".join(lines)
 
 
-@dataclass
 class Bno055ImuCalibrationStatus(ImuCalibrationStatus):
-    system: bool
-    gyroscope: bool
-    accelerometer: bool
-    magnetometer: bool
+    __slots__ = ['system', 'gyroscope', 'accelerometer', 'magnetometer']
+    def __init__(self, system: bool, gyroscope: bool, accelerometer: bool, magnetometer: bool):
+        self.system = system
+        self.gyroscope = gyroscope
+        self.accelerometer = accelerometer
+        self.magnetometer = magnetometer
 
     def is_calibrated(self) -> bool:
         return self.system and self.gyroscope and self.accelerometer and self.magnetometer

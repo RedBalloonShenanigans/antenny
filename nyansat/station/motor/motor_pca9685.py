@@ -4,7 +4,7 @@ import math
 import machine
 import pca9685
 
-from .motor import MotorController
+from motor.motor import MotorController
 
 
 class Pca9685Controller(MotorController):

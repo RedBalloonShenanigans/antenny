@@ -6,8 +6,8 @@ import utime
 
 import ujson
 
-from ..gps.gps import GPSController
-from ..imu.imu import ImuController
+from gps.gps import GPSController
+from imu.imu import ImuController
 
 LOGGER = logging.getLogger("station.sender.udp")
 

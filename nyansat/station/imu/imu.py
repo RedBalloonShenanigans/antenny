@@ -1,31 +1,23 @@
-from abc import ABC, abstractmethod
-
-
-class ImuStatus(ABC):
-    @abstractmethod
+class ImuStatus(object):
     def to_string(self) -> str:
         raise NotImplementedError()
 
 
-class ImuCalibrationStatus(ABC):
-    @abstractmethod
+class ImuCalibrationStatus(object):
     def is_calibrated(self) -> bool:
         raise NotImplementedError()
 
 
-class ImuController(ABC):
+class ImuController(object):
     """Interface for a generic IMU controller for use in antenny."""
 
-    @abstractmethod
     def euler(self) -> tuple:
         """Return Euler angles in degrees: (heading, roll, pitch)."""
         raise NotImplementedError()
 
-    @abstractmethod
     def get_status(self) -> ImuStatus:
         raise NotImplementedError()
 
-    @abstractmethod
     def get_calibration_status(self) -> ImuCalibrationStatus:
         """Return a Dict[str, bool] mapping between names of constituent
         sensors and a boolean representing whether or not that sensor is
@@ -43,7 +35,6 @@ class ImuController(ABC):
         """
         raise NotImplementedError()
 
-    @abstractmethod
     def save_calibration_profile(self, filename: str) -> None:
         """Save the device's current calibration profile to the specified file,
         creating the file if it does not exist and overwriting it if it does.
@@ -52,7 +43,6 @@ class ImuController(ABC):
         """
         raise NotImplementedError()
 
-    @abstractmethod
     def upload_calibration_profile(self, filename: str) -> None:
         """Upload a calibration profile from the specified file to the device.
         The format that the calibration profile is saved in should be the same
