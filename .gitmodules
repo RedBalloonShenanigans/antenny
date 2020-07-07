@@ -10,3 +10,6 @@
 [submodule "lib/micropygps"]
 	path = lib/micropygps
 	url = https://github.com/inmcm/micropyGPS.git
+[submodule "lib/rbs-tui-dom"]
+	path = lib/rbs-tui-dom
+	url = https://github.com/ballon-rouge/tui-dom.git
