@@ -7,9 +7,9 @@
 [submodule "lib/micropython"]
 	path = lib/micropython
 	url = git@github.com:micropython/micropython.git
-[submodule "lib/rbs-tui-dom"]
-	path = lib/rbs-tui-dom
-	url = git@github.com:ballon-rouge/tui-dom.git
 [submodule "lib/micropygps"]
 	path = lib/micropygps
 	url = git@github.com:inmcm/micropyGPS.git
+[submodule "lib/rbs-tui-dom"]
+	path = lib/rbs-tui-dom
+	url = git@github.com:ballon-rouge/tui-dom.git
