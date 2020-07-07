@@ -1,0 +1,35 @@
+
+put nyansat/station/main.py main.py
+put nyansat/station/antenny.py antenny.py
+put nyansat/station/config.py config.py
+put nyansat/station/__init__.py __init__.py
+
+md lib
+md lib/BNO055
+put lib/BNO055/bno055.py /lib/BNO055/bno055.py
+put lib/BNO055/bno055_base.py /lib/BNO055/bno055_base.py
+put lib/PCA9685/pca9685.py /lib/pca9685.py
+put lib/micropython/drivers/display/ssd1306.py /lib/ssd1306.py
+
+exec import upip
+exec upip.install('logging')
+exec upip.install('asyncio')
+
+md gps
+put nyansat/station/gps/__init__.py /gps/__init__.py
+put nyansat/station/gps/gps.py /gps/gps.py
+put nyansat/station/gps/gps_basic.py /gps/gps_basic.py
+
+md imu
+put nyansat/station/imu/__init__.py /imu/__init__.py
+put nyansat/station/imu/imu.py /imu/imu.py
+put nyansat/station/imu/imu_bno055.py /imu/imu_bno055.py
+
+md motor
+put nyansat/station/motor/__init__.py /motor/__init__.py
+put nyansat/station/motor/motor.py /motor/motor.py
+put nyansat/station/motor/motor_pca9685.py /motor/motor_pca9685.py
+
+md sender
+put nyansat/station/sender/__init__.py /sender/__init__.py
+put nyansat/station/sender/sender_udp.py /sender/sender_udp.py

@@ -16,12 +16,11 @@ import serial
 from mp import mpfshell
 from mp.mpfshell import MpFileShell
 from mp.conbase import ConError
-#from mp.mpfexp import MpFileExplorer, MpFileExplorerCaching, RemoteIOError
-from mp.mpfexp import RemoteIOError
 from mp.pyboard import PyboardError
 from mp.tokenizer import Tokenizer
 
 from nyan_explorer import NyanExplorer, NyanExplorerCaching
+from telem_receiver import TelemReceiver
 
 
 class NyanShell(mpfshell.MpFileShell):
@@ -30,7 +29,7 @@ class NyanShell(mpfshell.MpFileShell):
     GYRO_CALIBRATION_MESSAGE = "To calibrate the gyroscope, let the sensor rest on a level surface for a few seconds."
     ACCEL_CALIBRATION_MESSAGE = "To calibrate the accelerometer, slowly move the sensor into >=6 distinct orientations,\nsome perpendicular to the xyz axes."
     MAGNET_CALIBRATION_MESSAGE = "To calibrate the magnetometer, move the sensor in figure-8 shapes through the air a few times."
-    
+
     def __init__(self, color=False, caching=False, reset=False):
         """Creates Cmd-based shell object.
 
@@ -77,6 +76,8 @@ class NyanShell(mpfshell.MpFileShell):
                 "azimuth_max_rate": ("Servo azimuth max rate: ", float)
         }
         self.antenna_initialized = False
+
+        self.telem_receiver = None
 
     def __intro(self):
         """Text that appears when shell is first launched."""
@@ -125,10 +126,10 @@ class NyanShell(mpfshell.MpFileShell):
             )
         else:
             self.prompt = "nyanshell [" + pwd + "]> "
-    
+
     def __connect(self, port):
         """Attempt to connect to the ESP32.
-    
+
         Arguments:
         port -- (see do_open). Specify how to connect to the device.
         """
@@ -179,7 +180,7 @@ class NyanShell(mpfshell.MpFileShell):
 
     def _config_get(self, key):
         """Get the value of an individual config parameter.
-        
+
         Arguments:
         key -- name of config parameter.
         """
@@ -217,7 +218,7 @@ class NyanShell(mpfshell.MpFileShell):
         return self.__connect(args)
 
     def do_edit(self, args):
-        """edit <REMOTE_FILE> 
+        """edit <REMOTE_FILE>
         Copies file over, opens it in your editor, copies back when done.
         """
         if not len(args):
@@ -368,19 +369,6 @@ class NyanShell(mpfshell.MpFileShell):
         return [f for f in files if f.startswith(args[0]) and f.endswith(".json")]
 
 
-    @antkontrol_exception
-    def do_telemetry(self, args):
-        """telemetry
-        Print telemetry data directly from the board. Show data such as motor
-        status, IMU status, etc.
-        """
-        if self.antenna_initialized:
-            print("Telemetry data:")
-            print("IMU status: ", end="")
-            print(self.fe.eval_string_expr("a.imu_status()"))
-            print("Motor status: ", end="")
-            print(self.fe.eval_string_expr("a.motor_status()"))
-
     def _calibration_wait_message(self, gyro_calibrated, accel_calibrated, magnet_calibrated, use_ellipsis=True):
         """
         Generate a human-readable message that indicates which components remain
@@ -409,11 +397,12 @@ class NyanShell(mpfshell.MpFileShell):
         """
         if args:
             self._MpFileShell__error("Usage: calibrate does not take arguments.")
-            return 
+            return
 
         if self.__is_open() and self.antenna_initialized:
             print("Detecting calibration status ...")
             data = eval(self.fe.eval_string_expr("a.imu.calibration_status()"))
+            data = (data['system'], data['gyroscope'], data['accelerometer'], data['magnetometer'])
             if not data:
                 self._MpFileShell__error("Error connecting to BNO055.")
                 return
@@ -460,7 +449,7 @@ class NyanShell(mpfshell.MpFileShell):
                         print("\x1b[2A\x1b[2K")
                 else:
                     overwrite_old_text = True
-                
+
                 system_level, gyro_level, accel_level, magnet_level = data
                 if not gyro_calibrated and gyro_level > 0:
                     gyro_calibrated = True
@@ -494,6 +483,7 @@ class NyanShell(mpfshell.MpFileShell):
 
                 # Re-fetch calibration data
                 data = eval(self.fe.eval_string_expr("a.imu.calibration_status()"))
+                data = (data['system'], data['gyroscope'], data['accelerometer'], data['magnetometer'])
                 if not data:
                     self._MpFileShell__error("Error connecting to BNO055.")
                     return
@@ -505,7 +495,6 @@ class NyanShell(mpfshell.MpFileShell):
             self.do_save_calibration(args=None)
             print("Calibration data is now saved to config.")
 
-            
 
     @antkontrol_exception
     def do_save_calibration(self, args):
@@ -514,7 +503,7 @@ class NyanShell(mpfshell.MpFileShell):
         """
         if args:
             self._MpFileShell__error("Usage: save_calibration does not take arguments.")
-            return 
+            return
 
         if self.__is_open() and self.antenna_initialized:
             status = self.fe.eval_string_expr("a.imu.save_calibration_profile('calibration.json')")
@@ -529,7 +518,7 @@ class NyanShell(mpfshell.MpFileShell):
         """
         if args:
             self._MpFileShell__error("Usage: upload_calibration does not take arguments.")
-            return 
+            return
 
         if self.__is_open() and self.antenna_initialized:
             status = self.fe.eval_string_expr("a.imu.upload_calibration_profile('calibration.json')")
