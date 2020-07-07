@@ -7,7 +7,7 @@ import ssd1306
 from machine import Pin
 
 from gps.gps_basic import BasicGPSController
-import config
+import config.config as config
 from imu.imu_bno055 import Bno055ImuController
 from motor.motor_pca9685 import Pca9685Controller
 from screen.screen_ssd1306 import Ssd1306ScreenController

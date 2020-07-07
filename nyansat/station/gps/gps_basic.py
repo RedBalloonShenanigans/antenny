@@ -4,7 +4,7 @@ import time
 
 from micropyGPS import MicropyGPS
 
-import config
+import config.config as config
 from gps.gps import GPSController, GPSStatus
 
 
