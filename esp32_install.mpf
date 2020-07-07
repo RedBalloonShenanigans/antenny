@@ -1,3 +1,8 @@
+put lib/BNO055/bno055.py bno055.py
+put lib/BNO055/bno055_base.py bno055_base.py
+put lib/PCA9685/pca9685.py pca9685.py
+put lib/micropython/drivers/display/ssd1306.py ssd1306.py
+
 put nyansat/station/main.py main.py
 put nyansat/station/antenny.py antenny.py
 put nyansat/station/config.py config.py
