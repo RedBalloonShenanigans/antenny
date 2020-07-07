@@ -7,7 +7,7 @@ import ssd1306
 from machine import Pin
 
 from gps.gps_basic import BasicGPSController
-import config.config as config
+from config.config import ConfigRepository
 from imu.imu_bno055 import Bno055ImuController
 from motor.motor_pca9685 import Pca9685Controller
 from screen.screen_ssd1306 import Ssd1306ScreenController
@@ -23,7 +23,7 @@ class AntKontrol:
     """
 
     def __init__(self):
-        self.cfg = config.ConfigRepository()
+        self.cfg = ConfigRepository()
         self._gps = BasicGPSController()
         self._imu = Bno055ImuController(
             machine.I2C(
