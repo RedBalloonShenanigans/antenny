@@ -1,15 +1,15 @@
 [submodule "lib/PCA9685"]
 	path = lib/PCA9685
-	url = https://github.com/adafruit/micropython-adafruit-pca9685.git
+	url = git@github.com:adafruit/micropython-adafruit-pca9685.git
 [submodule "lib/BNO055"]
 	path = lib/BNO055
-	url = https://github.com/micropython-IMU/micropython-bno055.git
+	url = git@github.com:micropython-IMU/micropython-bno055.git
 [submodule "lib/micropython"]
 	path = lib/micropython
-	url = https://github.com/micropython/micropython.git
+	url = git@github.com:micropython/micropython.git
 [submodule "lib/rbs-tui-dom"]
 	path = lib/rbs-tui-dom
-	url = https://github.com/ballon-rouge/tui-dom.git
+	url = git@github.com:ballon-rouge/tui-dom.git
 [submodule "lib/micropygps"]
 	path = lib/micropygps
-	url = https://github.com/inmcm/micropyGPS.git
+	url = git@github.com:inmcm/micropyGPS.git
