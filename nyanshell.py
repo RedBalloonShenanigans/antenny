@@ -413,7 +413,7 @@ class NyanShell(mpfshell.MpFileShell):
 
         if self.__is_open() and self.antenna_initialized:
             print("Detecting calibration status ...")
-            data = eval(self.fe.eval_string_expr("a.calibration_status()"))
+            data = eval(self.fe.eval_string_expr("a.imu.calibration_status()"))
             if not data:
                 self._MpFileShell__error("Error connecting to BNO055.")
                 return
@@ -493,7 +493,7 @@ class NyanShell(mpfshell.MpFileShell):
                 print(f"└ {wait_message}", " " * spacing_length)
 
                 # Re-fetch calibration data
-                data = eval(self.fe.eval_string_expr("a.calibration_status()"))
+                data = eval(self.fe.eval_string_expr("a.imu.calibration_status()"))
                 if not data:
                     self._MpFileShell__error("Error connecting to BNO055.")
                     return
@@ -517,7 +517,7 @@ class NyanShell(mpfshell.MpFileShell):
             return 
 
         if self.__is_open() and self.antenna_initialized:
-            status = self.fe.eval_string_expr("a.save_calibration()")
+            status = self.fe.eval_string_expr("a.imu.save_calibration_profile('calibration.json')")
 
             if not status:
                 self._MpFileShell__error("Error: BNO055 not detected or error in reading calibration registers.")
@@ -532,7 +532,7 @@ class NyanShell(mpfshell.MpFileShell):
             return 
 
         if self.__is_open() and self.antenna_initialized:
-            status = self.fe.eval_string_expr("a.upload_calibration()")
+            status = self.fe.eval_string_expr("a.imu.upload_calibration_profile('calibration.json')")
 
             if not status:
                 self._MpFileShell__error("Error: BNO055 not detected or error in writing calibration registers.")
