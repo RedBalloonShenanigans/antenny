@@ -9,3 +9,6 @@
 mpfshell/build/*
 mpfshell/dist/*
 mpfshell/mpfshell.egg-info/*
+
+# PyCharm project files
+*.idea
