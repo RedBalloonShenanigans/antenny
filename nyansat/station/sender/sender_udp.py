@@ -6,13 +6,14 @@ import utime
 
 import ujson
 
-from ..gps.gps import GPSController
-from ..imu.imu import ImuController
+from gps.gps import GPSController
+from imu.imu import ImuController
+from .sender import TelemetrySender
 
 LOGGER = logging.getLogger("station.sender.udp")
 
 
-class UDPTelemetrySender:
+class UDPTelemetrySender(TelemetrySender):
     """Send key-value data over UDP to be displayed on client end."""
 
     def __init__(
@@ -57,7 +58,7 @@ class UDPTelemetrySender:
             try:
                 self._send_telemetry()
             except Exception:
-                logging.error("Failed to send telemetry", exc_info=True)
+                LOGGER.error("Failed to send telemetry")
             time.sleep(self._interval)
         self._thread = None
 
