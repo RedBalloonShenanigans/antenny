@@ -368,7 +368,7 @@ class NyanShell(mpfshell.MpFileShell):
 
             if self._is_open() and self.fe.is_antenna_initialized():
                 print("Detecting calibration status ...")
-                data = eval(self.fe.imu_calibration_status())
+                data = self.fe.imu_calibration_status()
                 data = (data['system'], data['gyroscope'], data['accelerometer'], data['magnetometer'])
                 if not data:
                     self._error("Error connecting to BNO055.")
@@ -449,7 +449,7 @@ class NyanShell(mpfshell.MpFileShell):
                     print(f"└ {wait_message}", " " * spacing_length)
 
                     # Re-fetch calibration data
-                    data = eval(self.fe.imu_calibration_status())
+                    data = self.fe.imu_calibration_status()
                     data = (data['system'], data['gyroscope'], data['accelerometer'], data['magnetometer'])
                     if not data:
                         self._error("Error connecting to BNO055.")
