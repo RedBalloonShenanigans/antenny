@@ -10,10 +10,11 @@ setup(
     author="Red Balloon Security",
     url="https://github.com/RedBalloonShenanigans/antenny/",
     install_requires=[
-        "pyserial",
         "colorama",
-        "websocket_client",
         "mpfshell==0.9.1"
+        "pyserial",
+        "rbs-tui-dom",
+        "websocket_client",
     ],
     keywords=["micropython", ],
     classifiers=[],
