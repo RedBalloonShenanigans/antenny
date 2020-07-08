@@ -16,6 +16,14 @@ Once your host is set up, you can install NyanSat on your ESP32. Before anything
 
  First, determine which serial port corresponds to your ESP32. Then from the project directory, run `make nyansat SERIAL=<your ESP32 serial port>` to install it on your ESP32. During this process, you will be asked for your WiFi SSID and Password; this is to establish an internet connection for upip, which will install some dependencies.
 
+## Usage
+
+To enter NyanShell, type the following in a terminal window:
+
+```
+python3 -m nyanshell.host
+```
+
 ## Features
 
 ### Easy Pin Setup and Profile Management
@@ -34,9 +42,9 @@ Calibrating IMU's are difficult; the BNO055 is especially tough. NyanShell provi
 
 If you have a predefined configuration with an IMU calibration profile, you can use the profile management commands to load the IMU calibration values.
 
-### Motor Accuracy Plot
+### Motor Accuracy Measurement
 
-Your motor may _tell_ you that it moved a degree, but 
+While servo motors can take a position as input and try to reach it, the motor will not _exactly_ reach that position. Using the IMU, the `motortest` command cross references the position change of the motor with the measured change from the IMU. This allows you to see how accurately the motor assumes the desired position.
 
 ## Dependencies
 
