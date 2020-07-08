@@ -120,4 +120,3 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
 class NyanExplorerCaching(NyanExplorer, MpFileExplorerCaching):
     """Wrapper for MpFileExplorerCaching that includes the new NyanPyboard/NyanExplorer functionality."""
     pass
-
