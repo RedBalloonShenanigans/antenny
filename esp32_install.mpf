@@ -43,4 +43,5 @@ put nyansat/station/screen/screen_ssd1306.py /screen/screen_ssd1306.py
 
 md sender
 put nyansat/station/sender/__init__.py /sender/__init__.py
+put nyansat/station/sender/sender.py /sender/sender.py
 put nyansat/station/sender/sender_udp.py /sender/sender_udp.py

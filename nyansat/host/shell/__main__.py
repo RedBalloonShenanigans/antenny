@@ -19,7 +19,8 @@ from mp.conbase import ConError
 from mp.pyboard import PyboardError
 from mp.tokenizer import Tokenizer
 
-from nyan_explorer import NyanExplorer, NyanExplorerCaching
+from nyansat.host.shell.nyan_explorer import NyanExplorerCaching, NyanExplorer
+
 
 class NyanShell(mpfshell.MpFileShell):
     """Extension of MPFShell that adds NyanSat-specific features"""
@@ -276,7 +277,7 @@ class NyanShell(mpfshell.MpFileShell):
             _, typ = self.prompts[key]
             try:
                 new_val = typ(new_val)
-            except ValueError:
+            except ValueError as e:
                 self._error(str(e))
                 return
 
