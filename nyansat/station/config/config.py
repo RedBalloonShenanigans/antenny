@@ -26,9 +26,6 @@ class ConfigRepository:
         "azimuth_servo_index": 1,
         "elevation_max_rate": 0.1,
         "azimuth_max_rate": 0.1,
-        # Telemetry settings
-        "telem_destaddr": "224.11.11.11",
-        "telem_destport": "31337",
         # Pins
         "gps_uart_tx": 33,
         "gps_uart_rx": 27,

@@ -20,7 +20,6 @@ from mp.pyboard import PyboardError
 from mp.tokenizer import Tokenizer
 
 from nyan_explorer import NyanExplorer, NyanExplorerCaching
-from telem_receiver import TelemReceiver
 
 
 class NyanShell(mpfshell.MpFileShell):
@@ -76,8 +75,6 @@ class NyanShell(mpfshell.MpFileShell):
                 "azimuth_max_rate": ("Servo azimuth max rate: ", float)
         }
         self.antenna_initialized = False
-
-        self.telem_receiver = None
 
     def __intro(self):
         """Text that appears when shell is first launched."""
