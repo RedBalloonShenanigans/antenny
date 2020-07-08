@@ -1,3 +1,3 @@
-from .antenny import AntKontrol
+import antenny
 
-a = AntKontrol()
+a = antenny.AntKontrol()
