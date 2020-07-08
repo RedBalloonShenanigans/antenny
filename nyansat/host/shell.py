@@ -570,7 +570,7 @@ class NyanShell(mpfshell.MpFileShell):
         elif self.__is_open() and self.antenna_initialized:
             try:
                 el = float(args)
-                print(self.fe.eval_string_expr("a.set_el_deg({})".format(el)))
+                print(self.fe.eval_string_expr("a.set_elevation_degrees({})".format(el)))
             except ValueError:
                 print("<ELEVATION> must be a floating point number!")
 
@@ -584,7 +584,7 @@ class NyanShell(mpfshell.MpFileShell):
         elif self.__is_open() and self.antenna_initialized:
             try:
                 az = float(args)
-                print(self.fe.eval_string_expr("a.set_az_deg({})".format(az)))
+                print(self.fe.eval_string_expr("a.set_azimuth_degrees({})".format(az)))
             except ValueError:
                 print("<AZIMUTH> must be a floating point number!")
 
