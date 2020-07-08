@@ -15,6 +15,8 @@ class TelemetryView:
             client: NyanSatClient
     ):
         self._dom_window = window
+        self._dom_ip = cast(DOMText, window.get_element_by_id("ip_value"))
+        self._dom_port = cast(DOMText, window.get_element_by_id("port_value"))
         self._dom_altitude = cast(DOMText, window.get_element_by_id("gps_altitude_value"))
         self._dom_azimuth = cast(DOMText, window.get_element_by_id("antenna_azimuth"))
         self._dom_coordinates = cast(DOMText, window.get_element_by_id("gps_coordinates_value"))
@@ -22,6 +24,14 @@ class TelemetryView:
         self._dom_speed = cast(DOMText, window.get_element_by_id("gps_speed_value"))
 
         self._client = client
+        self._client.telemetry_entity.ip_observable.add_observer(
+            EntityEventType.VALUE_CHANGED,
+            self._render_ip,
+        )
+        self._client.telemetry_entity.port_observable.add_observer(
+            EntityEventType.VALUE_CHANGED,
+            self._render_port,
+        )
         self._client.telemetry_entity.altitude_observable.add_observer(
             EntityEventType.VALUE_CHANGED,
             self._render_altitude,
@@ -54,6 +64,20 @@ class TelemetryView:
 
     def _is_loaded(self):
         return self._client.telemetry_entity.is_loaded
+
+    def _render_ip(self, *args):
+        if not self._is_loaded():
+            value = "N/A"
+        else:
+            value = self._client.telemetry_entity.model.ip.value
+        self._dom_ip.set_value(value)
+
+    def _render_port(self, *args):
+        if not self._is_loaded():
+            value = "N/A"
+        else:
+            value = str(self._client.telemetry_entity.model.port.value)
+        self._dom_port.set_value(value)
 
     def _render_altitude(self, *args):
         if not self._is_loaded():
