@@ -19,7 +19,7 @@ from mp.conbase import ConError
 from mp.pyboard import PyboardError
 from mp.tokenizer import Tokenizer
 
-from nyan_explorer import NyanExplorerCaching, NyanExplorer
+from nyansat.host.shell.nyan_explorer import NyanExplorerCaching, NyanExplorer
 
 
 class NyanShell(mpfshell.MpFileShell):

@@ -61,7 +61,7 @@ def create_dom(shell: DOMNyanSatShell):
                 ),
             ]
         ),
-        DOMTextFill("-", style=DOMStyle(size=(FULL_WIDTH, 1))),
+        DOMTextFill("═", style=DOMStyle(size=(FULL_WIDTH, 1))),
         DOMStackLayout(style=DOMStyle(size=FULL_SIZE), children=[
             DOMStackLayout(
                 orientation=VERTICAL,
@@ -80,6 +80,10 @@ def create_dom(shell: DOMNyanSatShell):
                 style=DOMStyle(size=FULL_SIZE, display=Display.NONE),
                 id="telemetry_container",
                 children=[
+                    DOMText(
+                        "Network",
+                        style=DOMStyle(text_align=Alignment.CENTER, size=(FULL_WIDTH, 1))
+                    ),
                     DOMTextFill("-", style=DOMStyle(size=(FULL_WIDTH, 1))),
                     DOMStackLayout(
                         orientation=HORIZONTAL,
@@ -102,7 +106,7 @@ def create_dom(shell: DOMNyanSatShell):
                         style=DOMStyle(text_align=Alignment.CENTER, size=(FULL_WIDTH, 1)),
                         children=[
                             DOMText(
-                                "Port",
+                                "UDP Port",
                                 style=DOMStyle(text_align=Alignment.LEFT, size=(FULL_WIDTH, 1))
                             ),
                             DOMText(
@@ -113,6 +117,7 @@ def create_dom(shell: DOMNyanSatShell):
                             )
                         ]
                     ),
+                    DOMTextFill("═", style=DOMStyle(size=(FULL_WIDTH, 1))),
                     DOMText(
                         "GPS",
                         style=DOMStyle(text_align=Alignment.CENTER, size=(FULL_WIDTH, 1))
@@ -219,9 +224,8 @@ async def run(server_iface: str, server_port: int, station_ip: Optional[str], st
     )
     try:
         client = NyanSatClient(server_iface, server_port, station_ip, station_port)
-        await client.start()
 
-        shell = DOMNyanSatShell(id="shell", style=DOMStyle(size=(FULL_WIDTH, 5)))
+        shell = DOMNyanSatShell(id="shell", style=DOMStyle(size=(FULL_WIDTH, 15)))
         window = DOMWindow(disable_click=True)
         await window.run(create_dom(shell))
         dom_console = window.get_element_by_id("shell")
@@ -230,6 +234,7 @@ async def run(server_iface: str, server_port: int, station_ip: Optional[str], st
 
         RootView(window, client)
         TelemetryView(window, client)
+        await client.start()
     except:
         logging.error("Failed to launch", exc_info=True)
 

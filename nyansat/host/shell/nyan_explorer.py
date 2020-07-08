@@ -1,6 +1,8 @@
+import ast
+
 from mp.mpfexp import MpFileExplorer, MpFileExplorerCaching
 from mp.pyboard import PyboardError
-from nyan_pyboard import NyanPyboard
+from nyansat.host.shell.nyan_pyboard import NyanPyboard
 
 
 class NyanExplorer(MpFileExplorer, NyanPyboard):
@@ -28,7 +30,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
 
     def which_config(self):
         """Get the name of the currently used config file."""
-        return self.eval_string_expr("config.current_file()")
+        return self.eval_string_expr("a.cfg.current_file()")
 
     def config_get(self, key):
         """Get the value of an individual config parameter.
@@ -36,7 +38,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         Arguments:
         key -- name of config parameter.
         """
-        command = "config.get(\"{}\")".format(key)
+        command = "a.cfg.get(\"{}\")".format(key)
         return self.eval_string_expr(command)
 
     def config_set(self, key, val):
@@ -47,9 +49,9 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         val -- value of paramter
         """
         if isinstance(val, int) or isinstance(val, float):
-            self.exec_("config.set(\"%s\", %d)" % (key, val))
+            self.exec_("a.cfg.set(\"%s\", %d)" % (key, val))
         elif isinstance(val, str):
-            self.exec_("config.set(\"%s\", %s)" % (key, val))
+            self.exec_("a.cfg.set(\"%s\", %s)" % (key, val))
 
     def config_get_default(self, key):
         """Get the default value of a config parameter.
@@ -57,7 +59,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         Arguments:
         key -- name of config parameter.
         """
-        return self.eval_string_expr("config.get_default(\"{}\")".format(key))
+        return self.eval_string_expr("a.cfg.get_default(\"{}\")".format(key))
 
     def config_new(self, name):
         """Create a new config file on the ESP32.
@@ -65,7 +67,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         Arguments:
         name -- name of new config file.
         """
-        self.exec_("config.new(\"{}\")".format(name))
+        self.exec_("a.cfg.new(\"{}\")".format(name))
 
     def config_switch(self, name):
         """Switch to using a different config file.
@@ -73,7 +75,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         Arguments:
         name -- name of config file.
         """
-        self.exec_("config.switch(\"{}\")".format(name))
+        self.exec_("a.cfg.switch(\"{}\")".format(name))
 
     def imu_calibration_status(self):
         """Get IMU calibration status."""
@@ -94,7 +96,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         index -- index of motor on the PWM driver.
         pos -- desired angle.
         """
-        return self.eval_string_expr("a.antenna.motor_test({}, {})".format(index, pos))
+        return ast.literal_eval(self.eval_string_expr("a.antenna.motor_test({}, {})".format(index, pos)))
 
     def set_elevation_degree(self, el_angle):
         """Set the elevation angle.
