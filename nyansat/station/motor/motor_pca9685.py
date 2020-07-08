@@ -39,7 +39,7 @@ class Pca9685Controller(MotorController):
         # Using timer 0 for interrupt-based movement
         self.move_timer = machine.Timer(0)
         self._move_data = None
-        self.move_lock = _thread.allocate_lock()
+        self.is_moving = False
 
     def degrees(self, index: int) -> float:
         """Return the position in degrees of the servo with the given index."""
@@ -79,17 +79,22 @@ class Pca9685Controller(MotorController):
         index, end, step = self._move_data
         cur = self.pca9685.duty(index)
         if cur != end:
-            self.pca9685.duty(index, cur + step)
+            try:
+                self.pca9685.duty(index, cur + step)
+            except ValueError as e:
+                print(str(e))
+                timer.deinit()
+                self.is_moving = False
         else:
-            self.move_lock.release()
             timer.deinit()
+            self.is_moving = False
 
     def smooth_move(self, index, degrees, delay):
         # Trying to acquire the move lock hung during testing, this is an attempt at a spin lock.
         # Note that this could fail on a multi-core system
-        while self.move_lock.locked():
+        while self.is_moving:
             pass
-        self.move_lock.acquire()
+        self.is_moving = True
         assert index in self.SERVOS
         span = self.max_duty - self.min_duty
         duty = self.min_duty + span * degrees / self._degrees[index]
