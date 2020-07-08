@@ -7,14 +7,11 @@ import ssd1306
 from machine import Pin
 
 from gps.gps_basic import BasicGPSController
-import config as cfg
+from config.config import ConfigRepository
 from imu.imu_bno055 import Bno055ImuController
 from motor.motor_pca9685 import Pca9685Controller
 from screen.screen_ssd1306 import Ssd1306ScreenController
 from sender import UDPTelemetrySender
-
-EL_SERVO_INDEX = cfg.get("elevation_servo_index")
-AZ_SERVO_INDEX = cfg.get("azimuth_servo_index")
 
 
 class AntKontrol:
@@ -26,20 +23,23 @@ class AntKontrol:
     """
 
     def __init__(self):
+        self.cfg = ConfigRepository()
         self._gps = BasicGPSController()
         self._imu = Bno055ImuController(
             machine.I2C(
                 1,
-                scl=machine.Pin(cfg.get("i2c_bno_scl"), Pin.OUT, Pin.PULL_DOWN),
-                sda=machine.Pin(cfg.get("i2c_bno_sda"), Pin.OUT, Pin.PULL_DOWN),
+                scl=machine.Pin(self.cfg.get("i2c_bno_scl"), Pin.OUT,
+                                Pin.PULL_DOWN),
+                sda=machine.Pin(self.cfg.get("i2c_bno_sda"), Pin.OUT,
+                                Pin.PULL_DOWN),
             ),
             sign=(0, 0, 0)
         )
         self._servo_mux = Pca9685Controller(
             machine.I2C(
                 0,
-                scl=Pin(cfg.get("i2c_servo_scl"), Pin.OUT, Pin.PULL_DOWN),
-                sda=Pin(cfg.get("i2c_servo_sda"), Pin.OUT, Pin.PULL_DOWN),
+                scl=Pin(self.cfg.get("i2c_servo_scl"), Pin.OUT, Pin.PULL_DOWN),
+                sda=Pin(self.cfg.get("i2c_servo_sda"), Pin.OUT, Pin.PULL_DOWN),
             ),
             min_us=500,
             max_us=2500,
@@ -48,8 +48,8 @@ class AntKontrol:
         self._sender = UDPTelemetrySender(
             self._gps,
             self._imu,
-            cfg.get("telem_destaddr"),
-            cfg.get("telem_destport")
+            self.cfg.get("telem_destaddr"),
+            self.cfg.get("telem_destport")
         )
 
         self._az_direction = -1
@@ -59,8 +59,10 @@ class AntKontrol:
         self.imu_lock = _thread.allocate_lock()
         self._i2c_screen = machine.I2C(
             -1,
-            scl=machine.Pin(cfg.get("i2c_screen_scl"), Pin.OUT, Pin.PULL_DOWN),
-            sda=machine.Pin(cfg.get("i2c_screen_sda"), Pin.OUT, Pin.PULL_DOWN),
+            scl=machine.Pin(self.cfg.get("i2c_screen_scl"), Pin.OUT,
+                            Pin.PULL_DOWN),
+            sda=machine.Pin(self.cfg.get("i2c_screen_sda"), Pin.OUT,
+                            Pin.PULL_DOWN),
         )  # on [60] ssd1306
         self._pinmode = False
         self._screen = Ssd1306ScreenController(self._i2c_screen, width=128, height=32)
@@ -75,14 +77,14 @@ class AntKontrol:
         self._pinned_servo_pos = None
 
         time.sleep(6)
-        self._servo_mux.set_position(EL_SERVO_INDEX, 90)
+        self._servo_mux.set_position(self.cfg.get("elevation_servo_index"), 90)
         time.sleep(0.1)
-        self._servo_mux.set_position(AZ_SERVO_INDEX, 90)
+        self._servo_mux.set_position(self.cfg.get("azimuth_servo_index"), 90)
         time.sleep(0.1)
 
         cur_orientation = self._imu.euler()
-        self._el_target = self._el_last = cur_orientation[EL_SERVO_INDEX]
-        self._az_target = self._az_last = cur_orientation[AZ_SERVO_INDEX]
+        self._el_target = self._el_last = cur_orientation[self.cfg.get("elevation_servo_index")]
+        self._az_target = self._az_last = cur_orientation[self.cfg.get("azimuth_servo_index")]
         self._el_last_raw = 90.0
         self._az_last_raw = 90.0
         self.do_euler_calib()
@@ -90,10 +92,10 @@ class AntKontrol:
         self._el_moving = False
         self._az_moving = False
 
-        self._el_max_rate = cfg.get("elevation_max_rate")
-        self._az_max_rate = cfg.get("azimuth_max_rate")
+        self._el_max_rate = self.cfg.get("elevation_max_rate")
+        self._az_max_rate = self.cfg.get("azimuth_max_rate")
 
-        self._sender.start()
+#         self._sender.start()
         self._orientation_thread = _thread.start_new_thread(self.update_orientation, ())
         self._screen_thread = _thread.start_new_thread(self.display_status, ())
         self._gps_thread = _thread.start_new_thread(self._gps.run, ())
@@ -101,12 +103,12 @@ class AntKontrol:
 
     def _measure_az(self, min_angle, max_angle):
         with self.imu_lock:
-            self._servo_mux.set_position(AZ_SERVO_INDEX, min_angle)
+            self._servo_mux.set_position(self.cfg.get("azimuth_servo_index"), min_angle)
             time.sleep(0.3)
             self._euler = self._imu.euler()
             a1 = self._euler[1]
             time.sleep(1)
-            self._servo_mux.set_position(AZ_SERVO_INDEX, max_angle)
+            self._servo_mux.set_position(self.cfg.get("azimuth_servo_index"), max_angle)
             time.sleep(0.3)
             self._euler = self._imu.euler()
             a2 = self._euler[1]
@@ -162,8 +164,8 @@ class AntKontrol:
     # I got az and el backwards. use for now, change all later
     def auto_zero_az(self):
         # automatically find az offset
-        self._servo_mux.set_position(AZ_SERVO_INDEX, 90)
-        self._servo_mux.set_position(EL_SERVO_INDEX, 90)
+        self._servo_mux.set_position(self.cfg.get("azimuth_servo_index"), 90)
+        self._servo_mux.set_position(self.cfg.get("elevation_servo_index"), 90)
         time.sleep(1)
         a1 = 60
         a2 = 120
@@ -181,7 +183,8 @@ class AntKontrol:
         min_angle = None
         cur_angle = avg_angle = (a1 + a2) / 2 - 1.5
         while cur_angle < avg_angle + 1.5:
-            self._servo_mux.set_position(AZ_SERVO_INDEX, cur_angle)
+            self._servo_mux.set_position(self.cfg.get("azimuth_servo_index"),
+                                         cur_angle)
             time.sleep(0.2)
             self._euler = self._imu.euler()
             cur_y = abs(self._euler[1])
@@ -192,7 +195,8 @@ class AntKontrol:
 
         time.sleep(1)
         a_center = min_angle
-        self._servo_mux.set_position(AZ_SERVO_INDEX, a_center)
+        self._servo_mux.set_position(self.cfg.get("azimuth_servo_index"),
+                                     a_center)
         print("a-center: {}".format(a_center))
         self._euler = self._imu.euler()
         self._az_offset = a_center - 90.0
@@ -200,45 +204,45 @@ class AntKontrol:
     def auto_calibration(self):
         # read from BNO055 sensor, move antenna
         # soft home, etc
-        self._servo_mux.set_position(AZ_SERVO_INDEX, 90)
-        self._servo_mux.set_position(EL_SERVO_INDEX, 90)
+        self._servo_mux.set_position(self.cfg.get("azimuth_servo_index"), 90)
+        self._servo_mux.set_position(self.cfg.get("elevation_servo_index"), 90)
         time.sleep(1)
 
-        self._servo_mux.set_position(EL_SERVO_INDEX, 180)
+        self._servo_mux.set_position(self.cfg.get("elevation_servo_index"), 180)
         time.sleep(1)
-        self._servo_mux.set_position(EL_SERVO_INDEX, 0)
+        self._servo_mux.set_position(self.cfg.get("elevation_servo_index"), 0)
         time.sleep(1)
-        self._servo_mux.set_position(EL_SERVO_INDEX, 180)
+        self._servo_mux.set_position(self.cfg.get("elevation_servo_index"), 180)
         time.sleep(1)
-        self._servo_mux.set_position(EL_SERVO_INDEX, 0)
-        time.sleep(1)
-
-        self._servo_mux.set_position(AZ_SERVO_INDEX, 180)
-        time.sleep(1)
-        self._servo_mux.set_position(AZ_SERVO_INDEX, 0)
-        time.sleep(1)
-        self._servo_mux.set_position(AZ_SERVO_INDEX, 180)
-        time.sleep(1)
-        self._servo_mux.set_position(AZ_SERVO_INDEX, 0)
+        self._servo_mux.set_position(self.cfg.get("elevation_servo_index"), 0)
         time.sleep(1)
 
-        self._servo_mux.set_position(AZ_SERVO_INDEX, 90)
-        self._servo_mux.set_position(EL_SERVO_INDEX, 90)
+        self._servo_mux.set_position(self.cfg.get("azimuth_servo_index"), 180)
+        time.sleep(1)
+        self._servo_mux.set_position(self.cfg.get("azimuth_servo_index"), 0)
+        time.sleep(1)
+        self._servo_mux.set_position(self.cfg.get("azimuth_servo_index"), 180)
+        time.sleep(1)
+        self._servo_mux.set_position(self.cfg.get("azimuth_servo_index"), 0)
         time.sleep(1)
 
-        self._servo_mux.set_position(EL_SERVO_INDEX, 0)
+        self._servo_mux.set_position(self.cfg.get("azimuth_servo_index"), 90)
+        self._servo_mux.set_position(self.cfg.get("elevation_servo_index"), 90)
+        time.sleep(1)
+
+        self._servo_mux.set_position(self.cfg.get("elevation_servo_index"), 0)
         self._euler = self._imu.euler()
         x1 = self._euler[0]
         time.sleep(1)
-        self._servo_mux.set_position(EL_SERVO_INDEX, 180)
+        self._servo_mux.set_position(self.cfg.get("elevation_servo_index"), 180)
         self._euler = self._imu.euler()
         x2 = self._euler[0]
         time.sleep(1)
-        self._servo_mux.set_position(AZ_SERVO_INDEX, 0)
+        self._servo_mux.set_position(self.cfg.get("azimuth_servo_index"), 0)
         self._euler = self._imu.euler()
         y1 = self._euler[1]
         time.sleep(1)
-        self._servo_mux.set_position(AZ_SERVO_INDEX, 180)
+        self._servo_mux.set_position(self.cfg.get("azimuth_servo_index"), 180)
         self._euler = self._imu.euler()
         y2 = self._euler[1]
 
@@ -264,11 +268,11 @@ class AntKontrol:
 
     def do_euler_calib(self):
         cur_imu = self._imu.euler()
-        self._el_target = cur_imu[EL_SERVO_INDEX]
-        self._az_target = cur_imu[AZ_SERVO_INDEX]
+        self._el_target = cur_imu[self.cfg.get("elevation_servo_index")]
+        self._az_target = cur_imu[self.cfg.get("azimuth_servo_index")]
 
-        self._el_offset = cur_imu[EL_SERVO_INDEX] - self._el_last_raw
-        self._az_offset = cur_imu[AZ_SERVO_INDEX] - self._az_last_raw
+        self._el_offset = cur_imu[self.cfg.get("elevation_servo_index")] - self._el_last_raw
+        self._az_offset = cur_imu[self.cfg.get("azimuth_servo_index")] - self._az_last_raw
 
     def do_move_mode(self):
         el_delta_deg = self._el_target - ((self._el_last_raw + self._el_offset) % 360)
@@ -280,36 +284,41 @@ class AntKontrol:
             )
         )
 
-        if self._el_moving or self._pinmode:
-            # goes from 0 - 180, or whaterver max is
-            if abs(el_delta_deg) < self._el_max_rate:
-                self._el_last_raw = self._el_last_raw + el_delta_deg
-                self._servo_mux.set_position(EL_SERVO_INDEX, self._el_last_raw)
-                self._servo_mux.release(EL_SERVO_INDEX)
-                self._el_moving = False
-            else:
-                if el_delta_deg > 0:
-                    self._el_last_raw = self._el_last_raw + self._el_max_rate * self._el_direction
-                else:
-                    self._el_last_raw = self._el_last_raw - self._el_max_rate * self._el_direction
-                self._servo_mux.set_position(EL_SERVO_INDEX, self._el_last_raw)
-                self._el_moving = True
+        self._servo_mux.smooth_move(EL_SERVO_INDEX, self._el_target, 10)
+        self._el_moving = False
+        self._servo_mux.smooth_move(AZ_SERVO_INDEX, self._az_target, 10)
+        self._az_moving = False
 
-        if self._az_moving or self._pinmode:
-            # -90 to +90, but antenny can only move from 0 - 90
-            print(az_delta_deg)
-            if abs(az_delta_deg) < self._az_max_rate:
-                self._az_last_raw = self._az_last_raw + az_delta_deg
-                self._servo_mux.set_position(AZ_SERVO_INDEX, self._az_last_raw)
-                self._servo_mux.release(AZ_SERVO_INDEX)
-                self._az_moving = False
-            else:
-                if az_delta_deg > 0:
-                    self._az_last_raw = self._az_last_raw + self._az_max_rate * self._az_direction
-                else:
-                    self._az_last_raw = self._az_last_raw - self._az_max_rate * self._az_direction
-                self._servo_mux.set_position(AZ_SERVO_INDEX, self._az_last_raw)
-                self._az_moving = True
+        #if self._el_moving or self._pinmode:
+        #    # goes from 0 - 180, or whaterver max is
+        #    if abs(el_delta_deg) < self._el_max_rate:
+        #        self._el_last_raw = self._el_last_raw + el_delta_deg
+        #        self._servo_mux.set_position(EL_SERVO_INDEX, self._el_last_raw)
+        #        self._servo_mux.release(EL_SERVO_INDEX)
+        #        self._el_moving = False
+        #    else:
+        #        if el_delta_deg > 0:
+        #            self._el_last_raw = self._el_last_raw + self._el_max_rate * self._el_direction
+        #        else:
+        #            self._el_last_raw = self._el_last_raw - self._el_max_rate * self._el_direction
+        #        self._servo_mux.set_position(EL_SERVO_INDEX, self._el_last_raw)
+        #        self._el_moving = True
+
+        #if self._az_moving or self._pinmode:
+        #    # -90 to +90, but antenny can only move from 0 - 90
+        #    print(az_delta_deg)
+        #    if abs(az_delta_deg) < self._az_max_rate:
+        #        self._az_last_raw = self._az_last_raw + az_delta_deg
+        #        self._servo_mux.set_position(AZ_SERVO_INDEX, self._az_last_raw)
+        #        self._servo_mux.release(AZ_SERVO_INDEX)
+        #        self._az_moving = False
+        #    else:
+        #        if az_delta_deg > 0:
+        #            self._az_last_raw = self._az_last_raw + self._az_max_rate * self._az_direction
+        #        else:
+        #            self._az_last_raw = self._az_last_raw - self._az_max_rate * self._az_direction
+        #        self._servo_mux.set_position(AZ_SERVO_INDEX, self._az_last_raw)
+        #        self._az_moving = True
 
     def do_pin_mode(self):
         delta_x = self._pinned_euler[0] - self._euler[0]

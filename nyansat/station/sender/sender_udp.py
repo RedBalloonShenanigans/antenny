@@ -8,7 +8,7 @@ import ujson
 
 from gps.gps import GPSController
 from imu.imu import ImuController
-from .sender import TelemetrySender
+from sender.sender import TelemetrySender
 
 LOGGER = logging.getLogger("station.sender.udp")
 
