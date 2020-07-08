@@ -8,7 +8,7 @@ These set up procedures expect that your base station is fully assembled and you
 
 ### Set up your host environment
 
-NyanShell provides a convenient shell interface to communicate with your NyanSat base station. To install this interface, simply type `make nyanshell` in the project directory.
+NyanShell provides a convenient shell interface to communicate with your NyanSat base station. To install this interface, simply type `sudo make nyanshell` in the project directory.
 
 ### Set up your base station environment
 
@@ -46,7 +46,10 @@ If you have a predefined configuration with an IMU calibration profile, you can 
 
 While servo motors can take a position as input and try to reach it, the motor will not _exactly_ reach that position. Using the IMU, the `motortest` command cross references the position change of the motor with the measured change from the IMU. This allows you to see how accurately the motor assumes the desired position.
 
-## Dependencies
+## Requirements & Dependencies
+
+General:
+- Python >= 3.6
 
 NyanShell:
 - MPFShell
