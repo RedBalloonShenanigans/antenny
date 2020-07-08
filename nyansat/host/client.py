@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import socket
 from asyncio import Future, BaseTransport, BaseProtocol
 from dataclasses import dataclass
@@ -65,6 +66,7 @@ class NyanSatClient(BaseProtocol):
             disconnect_timeout: float = 2
     ):
         self.telemetry_entity = ObservableTelemetryEntity(TELEMETRY_ENTITY_ID)
+        self.telemetry_entity.update_from_model({})
         self.is_connected_observable: ObservableProperty[bool] = ObservableProperty("is_connected")
         self.is_connected: UpdatablePropertyValue[bool] = \
             UpdatablePropertyValue(self.is_connected_observable, False)
@@ -109,12 +111,15 @@ class NyanSatClient(BaseProtocol):
     def datagram_received(self, data: bytes, addr: Tuple[str, int]):
         if self._disconnect_task:
             self._disconnect_task.cancel()
-        data = dict(json.loads(data.decode('utf-8')))
-        data["ip"] = addr[0]
-        data["port"] = addr[1]
-        self.telemetry_entity.update_from_model(data)
-        self._on_connect()
-        self._disconnect_task = asyncio.ensure_future(self._run_disconnect_task())
+        try:
+            data = dict(json.loads(data.decode('utf-8')))
+            data["ip"] = addr[0]
+            data["port"] = addr[1]
+            self._on_connect()
+            self.telemetry_entity.update_from_model(data)
+            self._disconnect_task = asyncio.ensure_future(self._run_disconnect_task())
+        except:
+            logging.error(f"Failed to handle UDP packet: {data}", exc_info=True)
 
     async def start(self):
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -124,7 +129,7 @@ class NyanSatClient(BaseProtocol):
             lambda: self,
             sock=self._socket
         )
-        asyncio.ensure_future(self._run_disconnect_task())
+        self._disconnect_task = asyncio.ensure_future(self._run_disconnect_task())
 
     async def stop(self):
         if self._socket:

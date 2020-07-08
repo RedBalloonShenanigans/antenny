@@ -355,9 +355,7 @@ class AntKontrol:
         )
         self._sender = UDPTelemetrySender(
                 self._gps,
-                self.imu,
-                self.cfg.get("telem_destaddr"),
-                self.cfg.get("telem_destport")
+                self.imu
         )
         self.antenna = AntennaController(
                 self.imu,
@@ -380,14 +378,15 @@ class AntKontrol:
         )  # on [60] ssd1306
         self._screen = Ssd1306ScreenController(self._i2c_screen, width=128, height=32)
 
-        #         self._sender.start()
-        # self._screen_thread = _thread.start_new_thread(self.display_status, ())
+        self._sender.start()
+        self._screen_thread = _thread.start_new_thread(self.display_status, ())
         self._gps_thread = _thread.start_new_thread(self._gps.run, ())
 
     def display_status(self):
         while True:
             try:
                 self._screen.display(self.imu.euler())
+                pass
             except Exception as e:
                 logging.info("Status display error: {}".format(str(e)))
             time.sleep(0.2)
