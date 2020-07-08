@@ -1,5 +1,6 @@
 from mp.mpfexp import MpFileExplorer, MpFileExplorerCaching
-from nyansat.host.shell.nyan_pyboard import NyanPyboard
+from mp.pyboard import PyboardError
+from nyan_pyboard import NyanPyboard
 
 
 class NyanExplorer(MpFileExplorer, NyanPyboard):
@@ -113,10 +114,13 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
 
     def create_antkontrol(self):
         """Create an antkontrol object on the ESP32."""
-        ret, ret_err = self.exec_raw("import antenny")
-        ret, ret_err = self.exec_raw("a = antenny.AntKontrol()")
-        self.antenna_initialized = True
-        return ret.decode(), ret_err.decode()
+        try:
+            ret = self.exec_("import antenny")
+            ret = self.exec_("a = antenny.AntKontrol()")
+            self.antenna_initialized = True
+            return ret.decode()
+        except PyboardError:
+            raise PyboardError("Could not create antkontrol object")
 
 
 class NyanExplorerCaching(NyanExplorer, MpFileExplorerCaching):

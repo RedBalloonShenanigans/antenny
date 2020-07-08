@@ -19,7 +19,7 @@ from mp.conbase import ConError
 from mp.pyboard import PyboardError
 from mp.tokenizer import Tokenizer
 
-from nyansat.host.shell.nyan_explorer import NyanExplorerCaching, NyanExplorer
+from nyan_explorer import NyanExplorerCaching, NyanExplorer
 
 
 class NyanShell(mpfshell.MpFileShell):
@@ -587,9 +587,10 @@ class NyanShell(mpfshell.MpFileShell):
         """
         if self._is_open():
             if not self.fe.is_antenna_initialized():
-                ret, ret_err = self.fe.create_antkontrol()
-                print(ret)
-                print(ret_err)
+                try:
+                    self.fe.create_antkontrol()
+                except:
+                    self._error("Error creating antkontrol object. Please check your setup")
             else:
                 self._error("There is already a running AntKontrol instance")
 
