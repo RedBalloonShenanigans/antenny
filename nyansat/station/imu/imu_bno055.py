@@ -2,7 +2,7 @@ from bno055 import BNO055, CONFIG_MODE
 import machine
 import ujson
 
-from imu.imu import ImuController, ImuStatus, ImuCalibrationStatus
+from imu.imu import ImuController, ImuHeading, ImuStatus, ImuCalibrationStatus
 
 
 class Bno055ImuStatus(ImuStatus):
@@ -88,6 +88,10 @@ class Bno055ImuController(ImuController):
     def euler(self) -> tuple:
         """Return Euler angles in degrees: (heading, roll, pitch)."""
         return self.bno.euler()
+
+    def heading(self) -> ImuHeading:
+        elevation, azimuth, _ = self.euler()
+        return ImuHeading(elevation, azimuth)
 
     def get_status(self) -> Bno055ImuStatus:
         return Bno055ImuStatus(
