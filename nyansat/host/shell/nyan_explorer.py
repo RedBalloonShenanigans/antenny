@@ -1,4 +1,5 @@
 import ast
+import json
 
 from mp.mpfexp import MpFileExplorer, MpFileExplorerCaching
 from mp.pyboard import PyboardError
@@ -79,7 +80,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
 
     def imu_calibration_status(self):
         """Get IMU calibration status."""
-        return self.eval_string_expr("a.imu.calibration_status()")
+        return json.loads(self.eval_string_expr("a.imu.get_calibration_status()"))
 
     def imu_save_calibration_profile(self):
         """Save the current IMU calibration as 'calibration.json'."""
