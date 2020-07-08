@@ -10,6 +10,7 @@ import tempfile
 import subprocess
 import time
 import shutil
+from websocket import WebSocketConnectionClosedException
 
 import colorama
 import serial
@@ -182,6 +183,13 @@ class NyanShell(mpfshell.MpFileShell):
                 args = "ser:/dev/" + args
 
         return self._connect(args)
+
+    def do_repl(self, args):
+        try:
+            super().do_repl(args)
+        except WebSocketConnectionClosedException as e:
+            self._error("Connection lost to repl")
+            self._disconnect()
 
     def do_edit(self, args):
         """edit <REMOTE_FILE>
