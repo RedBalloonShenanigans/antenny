@@ -7,9 +7,7 @@ setup:
 	cd lib/micropygps; git checkout 95b739381c8feb7c6b91b46db42646074c52a609
 
 nyanshell: setup
-	cd lib/rbs-tui-dom && python3 setup.py install
-	pip3 install -r nyanshell/requirements.txt
-	pip3 install ./nyanshell
+	python3 setup.py install
 
 
 _check_serial_param:

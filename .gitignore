@@ -12,3 +12,6 @@ nyanshell/nyanshell.egg-info/*
 
 # PyCharm project files
 *.idea
+*.log
+
+tmp/*

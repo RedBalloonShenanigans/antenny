@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 from setuptools import setup
 
-from mp import version
 
 setup(
-    name="nyanshell",
+    name="nyansat",
     version="0.0.1",
     description="The nyansat project Micropython devices.",
     author="Red Balloon Security",
