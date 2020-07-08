@@ -19,3 +19,5 @@ def do_connect():
 machine.freq(240000000)
 do_connect()
 
+import webrepl
+webrepl.start()
