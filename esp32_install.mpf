@@ -2,7 +2,6 @@
 put nyansat/station/main.py main.py
 put nyansat/station/boot.py boot.py
 put nyansat/station/antenny.py antenny.py
-put nyansat/station/config.py config.py
 put nyansat/station/__init__.py __init__.py
 put wifi_config.json 
 
@@ -17,6 +16,10 @@ exec sys.exit()
 exec import upip
 exec upip.install('logging')
 exec upip.install('asyncio')
+
+md config
+put nyansat/station/config/__init__.py /config/__init__.py
+put nyansat/station/config/config.py /config/config.py
 
 md gps
 put nyansat/station/gps/__init__.py /gps/__init__.py
