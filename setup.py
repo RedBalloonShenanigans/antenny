@@ -10,7 +10,7 @@ setup(
     url="https://github.com/RedBalloonShenanigans/antenny/",
     install_requires=[
         "colorama",
-        "mpfshell==0.9.1"
+        "mpfshell==0.9.1",
         "pyserial",
         "rbs-tui-dom",
         "websocket_client",
