@@ -15,9 +15,9 @@ def do_connect():
             pass
     print('network config:', sta_if.ifconfig())
 
-
-machine.freq(240000000)
-do_connect()
-
-import webrepl
-webrepl.start()
+if __name__ == '__main__':
+    machine.freq(240000000)
+    do_connect()
+    
+    import webrepl
+    webrepl.start()
