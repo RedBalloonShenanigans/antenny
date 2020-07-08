@@ -146,7 +146,6 @@ class NyanShell(mpfshell.MpFileShell):
                 self.fe = NyanExplorer(port, self.reset)
             print("Connected to %s" % self.fe.sysname)
             self._set_prompt_path()
-            return True
         except PyboardError as e:
             logging.error(e)
             self._error(str(e))
