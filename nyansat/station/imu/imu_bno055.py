@@ -44,6 +44,25 @@ class Bno055ImuCalibrationStatus(ImuCalibrationStatus):
     def is_calibrated(self) -> bool:
         return self.system and self.gyroscope and self.accelerometer and self.magnetometer
 
+    def __str__(self) -> str:
+        """Return a JSON representation of str->int mapping between
+        names of constituent sensors and integers representing levels of calibration
+        for those sensors. For example, BNO055s will
+        return {'magnetometer': <value>,
+                'gyroscope': <value>,
+                'accelerometer': <value>,
+                'system': <value>}
+        encoded in a string. The string used in this return value will be
+        used in the shell's calibration routine.
+        """
+        calibration_levels = {
+            'system': self.system,
+            'gyroscope': self.gyroscope,
+            'accelerometer': self.accelerometer,
+            'magnetometer': self.magnetometer
+        }
+        return ujson.dumps(calibration_levels)
+
 
 class Bno055ImuController(ImuController):
     """Controller for the Bosch BNO055 orientation sensor for antenny. This

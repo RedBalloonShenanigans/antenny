@@ -7,6 +7,22 @@ class ImuCalibrationStatus(object):
     def is_calibrated(self) -> bool:
         raise NotImplementedError()
 
+    def __str__(self) -> str:
+        """Return JSON string representation of a string -> int mapping
+        between names of constituent sensors and integers representing
+        levels of calibration for those sensors.
+
+        For example, a BNO055 orientation sensor has three constituent
+        sensors: accelerometer, magnetometer, gyroscope, as well an "overall
+        system" calibration level, so its calibration_status might look like
+            {'magnetometer': 0,
+             'gyroscope': 1,
+             'accelerometer': 2,
+             'system': 1}
+        The string used in this return value will be used in the shell's
+        calibration routine.
+        """
+        raise NotImplementedError()
 
 class ImuHeading(object):
     def __init__(
@@ -32,20 +48,6 @@ class ImuController(object):
         raise NotImplementedError()
 
     def get_calibration_status(self) -> ImuCalibrationStatus:
-        """Return a Dict[str, bool] mapping between names of constituent
-        sensors and a boolean representing whether or not that sensor is
-        currently calibrated.
-
-        For example, a BNO055 orientation sensor has three constituent
-        sensors: accelerometer, magnetometer, gyroscope, as well an "overall
-        system" calibration level, so its calibration_status might look like
-            {'magnetometer': 0,
-             'gyroscope': 1,
-             'accelerometer': 2,
-             'system': 1}
-        The strings used in this return value will be used in the shell's
-        calibration routine.
-        """
         raise NotImplementedError()
 
     def save_calibration_profile(self, filename: str) -> None:
