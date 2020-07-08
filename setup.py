@@ -1,19 +1,19 @@
 #!/usr/bin/env python
 from setuptools import setup
 
-from mp import version
 
 setup(
-    name="nyanshell",
+    name="nyansat",
     version="0.0.1",
     description="The nyansat project Micropython devices.",
     author="Red Balloon Security",
     url="https://github.com/RedBalloonShenanigans/antenny/",
     install_requires=[
-        "pyserial",
         "colorama",
+        "mpfshell==0.9.1",
+        "pyserial",
+        "rbs-tui-dom",
         "websocket_client",
-        "mpfshell==0.9.1"
     ],
     keywords=["micropython", ],
     classifiers=[],

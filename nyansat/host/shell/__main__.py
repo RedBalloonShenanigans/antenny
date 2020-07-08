@@ -19,7 +19,7 @@ from mp.conbase import ConError
 from mp.pyboard import PyboardError
 from mp.tokenizer import Tokenizer
 
-from nyan_explorer import NyanExplorerCaching, NyanExplorer
+from nyansat.host.shell.nyan_explorer import NyanExplorerCaching, NyanExplorer
 
 
 class NyanShell(mpfshell.MpFileShell):
@@ -146,7 +146,6 @@ class NyanShell(mpfshell.MpFileShell):
                 self.fe = NyanExplorer(port, self.reset)
             print("Connected to %s" % self.fe.sysname)
             self._set_prompt_path()
-            return True
         except PyboardError as e:
             logging.error(e)
             self._error(str(e))
@@ -368,7 +367,7 @@ class NyanShell(mpfshell.MpFileShell):
 
             if self._is_open() and self.fe.is_antenna_initialized():
                 print("Detecting calibration status ...")
-                data = eval(self.fe.imu_calibration_status())
+                data = self.fe.imu_calibration_status()
                 data = (data['system'], data['gyroscope'], data['accelerometer'], data['magnetometer'])
                 if not data:
                     self._error("Error connecting to BNO055.")
@@ -449,7 +448,7 @@ class NyanShell(mpfshell.MpFileShell):
                     print(f"└ {wait_message}", " " * spacing_length)
 
                     # Re-fetch calibration data
-                    data = eval(self.fe.imu_calibration_status())
+                    data = self.fe.imu_calibration_status()
                     data = (data['system'], data['gyroscope'], data['accelerometer'], data['magnetometer'])
                     if not data:
                         self._error("Error connecting to BNO055.")

@@ -1,6 +1,9 @@
 import asyncio
 import logging
 
+import argparse
+from typing import Optional
+
 from rbs_tui_dom.dom import DOMWindow
 from rbs_tui_dom.dom.layout import DOMStackLayout
 from rbs_tui_dom.dom.style import DOMStyle, Color, Alignment, Margin, Display
@@ -58,7 +61,7 @@ def create_dom(shell: DOMNyanSatShell):
                 ),
             ]
         ),
-        DOMTextFill("-", style=DOMStyle(size=(FULL_WIDTH, 1))),
+        DOMTextFill("═", style=DOMStyle(size=(FULL_WIDTH, 1))),
         DOMStackLayout(style=DOMStyle(size=FULL_SIZE), children=[
             DOMStackLayout(
                 orientation=VERTICAL,
@@ -78,6 +81,44 @@ def create_dom(shell: DOMNyanSatShell):
                 id="telemetry_container",
                 children=[
                     DOMText(
+                        "Network",
+                        style=DOMStyle(text_align=Alignment.CENTER, size=(FULL_WIDTH, 1))
+                    ),
+                    DOMTextFill("-", style=DOMStyle(size=(FULL_WIDTH, 1))),
+                    DOMStackLayout(
+                        orientation=HORIZONTAL,
+                        style=DOMStyle(text_align=Alignment.CENTER, size=(FULL_WIDTH, 1)),
+                        children=[
+                            DOMText(
+                                "IP Address",
+                                style=DOMStyle(text_align=Alignment.LEFT, size=(FULL_WIDTH, 1))
+                            ),
+                            DOMText(
+                                "",
+                                id="ip_value",
+                                style=DOMStyle(text_align=Alignment.RIGHT,
+                                               size=(FULL_WIDTH, 1))
+                            )
+                        ]
+                    ),
+                    DOMStackLayout(
+                        orientation=HORIZONTAL,
+                        style=DOMStyle(text_align=Alignment.CENTER, size=(FULL_WIDTH, 1)),
+                        children=[
+                            DOMText(
+                                "UDP Port",
+                                style=DOMStyle(text_align=Alignment.LEFT, size=(FULL_WIDTH, 1))
+                            ),
+                            DOMText(
+                                "",
+                                id="port_value",
+                                style=DOMStyle(text_align=Alignment.RIGHT,
+                                               size=(FULL_WIDTH, 1))
+                            )
+                        ]
+                    ),
+                    DOMTextFill("═", style=DOMStyle(size=(FULL_WIDTH, 1))),
+                    DOMText(
                         "GPS",
                         style=DOMStyle(text_align=Alignment.CENTER, size=(FULL_WIDTH, 1))
                     ),
@@ -88,14 +129,12 @@ def create_dom(shell: DOMNyanSatShell):
                         children=[
                             DOMText(
                                 "Coordinates",
-                                style=DOMStyle(text_align=Alignment.LEFT,
-                                               size=(FULL_WIDTH, 1))
+                                style=DOMStyle(text_align=Alignment.LEFT, size=(FULL_WIDTH, 1))
                             ),
                             DOMText(
                                 "",
                                 id="gps_coordinates_value",
-                                style=DOMStyle(text_align=Alignment.RIGHT,
-                                               size=(FULL_WIDTH, 1))
+                                style=DOMStyle(text_align=Alignment.RIGHT, size=(FULL_WIDTH, 1))
                             )
                         ]
                     ),
@@ -176,8 +215,7 @@ def create_dom(shell: DOMNyanSatShell):
    ])
 
 
-
-async def run():
+async def run(server_iface: str, server_port: int, station_ip: Optional[str], station_port: int):
     logging.basicConfig(
         filename='hacksat_ui.log',
         level=logging.getLevelName("INFO"),
@@ -185,10 +223,9 @@ async def run():
         datefmt="%m/%d/%Y %H:%M:%S",
     )
     try:
-        client = NyanSatClient("localhost", 8805)
-        await client.start()
+        client = NyanSatClient(server_iface, server_port, station_ip, station_port)
 
-        shell = DOMNyanSatShell(id="shell", style=DOMStyle(size=(FULL_WIDTH, 5)))
+        shell = DOMNyanSatShell(id="shell", style=DOMStyle(size=(FULL_WIDTH, 15)))
         window = DOMWindow(disable_click=True)
         await window.run(create_dom(shell))
         dom_console = window.get_element_by_id("shell")
@@ -197,11 +234,37 @@ async def run():
 
         RootView(window, client)
         TelemetryView(window, client)
+        await client.start()
     except:
         logging.error("Failed to launch", exc_info=True)
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='A TUI for the nyansat station.')
+    parser.add_argument(
+        '--iface',
+        default="0.0.0.0",
+        help='The ip of the interface on which the UDP server should be listening'
+    )
+    parser.add_argument(
+        '--port',
+        type=int,
+        default=31337,
+        help='The port on which the UDP server should be listening'
+    )
+    parser.add_argument(
+        '--station-ip',
+        help='The IP of ESP32 running the nyansat station. If not provided, a UDP broadcast packet'
+             'is sent out to find the nyansat station.'
+    )
+    parser.add_argument(
+        '--station-port',
+        type=int,
+        default=31337,
+        help='The port of the UDP server running the nyansat station.'
+    )
+    args = parser.parse_args()
+
     event_loop = asyncio.get_event_loop()
-    event_loop.run_until_complete(run())
+    event_loop.run_until_complete(run(args.iface, args.port, args.station_ip, args.station_port))
     event_loop.run_forever()

@@ -7,21 +7,10 @@ class ImuCalibrationStatus(object):
     def is_calibrated(self) -> bool:
         raise NotImplementedError()
 
-
-class ImuController(object):
-    """Interface for a generic IMU controller for use in antenny."""
-
-    def euler(self) -> tuple:
-        """Return Euler angles in degrees: (heading, roll, pitch)."""
-        raise NotImplementedError()
-
-    def get_status(self) -> ImuStatus:
-        raise NotImplementedError()
-
-    def get_calibration_status(self) -> ImuCalibrationStatus:
-        """Return a Dict[str, bool] mapping between names of constituent
-        sensors and a boolean representing whether or not that sensor is
-        currently calibrated.
+    def __str__(self) -> str:
+        """Return JSON string representation of a string -> int mapping
+        between names of constituent sensors and integers representing
+        levels of calibration for those sensors.
 
         For example, a BNO055 orientation sensor has three constituent
         sensors: accelerometer, magnetometer, gyroscope, as well an "overall
@@ -30,9 +19,35 @@ class ImuController(object):
              'gyroscope': 1,
              'accelerometer': 2,
              'system': 1}
-        The strings used in this return value will be used in the shell's
+        The string used in this return value will be used in the shell's
         calibration routine.
         """
+        raise NotImplementedError()
+
+class ImuHeading(object):
+    def __init__(
+            self,
+            elevation: float,
+            azimuth: float,
+    ):
+        self.elevation = elevation
+        self.azimuth = azimuth
+
+
+class ImuController(object):
+    """Interface for a generic IMU controller for use in antenny."""
+
+    def euler(self) -> tuple:
+        """Return Euler angles in degrees: (heading, roll, pitch)."""
+        raise NotImplementedError()
+
+    def heading(self) -> ImuHeading:
+        raise NotImplementedError()
+
+    def get_status(self) -> ImuStatus:
+        raise NotImplementedError()
+
+    def get_calibration_status(self) -> ImuCalibrationStatus:
         raise NotImplementedError()
 
     def save_calibration_profile(self, filename: str) -> None:

@@ -2,7 +2,7 @@ from bno055 import BNO055, CONFIG_MODE
 import machine
 import ujson
 
-from imu.imu import ImuController, ImuStatus, ImuCalibrationStatus
+from imu.imu import ImuController, ImuHeading, ImuStatus, ImuCalibrationStatus
 
 
 class Bno055ImuStatus(ImuStatus):
@@ -43,6 +43,25 @@ class Bno055ImuCalibrationStatus(ImuCalibrationStatus):
 
     def is_calibrated(self) -> bool:
         return self.system and self.gyroscope and self.accelerometer and self.magnetometer
+
+    def __str__(self) -> str:
+        """Return a JSON representation of str->int mapping between
+        names of constituent sensors and integers representing levels of calibration
+        for those sensors. For example, BNO055s will
+        return {'magnetometer': <value>,
+                'gyroscope': <value>,
+                'accelerometer': <value>,
+                'system': <value>}
+        encoded in a string. The string used in this return value will be
+        used in the shell's calibration routine.
+        """
+        calibration_levels = {
+            'system': self.system,
+            'gyroscope': self.gyroscope,
+            'accelerometer': self.accelerometer,
+            'magnetometer': self.magnetometer
+        }
+        return ujson.dumps(calibration_levels)
 
 
 class Bno055ImuController(ImuController):
@@ -88,6 +107,10 @@ class Bno055ImuController(ImuController):
     def euler(self) -> tuple:
         """Return Euler angles in degrees: (heading, roll, pitch)."""
         return self.bno.euler()
+
+    def heading(self) -> ImuHeading:
+        elevation, azimuth, _ = self.euler()
+        return ImuHeading(elevation, azimuth)
 
     def get_status(self) -> Bno055ImuStatus:
         return Bno055ImuStatus(

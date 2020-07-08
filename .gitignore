@@ -6,9 +6,12 @@
 *.pyc
 
 # mpfshell build files
-mpfshell/build/*
-mpfshell/dist/*
-mpfshell/mpfshell.egg-info/*
+nyanshell/build/*
+nyanshell/dist/*
+nyanshell/nyanshell.egg-info/*
 
 # PyCharm project files
 *.idea
+*.log
+
+tmp/*
