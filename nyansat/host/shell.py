@@ -20,7 +20,6 @@ from mp.pyboard import PyboardError
 from mp.tokenizer import Tokenizer
 
 from nyan_explorer import NyanExplorer, NyanExplorerCaching
-from telem_receiver import TelemReceiver
 
 
 class NyanShell(mpfshell.MpFileShell):
@@ -76,8 +75,6 @@ class NyanShell(mpfshell.MpFileShell):
                 "azimuth_max_rate": ("Servo azimuth max rate: ", float)
         }
         self.antenna_initialized = False
-
-        self.telem_receiver = None
 
     def __intro(self):
         """Text that appears when shell is first launched."""
@@ -570,7 +567,7 @@ class NyanShell(mpfshell.MpFileShell):
         elif self.__is_open() and self.antenna_initialized:
             try:
                 el = float(args)
-                print(self.fe.eval_string_expr("a.set_el_deg({})".format(el)))
+                print(self.fe.eval_string_expr("a.set_elevation_degrees({})".format(el)))
             except ValueError:
                 print("<ELEVATION> must be a floating point number!")
 
@@ -584,7 +581,7 @@ class NyanShell(mpfshell.MpFileShell):
         elif self.__is_open() and self.antenna_initialized:
             try:
                 az = float(args)
-                print(self.fe.eval_string_expr("a.set_az_deg({})".format(az)))
+                print(self.fe.eval_string_expr("a.set_azimuth_degrees({})".format(az)))
             except ValueError:
                 print("<AZIMUTH> must be a floating point number!")
 

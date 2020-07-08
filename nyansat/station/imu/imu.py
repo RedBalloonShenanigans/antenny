@@ -8,11 +8,24 @@ class ImuCalibrationStatus(object):
         raise NotImplementedError()
 
 
+class ImuHeading(object):
+    def __init__(
+            self,
+            elevation: float,
+            azimuth: float,
+    ):
+        self.elevation = elevation
+        self.azimuth = azimuth
+
+
 class ImuController(object):
     """Interface for a generic IMU controller for use in antenny."""
 
     def euler(self) -> tuple:
         """Return Euler angles in degrees: (heading, roll, pitch)."""
+        raise NotImplementedError()
+
+    def heading(self) -> ImuHeading:
         raise NotImplementedError()
 
     def get_status(self) -> ImuStatus:

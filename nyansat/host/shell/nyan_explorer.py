@@ -1,5 +1,6 @@
 from mp.mpfexp import MpFileExplorer, MpFileExplorerCaching
-from nyansat.host.shell.nyan_pyboard import NyanPyboard
+from mp.pyboard import PyboardError
+from nyan_pyboard import NyanPyboard
 
 
 class NyanExplorer(MpFileExplorer, NyanPyboard):
@@ -93,7 +94,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         index -- index of motor on the PWM driver.
         pos -- desired angle.
         """
-        return self.eval_string_expr("a.motor_test({}, {})".format(index, pos))
+        return self.eval_string_expr("a.antenna.motor_test({}, {})".format(index, pos))
 
     def set_elevation_degree(self, el_angle):
         """Set the elevation angle.
@@ -101,7 +102,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         Arguments:
         el_angle -- desired elevation angle.
         """
-        return self.eval_string_expr("a.set_el_deg({})".format(el_angle))
+        return self.eval_string_expr("a.antenna.set_elevation_degrees({})".format(el_angle))
 
     def set_azimuth_degree(self, az_angle):
         """Set the azimuth angle.
@@ -109,14 +110,17 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         Arguments:
         az_angle -- desired azimuth angle.
         """
-        return self.eval_string_expr("a.set_az_deg({})".format(az_angle))
+        return self.eval_string_expr("a.antenna.set_azimuth_degrees({})".format(az_angle))
 
     def create_antkontrol(self):
         """Create an antkontrol object on the ESP32."""
-        ret, ret_err = self.exec_raw("import antenny")
-        ret, ret_err = self.exec_raw("a = antenny.AntKontrol()")
-        self.antenna_initialized = True
-        return ret.decode(), ret_err.decode()
+        try:
+            ret = self.exec_("import antenny")
+            ret = self.exec_("a = antenny.AntKontrol()")
+            self.antenna_initialized = True
+            return ret.decode()
+        except PyboardError:
+            raise PyboardError("Could not create antkontrol object")
 
 
 class NyanExplorerCaching(NyanExplorer, MpFileExplorerCaching):
