@@ -9,22 +9,13 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
     EL_SERVO_INDEX = "elevation_servo_index"
     AZ_SERVO_INDEX = "azimuth_servo_index"
 
-    def __init__(self, constr, reset=False):
-        """
-	Supports the following connection strings.
-
-            ser:/dev/ttyUSB1,<baudrate>
-            tn:192.168.1.101,<login>,<passwd>
-            ws:192.168.1.102,<passwd>
-
-        :param constr:      Connection string as defined above.
-        """
-        self.antenna_initialized = False
-        super().__init__(constr, reset)
-  
     def is_antenna_initialized(self):
-        """Getter for antenna_initialized."""
-        return self.antenna_initialized
+        """Test if there is an AntKontrol object on the board"""
+        try:
+            self.exec_("isinstance(a, AntKontrol")
+            return True
+        except PyboardError:
+            return False
 
     def which_config(self):
         """Get the name of the currently used config file."""
