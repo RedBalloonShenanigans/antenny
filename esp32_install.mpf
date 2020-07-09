@@ -47,3 +47,5 @@ md sender
 put nyansat/station/sender/__init__.py /sender/__init__.py
 put nyansat/station/sender/sender.py /sender/sender.py
 put nyansat/station/sender/sender_udp.py /sender/sender_udp.py
+
+exec import webrepl_setup
