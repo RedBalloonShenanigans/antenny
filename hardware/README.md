@@ -4,6 +4,13 @@ If you want make your life a little simpler, we have a custom PCB for you! The A
 
 The RBS Antenny board is designed using Altium Designer and Assembled by in-house pick and place machine in Manhattan, New York. Hardware design will be open sourced through our [GitHub repo](https://github.com/RedBalloonShenanigans/antenny/tree/master/hardware), and you can buy them in our store [link[. Feel free to check it out or make your own!  
 
+## required item that NOT include in shipping package
+
+- [Jumper Wires](https://www.amazon.com/EDGELEC-Breadboard-Optional-Assorted-Multicolored/dp/B07GD2BWPY/)
+- [pin headers](https://www.amazon.com/MCIGICM-Header-2-45mm-Arduino-Connector/dp/B07PKKY8BX/)
+- Soldering Iron Kit
+- Power supply (6v-30v) or lipo battery
+
 ## Antenny_board folder
 
 These folder contains the RBS Antenny Board Altium Designer source file. 
