@@ -622,6 +622,32 @@ class NyanShell(mpfshell.MpFileShell):
             else:
                 self._error("There is already a running AntKontrol instance")
 
+    def do_track(self, args):
+        """track <SATELLITE_NAME>
+        Tracks a satellite across the sky. Satellite data is taken from Active-Space-Stations file from Celestrak."""
+        try:
+            if not len(args):
+                self._error("Missing argument: <SATELLITE_NAME>")
+            elif self._is_open() and self.fe.is_antenna_initialized():
+                self.fe.track(args)
+            else:
+                self._error("Please run 'antkontrol' to initialize the antenna.")
+        except PyboardError:
+            self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
+
+    def do_cancel(self):
+        """cancel
+        Cancel tracking mode.
+        """
+        try:
+            if self._is_open() and self.fe.is_antenna_initialized():
+                self.fe.cancel()
+            else:
+                self._error("Please run 'antkontrol' to initialize the antenna.")
+        except PyboardError:
+            self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
+
+
 
 def main():
     """Entry point into the shell.

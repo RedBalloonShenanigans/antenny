@@ -115,6 +115,17 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
             return ret.decode()
         except PyboardError:
             raise PyboardError("Could not create antkontrol object")
+    
+    def track(self, sat_name):
+        """Track a satellite across the sky"""
+        # TODO: Call the get_tle/parse_tle functions
+        # TODO: Create a timer that goes off every 2 seconds, updating the elevation/azimuth.
+        pass
+
+    def cancel(self):
+        """Cancel tracking mode"""
+        # TODO: Cancel the timer created in track.
+        pass
 
 
 class NyanExplorerCaching(NyanExplorer, MpFileExplorerCaching):
