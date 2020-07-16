@@ -4,25 +4,29 @@ import asyncio
 
 
 SOURCE = "https://celestrak.com/NORAD/elements/active.txt"
-FILENAME = "/tmp/sat_data.tle"
 
-async def _get_tle_file(source=SOURCE, filename=FILENAME):
-    async with aiohttp.ClientSession() as session:
-        async with session.get(source) as response:
-            html = await response.text()
-            async with aiofiles.open(filename, mode='w') as f:
-                await f.write(html)
 
-async def _get_tle_lines(): 
-    await _get_tle_file()
-    async with aiofiles.open(FILENAME, "r") as f:
-        raw_lines = await f.readlines()
+class SatelliteScraper:
+
+    def __init__(self):
+        self.file_text = None
+
+    async def get_tle_file(self, source=SOURCE):
+        async with aiohttp.ClientSession() as session:
+            async with session.get(source) as response:
+                self.file_text = await response.text()
+
+    async def get_tle_lines(self):
+        await self.get_tle_file()
+        raw_lines = self.file_text.split('\n')
         encode_lines = list(map(lambda l: l.encode("utf-8"), raw_lines))
         return encode_lines
 
+
 # entry point
 async def load_tle():
-    return await _get_tle_lines()
+    scraper = SatelliteScraper()
+    return await scraper.get_tle_lines()
 
 if __name__ == "__main__":
     asyncio.run(load_tle())

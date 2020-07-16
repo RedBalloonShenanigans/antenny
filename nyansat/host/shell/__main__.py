@@ -20,7 +20,7 @@ from mp.conbase import ConError
 from mp.pyboard import PyboardError
 from mp.tokenizer import Tokenizer
 
-from nyansat.host.shell.nyan_explorer import NyanExplorerCaching, NyanExplorer
+from nyansat.host.shell.nyan_explorer import NyanExplorerCaching, NyanExplorer, NotVisibleError
 
 
 class NyanShell(mpfshell.MpFileShell):
@@ -581,7 +581,7 @@ class NyanShell(mpfshell.MpFileShell):
             elif self._is_open() and self.fe.is_antenna_initialized():
                 try:
                     el = float(args)
-                    print(self.fe.set_elevation_degree(el))
+                    self.fe.set_elevation_degree(el)
                 except ValueError:
                     print("<ELEVATION> must be a floating point number!")
             else:
@@ -600,7 +600,7 @@ class NyanShell(mpfshell.MpFileShell):
             elif self._is_open() and self.fe.is_antenna_initialized():
                 try:
                     az = float(args)
-                    print(self.fe.set_azimuth_degree(az))
+                    self.fe.set_azimuth_degree(az)
                 except ValueError:
                     print("<AZIMUTH> must be a floating point number!")
             else:
@@ -630,19 +630,25 @@ class NyanShell(mpfshell.MpFileShell):
                 self._error("Missing argument: <SATELLITE_NAME>")
             elif self._is_open() and self.fe.is_antenna_initialized():
                 # TODO: How to run this? Should fe.track() be async or not?
-                self.fe.track(args)
+                try:
+                    self.fe.wrap_track(args)
+                except NotVisibleError:
+                    self._error("The satellite is not visible from your position")
             else:
                 self._error("Please run 'antkontrol' to initialize the antenna.")
         except PyboardError:
             self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
 
-    def do_cancel(self):
+    def do_cancel(self, args):
         """cancel
         Cancel tracking mode.
         """
         try:
             if self._is_open() and self.fe.is_antenna_initialized():
-                self.fe.cancel()
+                if self.fe.is_tracking():
+                    self.fe.cancel()
+                else:
+                    self._error("The antenna is not currently tracking any satellite.")
             else:
                 self._error("Please run 'antkontrol' to initialize the antenna.")
         except PyboardError:

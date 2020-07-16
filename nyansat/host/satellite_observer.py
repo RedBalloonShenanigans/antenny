@@ -82,7 +82,7 @@ class SatelliteObserver(object):
         """
         return self.get_stats(time.mktime(time.gmtime()))
 
-    def get_visible(self, at_time: float) -> bool:
+    def get_visible(self) -> bool:
         """
         Return whether or not the satellite is visible at the given time
         :param at_time: the time at which to check satellite visibility
@@ -91,6 +91,9 @@ class SatelliteObserver(object):
         elevation, _, _ = self.get_current_stats()
         return elevation > SatelliteObserver.LOWEST_VISIBLE_ELEVATION
 
+
+class NotVisibleError(Exception):
+    pass
 
 async def main():
     coords = (40.0, -73.0) 

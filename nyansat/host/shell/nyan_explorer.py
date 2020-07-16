@@ -1,12 +1,15 @@
 import ast
 import asyncio
 import json
+import threading
+
+from time import sleep
 
 from mp.mpfexp import MpFileExplorer, MpFileExplorerCaching
 from mp.pyboard import PyboardError
 from nyansat.host.shell.nyan_pyboard import NyanPyboard
 
-from nyansat.host.satellite_observer import SatelliteObserver, parse_tle_file
+from nyansat.host.satellite_observer import SatelliteObserver, parse_tle_file, NotVisibleError
 
 import nyansat.host.satdata_client as SatelliteScraper
 
@@ -18,7 +21,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
     AZ_SERVO_INDEX = "azimuth_servo_index"
 
     def __init__(self, *args):
-        self.track_task = None
+        self.tracking = None
         super().__init__(*args)
 
     def is_antenna_initialized(self):
@@ -105,7 +108,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         Arguments:
         el_angle -- desired elevation angle.
         """
-        return self.eval_string_expr("a.antenna.set_elevation_degrees({})".format(el_angle))
+        self.eval_string_expr("a.antenna.set_elevation_degrees({})".format(el_angle))
 
     def set_azimuth_degree(self, az_angle):
         """Set the azimuth angle.
@@ -113,7 +116,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         Arguments:
         az_angle -- desired azimuth angle.
         """
-        return self.eval_string_expr("a.antenna.set_azimuth_degrees({})".format(az_angle))
+        self.eval_string_expr("a.antenna.set_azimuth_degrees({})".format(az_angle))
 
     def create_antkontrol(self):
         """Create an antkontrol object on the ESP32."""
@@ -125,26 +128,42 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         except PyboardError:
             raise PyboardError("Could not create antkontrol object")
 
-    async def _track_update(self, observer):
-        while True:
+    def is_tracking(self):
+        return self.tracking
+
+    def _track_update(self, observer):
+        """Update the antenna position every 2 seconds"""
+        print(f"Tracking {observer.sat_name} ...")
+        while self.tracking:
             elevation, azimuth, distance = observer.get_current_stats()
             print(f"elevation {elevation}, azimuth {azimuth}, distance {distance}")
-            self.eval_string_expr("a.antenna.set_elevation_degrees({})".format(elevation))
-            self.eval_string_expr("a.antenna.set_azimuth_degrees({})".format(azimuth))
-            await asyncio.sleep(2)
+            self.set_elevation_degree(elevation)
+            self.set_azimuth_degree(azimuth)
+            sleep(2)
 
     async def track(self, sat_name):
         """Track a satellite across the sky"""
         coords = (40.0, -73.0)
         tle_data_encoded = await SatelliteScraper.load_tle()
         tle_data = parse_tle_file(tle_data_encoded)
-        iss = SatelliteObserver.parse_tle(coords, sat_name, tle_data)
+        observer = SatelliteObserver.parse_tle(coords, sat_name, tle_data)
 
-        self.track_task = asyncio.ensure_future(self._track_update(iss))
+        #self.track_task = asyncio.ensure_future(self._track_update(iss))
+        #await self.track_task
+        if not observer.get_visible():
+            self.cancel()
+            raise NotVisibleError
+        t = threading.Thread(target=self._track_update, args=(observer,))
+        t.start()
+
+    def wrap_track(self, sat_name):
+        """Entry point for tracking mode"""
+        self.tracking = True
+        asyncio.run(self.track(sat_name))
 
     def cancel(self):
         """Cancel tracking mode"""
-        self.track_task.cancel()
+        self.tracking = False
         pass
 
 
