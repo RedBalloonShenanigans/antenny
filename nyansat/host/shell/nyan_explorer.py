@@ -136,7 +136,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         print(f"Tracking {observer.sat_name} ...")
         while self.tracking:
             elevation, azimuth, distance = observer.get_current_stats()
-            print(f"elevation {elevation}, azimuth {azimuth}, distance {distance}")
+            #print(f"elevation {elevation}, azimuth {azimuth}, distance {distance}")
             self.set_elevation_degree(elevation)
             self.set_azimuth_degree(azimuth)
             sleep(2)
@@ -164,7 +164,6 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
     def cancel(self):
         """Cancel tracking mode"""
         self.tracking = False
-        pass
 
 
 class NyanExplorerCaching(NyanExplorer, MpFileExplorerCaching):

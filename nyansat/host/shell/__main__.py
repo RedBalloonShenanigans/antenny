@@ -589,7 +589,6 @@ class NyanShell(mpfshell.MpFileShell):
         except PyboardError:
             self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
 
-
     def do_azimuth(self, args):
         """azimuth <AZIMUTH>
         Set the azimuth to the level given in degrees by the first argument.
@@ -607,7 +606,6 @@ class NyanShell(mpfshell.MpFileShell):
                 self._error("Please run 'antkontrol' to initialize the antenna.")
         except PyboardError:
             self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
-
 
     def do_antkontrol(self, args):
         """antkontrol
