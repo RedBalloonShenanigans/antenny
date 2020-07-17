@@ -13,3 +13,6 @@
 [submodule "lib/rbs-tui-dom"]
 	path = lib/rbs-tui-dom
 	url = git@github.com:ballon-rouge/tui-dom.git
+[submodule "lib/simple-pid"]
+	path = lib/simple-pid
+	url = https://github.com/m-lundberg/simple-pid.git
