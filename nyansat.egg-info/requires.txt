@@ -1,0 +1,5 @@
+colorama
+mpfshell==0.9.1
+pyserial
+rbs-tui-dom
+websocket_client

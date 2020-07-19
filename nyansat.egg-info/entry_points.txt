@@ -1,0 +1,4 @@
+[console_scripts]
+nyanshell = host.shell:main
+nyanui = host:main
+

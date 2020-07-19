@@ -1,0 +1,8 @@
+README.md
+setup.py
+nyansat.egg-info/PKG-INFO
+nyansat.egg-info/SOURCES.txt
+nyansat.egg-info/dependency_links.txt
+nyansat.egg-info/entry_points.txt
+nyansat.egg-info/requires.txt
+nyansat.egg-info/top_level.txt

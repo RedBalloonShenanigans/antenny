@@ -226,70 +226,81 @@ class NyanShell(mpfshell.MpFileShell):
         Interactive script to populate a config file.
         Switches to new config after finishing setup.
         """
-        if not len(args):
-            self._error("Missing argument: <CONFIG_FILE>")
+        try:
+            if not len(args):
+                self._error("Missing argument: <CONFIG_FILE>")
 
-        elif self._is_open():
-            s_args = self._parse_file_names(args)
-            name, = s_args
-            current = self.fe.which_config()
+            elif self._is_open() and self.fe.is_antenna_initialized():
+                s_args = self._parse_file_names(args)
+                name, = s_args
+                current = self.fe.which_config()
 
-            self.fe.config_new(name)
+                self.fe.config_new(name)
 
-            print(colorama.Fore.GREEN +
-                    "Welcome to Antenny!" +
-                    colorama.Fore.RESET)
-            print("Please enter the following information about your hardware\n")
+                print(colorama.Fore.GREEN +
+                      "Welcome to Antenny!" +
+                      colorama.Fore.RESET)
+                print("Please enter the following information about your hardware\n")
 
-            for k,info in self.prompts.items():
-                prompt_text, typ = info
-                try:
-                    new_val = typ(input(prompt_text))
-                except ValueError:
-                    self._error("Invalid type, setting to default.\nUse \"set\" to " \
-                            "change the parameter")
-                    new_val = self.fe.config_get_default(k)
+                for k,info in self.prompts.items():
+                    prompt_text, typ = info
+                    try:
+                        new_val = typ(input(prompt_text))
+                    except ValueError:
+                        self._error("Invalid type, setting to default.\nUse \"set\" to " \
+                                    "change the parameter")
+                        new_val = self.fe.config_get_default(k)
 
-                self.fe.config_set(k, new_val)
+                    self.fe.config_set(k, new_val)
 
-            if self.caching:
-                self.fe.cache = {}
+                if self.caching:
+                    self.fe.cache = {}
 
-            print(colorama.Fore.GREEN +
-                    "\nConfiguration set for \"{}\"!\n".format(name) +
-                    colorama.Fore.RESET +
-                    "You can use \"set\" to change individual parameters\n" \
-                    "or \"edit\" to change the config file " \
-                    "directly")
+                print(colorama.Fore.GREEN +
+                      "\nConfiguration set for \"{}\"!\n".format(name) +
+                      colorama.Fore.RESET +
+                      "You can use \"set\" to change individual parameters\n" \
+                      "or \"edit\" to change the config file " \
+                      "directly")
+            else:
+                self._error("Please run 'antkontrol' to initialize the antenna.")
+
+        except PyboardError:
+            self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
 
     def do_set(self, args):
         """set <CONFIG_PARAM> <NEW_VAL>
         Set a parameter in the configuration file to a new value."""
-        if not len(args):
-            self._error("missing arguments: <config_param> <new_val>")
+        try:
+            if not len(args):
+                self._error("missing arguments: <config_param> <new_val>")
 
-        elif self._is_open():
-            s_args = self._parse_file_names(args)
-            if len(s_args) < 2:
-                self._error("Missing argument: <new_val>")
-                return
+            elif self._is_open() and self.fe.is_antenna_initialized():
+                s_args = self._parse_file_names(args)
+                if len(s_args) < 2:
+                    self._error("Missing argument: <new_val>")
+                    return
 
-            key, new_val = s_args
-            try:
-                old_val = self.fe.config_get(key)
-            except:
-                self._error("No such configuration parameter")
-                return
+                key, new_val = s_args
+                try:
+                    old_val = self.fe.config_get(key)
+                except:
+                    self._error("No such configuration parameter")
+                    return
 
-            _, typ = self.prompts[key]
-            try:
-                new_val = typ(new_val)
-            except ValueError as e:
-                self._error(str(e))
-                return
+                _, typ = self.prompts[key]
+                try:
+                    new_val = typ(new_val)
+                except ValueError as e:
+                    self._error(str(e))
+                    return
 
-            self.fe.config_set(key, new_val)
-            print("Changed " + "\"" + key + "\" from " + str(old_val) + " --> " + str(new_val))
+                self.fe.config_set(key, new_val)
+                print("Changed " + "\"" + key + "\" from " + str(old_val) + " --> " + str(new_val))
+            else:
+                self._error("Please run 'antkontrol' to initialize the antenna.")
+        except PyboardError:
+            self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
 
     def complete_set(self, *args):
         """Tab completion for 'set' command."""
@@ -301,37 +312,47 @@ class NyanShell(mpfshell.MpFileShell):
     def do_configs(self, args):
         """configs
         Print a list of all configuration parameters."""
-        if self._is_open():
-
-            print(colorama.Fore.GREEN +
-                    "-Config parameters-\n" +
-                    colorama.Fore.CYAN +
-                    "Using \"{}\"".format(self.fe.which_config()) +
-                    colorama.Fore.RESET)
-            for key in self.prompts.keys():
-                print(key + ": " + self.fe.config_get(key))
+        try:
+            if self._is_open() and self.fe.is_antenna_initialized():
+                print(colorama.Fore.GREEN +
+                      "-Config parameters-\n" +
+                      colorama.Fore.CYAN +
+                      "Using \"{}\"".format(self.fe.which_config()) +
+                      colorama.Fore.RESET)
+                for key in self.prompts.keys():
+                    print(key + ": " + self.fe.config_get(key))
+            else:
+                self._error("Please run 'antkontrol' to initialize the antenna.")
+        except PyboardError:
+            self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
 
     def do_switch(self, args):
         """switch <CONFIG_FILE>
         Switch to using a different config file."""
-        if not len(args):
-            self._error("Missing arguments: <config_file>")
+        try:
+            if not len(args):
+                self._error("Missing arguments: <config_file>")
 
-        elif self._is_open():
-            s_args = self._parse_file_names(args)
-            if len(s_args) > 1:
-                self._error("Usage: switch <CONFIG_FILE>")
-                return
-            name, = s_args
-            files = self.fe.ls()
-            if name not in files:
-                self._error("No such file")
-                return
-            current = self.fe.which_config()
-            self.fe.config_switch(name)
-            print(colorama.Fore.GREEN +
-                    "Switched from \"{}\"".format(current) +
-                    "to \"{}\"".format(name))
+            elif self._is_open() and self.fe.is_antenna_initialized():
+                s_args = self._parse_file_names(args)
+                if len(s_args) > 1:
+                    self._error("Usage: switch <CONFIG_FILE>")
+                    return
+                name, = s_args
+                files = self.fe.ls()
+                if name not in files:
+                    self._error("No such file")
+                    return
+                current = self.fe.which_config()
+                self.fe.config_switch(name)
+                print(colorama.Fore.GREEN +
+                        "Switched from \"{}\"".format(current) +
+                        "to \"{}\"".format(name))
+            else:
+                self._error("Please run 'antkontrol' to initialize the antenna.")
+
+        except PyboardError:
+            self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
 
     def complete_switch(self, *args):
         """Tab completion for switch command."""
@@ -468,7 +489,7 @@ class NyanShell(mpfshell.MpFileShell):
                 print("Saving calibration data ...")
                 self.do_save_calibration(args=None)
                 print("Calibration data is now saved to config.")
-            elif not self.fe.is_antenna_initialized():
+            else:
                 self._error("Please run 'antkontrol' to initialize the antenna.")
 
         except PyboardError:
@@ -488,7 +509,7 @@ class NyanShell(mpfshell.MpFileShell):
 
                 if not status:
                     self._error("Error: BNO055 not detected or error in reading calibration registers.")
-            elif not self.fe.is_antenna_initialized():
+            else:
                 self._error("Please run 'antkontrol' to initialize the antenna.")
         except PyboardError:
             self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
@@ -507,7 +528,7 @@ class NyanShell(mpfshell.MpFileShell):
 
                 if not status:
                     self._error("Error: BNO055 not detected or error in writing calibration registers.")
-            elif not self.fe.is_antenna_initialized():
+            else:
                 self._error("Please run 'antkontrol' to initialize the antenna.")
         except PyboardError:
             self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
@@ -545,7 +566,7 @@ class NyanShell(mpfshell.MpFileShell):
                 # Need to do math here
                 print("Real IMU angles: %d", real_pos)
                 print("Expected position: %d", real_pos)
-            elif not self.fe.is_antenna_initialized():
+            else:
                 self._error("Please run 'antkontrol' to initialize the antenna.")
         except PyboardError:
             self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
@@ -563,7 +584,7 @@ class NyanShell(mpfshell.MpFileShell):
                     print(self.fe.set_elevation_degree(el))
                 except ValueError:
                     print("<ELEVATION> must be a floating point number!")
-            elif not self.fe.is_antenna_initialized():
+            else:
                 self._error("Please run 'antkontrol' to initialize the antenna.")
         except PyboardError:
             self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
@@ -582,7 +603,7 @@ class NyanShell(mpfshell.MpFileShell):
                     print(self.fe.set_azimuth_degree(az))
                 except ValueError:
                     print("<AZIMUTH> must be a floating point number!")
-            elif not self.fe.is_antenna_initialized():
+            else:
                 self._error("Please run 'antkontrol' to initialize the antenna.")
         except PyboardError:
             self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
@@ -725,4 +746,3 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-

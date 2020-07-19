@@ -20,7 +20,7 @@ class ConfigRepository:
         "last_loaded": "config.json",
         # Disable optional hardware features
         "use_gps": False,
-        "use_screen": False,
+        "use_screen": True,
         # Elevation/azimuth servo defaults
         "elevation_servo_index": 0,
         "azimuth_servo_index": 1,
@@ -33,8 +33,8 @@ class ConfigRepository:
         "i2c_servo_sda": 22,
         "i2c_bno_scl": 23,
         "i2c_bno_sda": 18,
-        "i2c_screen_scl": 25,
-        "i2c_screen_sda": 26,
+        "i2c_screen_scl": 12,
+        "i2c_screen_sda": 13,
         # IMU calibration - cf. section 3.6.4 "Sensor calibration data" in
         # Bosch BNO055 datasheet. Default values are all zero
         "acc_offset_x_lsb": 0,
