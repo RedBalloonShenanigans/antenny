@@ -17,6 +17,7 @@ _check_serial_param:
 nyansat: _check_serial_param setup
 	python3 wifi_config.py
 	mpfshell -o ser:$(SERIAL) -s esp32_install.mpf
+	rm webrepl_cfg.py
 	rm wifi_config.json
 
 all: nyanshell nyansat
