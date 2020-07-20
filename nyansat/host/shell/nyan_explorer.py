@@ -136,7 +136,6 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         print(f"Tracking {observer.sat_name} ...")
         while self.tracking:
             elevation, azimuth, distance = observer.get_current_stats()
-            #print(f"elevation {elevation}, azimuth {azimuth}, distance {distance}")
             self.set_elevation_degree(elevation)
             self.set_azimuth_degree(azimuth)
             sleep(2)
@@ -148,8 +147,6 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         tle_data = parse_tle_file(tle_data_encoded)
         observer = SatelliteObserver.parse_tle(coords, sat_name, tle_data)
 
-        #self.track_task = asyncio.ensure_future(self._track_update(iss))
-        #await self.track_task
         if not observer.get_visible():
             self.cancel()
             raise NotVisibleError

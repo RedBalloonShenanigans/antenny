@@ -627,7 +627,6 @@ class NyanShell(mpfshell.MpFileShell):
             if not len(args):
                 self._error("Missing argument: <SATELLITE_NAME>")
             elif self._is_open() and self.fe.is_antenna_initialized():
-                # TODO: How to run this? Should fe.track() be async or not?
                 try:
                     self.fe.wrap_track(args)
                 except NotVisibleError:
@@ -651,7 +650,6 @@ class NyanShell(mpfshell.MpFileShell):
                 self._error("Please run 'antkontrol' to initialize the antenna.")
         except PyboardError:
             self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
-
 
 
 def main():
