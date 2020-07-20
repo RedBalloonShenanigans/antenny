@@ -10,6 +10,7 @@ from datetime import datetime
 from fuzzywuzzy import process
 from typing import Dict, Tuple, Union
 from skyfield.api import load, Topos, EarthSatellite
+from skyfield.iokit import parse_tle_file
 
 
 LatLong = Union[float, str]
