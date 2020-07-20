@@ -1,19 +1,15 @@
 #!/usr/bin/python3
 
-# Mostly stolen ("adapted") from:
+# Mostly adapted from:
 # https://gist.github.com/rbs-tim/c1e8de814a92b5c2464143c917af8735
 
-import aiofiles
 import asyncio
 import time
 
 from datetime import datetime
-from fuzzywuzzy import fuzz, process
+from fuzzywuzzy import process
 from typing import Dict, Tuple, Union
 from skyfield.api import load, Topos, EarthSatellite
-from skyfield.iokit import parse_tle_file
-
-import nyansat.host.satdata_client as SatelliteScraper
 
 
 LatLong = Union[float, str]
@@ -95,16 +91,3 @@ class SatelliteObserver(object):
 class NotVisibleError(Exception):
     pass
 
-async def main():
-    coords = (40.0, -73.0) 
-    tle_data_encoded = await SatelliteScraper.load_tle()
-    tle_data = parse_tle_file(tle_data_encoded)
-    iss = SatelliteObserver.parse_tle(coords, "ISS", tle_data)
-
-    while True:
-        elevation, azimuth, distance = iss.get_current_stats()
-        print(f"elevation {elevation}, azimuth {azimuth}, distance {distance}")
-        await asyncio.sleep(2)
-
-if __name__ == "__main__":
-    asyncio.run(main())

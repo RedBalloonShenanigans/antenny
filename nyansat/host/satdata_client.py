@@ -1,5 +1,4 @@
 import aiohttp
-import aiofiles
 import asyncio
 
 
@@ -30,4 +29,3 @@ async def load_tle():
 
 if __name__ == "__main__":
     asyncio.run(load_tle())
-    #print(load_tle())
