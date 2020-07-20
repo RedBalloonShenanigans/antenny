@@ -286,6 +286,17 @@ class AntennaController:
         self.get_heading()
         self._calibrated_azimuth_offset = a_center - 90.0
 
+    def imu_motor_calibration(self):
+        # Offset calculation & calibration at neutral
+        self.motor_controller.set_position(self._azimuth_servo_idx, 90)
+        
+
+        # Offset calculation & calibration at extremes
+
+
+        # Unit calibration
+        return report
+
     def auto_calibration(self):
         # read from BNO055 sensor, move antenna
         # soft home, etc
