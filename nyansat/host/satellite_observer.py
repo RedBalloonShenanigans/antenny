@@ -15,11 +15,6 @@ from skyfield.api import load, Topos, EarthSatellite
 LatLong = Union[float, str]
 
 
-# TODO: Remove this hack that allows SatelliteObserver in the type hint below
-class SatelliteObserver:
-    pass
-
-
 class SatelliteObserver(object):
     """
     Represents a satellite relative to a specific ground location. Can be
@@ -32,7 +27,7 @@ class SatelliteObserver(object):
 
     @classmethod
     def parse_tle(cls, coords: Tuple[LatLong, LatLong], sat_name: str,
-                  tle_data: Dict) -> SatelliteObserver:
+                  tle_data: Dict) -> 'SatelliteObserver':
         """
         Parse TLE data into a SatelliteObserver object
         :param coords: latitude and longitude of the observer
