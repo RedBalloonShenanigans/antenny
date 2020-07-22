@@ -11,7 +11,7 @@ The RBS Antenny board is designed using Altium Designer and Assembled by in-hous
 - Soldering Iron Kit
 - Power supply (6v-30v) or lipo battery
 
-## Antenny board hardware setup guide
+## Antenny board hardware setup guide and schematic
 
 - [setup guide](https://github.com/RedBalloonShenanigans/antenny/tree/master/hardware/Antenny_board_hardware_setup_guide.pdf)
 
