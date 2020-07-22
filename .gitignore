@@ -4,6 +4,7 @@
 
 # Generated Python files
 *.pyc
+nyansat.egg-info/
 
 # mpfshell build files
 nyanshell/build/*
@@ -19,3 +20,4 @@ tmp/*
 # Generated files during install
 webrepl_cfg.py
 wifi_config.json
+

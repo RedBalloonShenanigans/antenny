@@ -3,9 +3,10 @@ md config
 put nyansat/station/config/__init__.py /config/__init__.py
 put nyansat/station/config/config.py /config/config.py
 
-put nyansat/station/initialize_i2c_bus.py initialize_i2c_bus.py
-put nyansat/station/boot.py boot.py
 put nyansat/station/antenny.py antenny.py
+put nyansat/station/antenny_threading.py antenny_threading.py
+put nyansat/station/main.py main.py
+put nyansat/station/boot.py boot.py
 put nyansat/station/main.py main.py
 put nyansat/station/__init__.py __init__.py
 put wifi_config.json 
@@ -33,20 +34,24 @@ md imu
 put nyansat/station/imu/__init__.py /imu/__init__.py
 put nyansat/station/imu/imu.py /imu/imu.py
 put nyansat/station/imu/imu_bno055.py /imu/imu_bno055.py
+put nyansat/station/imu/mock_imu.py /imu/mock_imu.py
 
 md motor
 put nyansat/station/motor/__init__.py /motor/__init__.py
 put nyansat/station/motor/motor.py /motor/motor.py
 put nyansat/station/motor/motor_pca9685.py /motor/motor_pca9685.py
+put nyansat/station/motor/mock_motor.py /motor/mock_motor.py
 
 md screen
 put nyansat/station/screen/__init__.py /motor/__init__.py
 put nyansat/station/screen/screen.py /screen/screen.py
 put nyansat/station/screen/screen_ssd1306.py /screen/screen_ssd1306.py
+put nyansat/station/screen/mock_screen.py /screen/mock_screen.py
 
 md sender
 put nyansat/station/sender/__init__.py /sender/__init__.py
 put nyansat/station/sender/sender.py /sender/sender.py
 put nyansat/station/sender/sender_udp.py /sender/sender_udp.py
+put nyansat/station/sender/mock_sender.py /sender/mock_sender.py
 
 put webrepl_cfg.py

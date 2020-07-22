@@ -1,399 +1,253 @@
-import _thread
 import logging
-import time
-
-import machine
-from machine import Pin
 
 from config.config import ConfigRepository
-from gps.gps_basic import BasicGPSController
 from imu.imu import ImuController
-from imu.imu_bno055 import Bno055ImuController
-from motor.motor_pca9685 import Pca9685Controller
-from screen.screen_ssd1306 import Ssd1306ScreenController
-from sender import UDPTelemetrySender
+
+from imu.mock_imu import MockImuController
+from motor.mock_motor import MockMotorController
+from motor.motor import MotorController
+from screen.mock_screen import MockScreenController
+from screen.screen import ScreenController
+from antenny_threading import Queue
+from sender.mock_sender import MockTelemetrySender
+
+_DEFAULT_MOTOR_POSITION = 90.
+_DEFAULT_MOTION_DELAY = 0.75
+
+LOG = logging.getLogger('antenny')
 
 
-class AntennaController:
+class AxisController:
     """
-    Control antenna related servos & IMU.
+    Control a single axis of motion - azimuth / elevation.
     """
 
     def __init__(
             self,
+            motor_idx: int,
             imu: ImuController,
-            motor_controller,
+            motor: MotorController,
     ):
-        self.antenna_imu = imu
-        self.imu_lock = _thread.allocate_lock()
-        self.motor_controller = motor_controller
-        self.cfg = ConfigRepository()
+        self.motor_idx = motor_idx
+        self.imu = imu
+        self.motor = motor
+        self._current_motor_position = _DEFAULT_MOTOR_POSITION
+        self.set_motor_position(_DEFAULT_MOTOR_POSITION)
 
-        self._el_moving = False
-        self._az_moving = False
-        self._pinned_mode = False
+    def get_motor_position(self) -> float:
+        return self._current_motor_position
 
-        # TODO: these all need to be split into their respective heading control class
-        self._elevation_servo_idx = self.cfg.get("elevation_servo_index")
-        self._azimuth_servo_idx = self.cfg.get("azimuth_servo_index")
-        self.get_heading()
-        self._elevation_target = self._el_last = self._heading.elevation
-        self._azimuth_target = self._az_last = self._heading.azimuth
-        self._actual_elevation = 90.0
-        self._actual_azimuth = 90.0
-        self.do_imu_calibration()
-
-        self._el_max_rate = self.cfg.get("elevation_max_rate")
-        self._az_max_rate = self.cfg.get("azimuth_max_rate")
-
-        self._calibrated_elevation_offset = None
-        self._calibrated_azimuth_offset = None
-
-        self._heading = None
-        self._pinned_heading = None
-        self._pinned_servo_pos = None
-
-        self._orientation_updates = True
-        self._motion_control = True
-        self._orientation_thread = _thread.start_new_thread(self.update_orientation, ())
-        self._move_thread = _thread.start_new_thread(self.move_loop, ())
-
-        time.sleep(6)
-        self.motor_controller.set_position(self._elevation_servo_idx, 90)
-        time.sleep(0.1)
-        self.motor_controller.set_position(self._azimuth_servo_idx, 90)
-        time.sleep(0.1)
-
-    def close(self):
-        self._orientation_updates = False
-        self._motion_control = False
-
-    def do_imu_calibration(self):
-        heading = self.antenna_imu.heading()
-        self._elevation_target = heading.elevation
-        self._azimuth_target = heading.azimuth
-
-        self._calibrated_elevation_offset = heading.elevation - self._actual_elevation
-        self._calibrated_azimuth_offset = heading.azimuth - self._actual_azimuth
-
-    def get_heading(self):
-        with self.imu_lock:
-            self._heading = self.antenna_imu.heading()
-
-    def pin(self):
-        """
-        Pin the antenna in place.
-        """
-        self._pinned_heading = self._heading
-        self._pinned_servo_pos = [self._el_last, self._az_last]
-        self._pinned_mode = True
-
-    def unpin(self):
-        """
-        Unpin the antenna from it's heading
-        """
-        self._pinned_heading = None
-        self._pinned_servo_pos = None
-        self._pinned_mode = False
-
-    def do_move_mode(self):
-        """
-        Perform a smooth move to the target elevation & azimuth.
-        """
-        self.motor_controller.smooth_move(self._elevation_servo_idx, self._elevation_target, 10)
-        self._el_moving = False
-        self.motor_controller.smooth_move(self._azimuth_servo_idx, self._azimuth_target, 10)
-        self._az_moving = False
-
-    def do_pin_mode(self):
-        """
-        Pin the antenna heading in place, moving for any deltas sensed by the IMU
-        """
-        delta_x = self._pinned_heading.elevation - self._heading.elevation
-        delta_y = self._pinned_heading.azimuth - self._heading.azimuth
-        logging.info("d-x {}, d-y {}".format(delta_x, delta_y))
-        self._elevation_target = self._el_last + delta_x * -1
-        self._azimuth_target = self._az_last + delta_y
-        self.do_move_mode()
-
-    def update_orientation(self):
-        """
-        Acquire a lock on the IMU, update the current heading.
-        """
-        while self._orientation_updates:
-            try:
-                with self.imu_lock:
-                    self._heading = self.antenna_imu.heading()
-            except Exception as e:
-                logging.info("Error in orientation update: {}".format(e))
-
-    def move_loop(self):
-        """
-        Handle motion control, in both fixed heading (pin mode) and single target (move mode).
-        """
-        while self._motion_control:
-            while self._az_moving or self._el_moving or self._pinned_mode:
-                try:
-                    if self._pinned_heading:
-                        self.do_pin_mode()
-                    else:
-                        self.do_move_mode()
-                    time.sleep(0.1)
-                except Exception as e:
-                    logging.info(e)
-            time.sleep(0.1)
-
-    def imu_status(self) -> str:
-        return self.antenna_imu.get_status().to_string()
-
-    def set_elevation_degrees(self, deg):
-        """
-        Perform a move by setting the target elevation in degrees.
-        """
-        self._el_moving = True
-        self._elevation_target = deg
-
-    def set_azimuth_degrees(self, deg):
-        """
-        Perform a move by setting the target azimuth in degrees.
-        """
-        self._az_moving = True
-        self._azimuth_target = deg
-
-    @property
-    def azimuth(self):
-        return self._actual_azimuth
-
-    @azimuth.setter
-    def azimuth(self, deg):
-        self.set_azimuth_degrees(deg)
-
-    @property
-    def current_azimuth(self):
-        return self._az_last + self._calibrated_azimuth_offset
-
-    @current_azimuth.setter
-    def current_azimuth(self, deg):
-        self.set_azimuth_degrees(deg + self._calibrated_azimuth_offset)
-
-    @property
-    def current_elevation(self):
-        return self._el_last + self._calibrated_elevation_offset
-
-    @current_elevation.setter
-    def current_elevation(self, deg):
-        self.set_elevation_degrees(deg + self._calibrated_elevation_offset)
-
-    @property
-    def elevation(self):
-        return self._el_last
-
-    @elevation.setter
-    def elevation(self, deg):
-        self.set_elevation_degrees(deg)
-
-    def motor_test(self, index, position):
-        pos = self.motor_controller.smooth_move(index, position, 10)
-        x_angle, y_angle, z_angle = self.antenna_imu.euler()
-        return pos, x_angle, y_angle, z_angle
-
-    def _measure_az(self, min_angle, max_angle):
-        with self.imu_lock:
-            self.motor_controller.set_position(self._azimuth_servo_idx, min_angle)
-            time.sleep(0.3)
-            a1 = self.antenna_imu.heading().azimuth
-            time.sleep(1)
-            self.motor_controller.set_position(self._azimuth_servo_idx, max_angle)
-            time.sleep(0.3)
-            a2 = self.antenna_imu.heading().azimuth
-            time.sleep(1)
-            return a1, a2
-
-    def test_az_axis(self):
-        # measure servo pwm parameters
-        self.current_azimuth = 90
-        time.sleep(1)
-        self.get_heading()
-        self.current_azimuth = 80
-        time.sleep(2)
-        self.get_heading()
-        a1 = self._heading.azimuth
-        self.current_azimuth = 100
-        time.sleep(2)
-        self.get_heading()
-        a2 = self._heading.azimuth
-
-        # should be 20 degrees. what did we get
-        observed_angle = abs(a1) + a2
-        angle_factor = observed_angle / 20.0
-        self.motor_controller._set_degrees(1, self.motor_controller.degrees(1) * angle_factor)
-        print("Observed angle: {} factor: {}".format(observed_angle, angle_factor))
-
-    def test_el_axis(self):
-        # measure servo pwm parameters
-        self.current_azimuth = 90.0
-        time.sleep(1)
-        self.motor_controller.set_position(0, 90)
-        time.sleep(1)
-        self.get_heading()
-        self.motor_controller.set_position(0, 70)
-        time.sleep(2)
-        a1 = self._heading.elevation
-        self.motor_controller.set_position(0, 110)
-        time.sleep(2)
-        self.get_heading()
-        a2 = self._heading.elevation
-
-        # should be 20 degrees. what did we get
-        observed_angle = a1 - a2
-        angle_factor = observed_angle / 4.0
-        self.motor_controller._set_degrees(0, self.motor_controller.degrees(0) * angle_factor)
-        print("Observed angle: {} factor: {}".format(observed_angle, angle_factor))
-
-    def auto_zero_az(self):
-        # automatically find azimuth offset
-        self.motor_controller.set_position(self._azimuth_servo_idx, 90)
-        self.motor_controller.set_position(self._elevation_servo_idx, 90)
-        time.sleep(1)
-        a1 = 60
-        a2 = 120
-        p_center = 100
-        while abs(p_center) > 0.1:
-            p1, p2 = self._measure_az(a1, a2)
-            p_center = (p1 + p2) / 2
-            print("a1: {},{} a2: {},{} a-center: {}".format(a1, p1, a2, p2, p_center))
-            if p_center > 0:
-                a2 = a2 - abs(p_center)
-            else:
-                a1 = a1 + abs(p_center)
-
-        min_y = 100
-        min_angle = None
-        cur_angle = avg_angle = (a1 + a2) / 2 - 1.5
-        while cur_angle < avg_angle + 1.5:
-            self.motor_controller.set_position(self._azimuth_servo_idx, cur_angle)
-            time.sleep(0.2)
-            cur_y = abs(self.antenna_imu.heading().azimuth)
-            if cur_y < min_y:
-                min_y = cur_y
-                min_angle = cur_angle
-            cur_angle += 0.1
-
-        time.sleep(1)
-        a_center = min_angle
-        self.motor_controller.set_position(self._azimuth_servo_idx, a_center)
-        print("a-center: {}".format(a_center))
-        self.get_heading()
-        self._calibrated_azimuth_offset = a_center - 90.0
-
-    def auto_calibration(self):
-        # read from BNO055 sensor, move antenna
-        # soft home, etc
-        self.motor_controller.set_position(self._azimuth_servo_idx, 90)
-        self.motor_controller.set_position(self._elevation_servo_idx, 90)
-        time.sleep(1)
-
-        self.motor_controller.set_position(self._elevation_servo_idx, 180)
-        time.sleep(1)
-        self.motor_controller.set_position(self._elevation_servo_idx, 0)
-        time.sleep(1)
-        self.motor_controller.set_position(self._elevation_servo_idx, 180)
-        time.sleep(1)
-        self.motor_controller.set_position(self._elevation_servo_idx, 0)
-        time.sleep(1)
-
-        self.motor_controller.set_position(self._azimuth_servo_idx, 180)
-        time.sleep(1)
-        self.motor_controller.set_position(self._azimuth_servo_idx, 0)
-        time.sleep(1)
-        self.motor_controller.set_position(self._azimuth_servo_idx, 180)
-        time.sleep(1)
-        self.motor_controller.set_position(self._azimuth_servo_idx, 0)
-        time.sleep(1)
-
-        self.motor_controller.set_position(self._azimuth_servo_idx, 90)
-        self.motor_controller.set_position(self._elevation_servo_idx, 90)
-        time.sleep(1)
-
-        self.motor_controller.set_position(self._elevation_servo_idx, 0)
-        self.get_heading()
-        x1 = self._heading.elevation
-        time.sleep(1)
-        self.motor_controller.set_position(self._elevation_servo_idx, 180)
-        self.get_heading()
-        x2 = self._heading.elevation
-        time.sleep(1)
-        self.motor_controller.set_position(self._azimuth_servo_idx, 0)
-        self.get_heading()
-        y1 = self._heading.azimuth
-        time.sleep(1)
-        self.motor_controller.set_position(self._azimuth_servo_idx, 180)
-        self.get_heading()
-        y2 = self._heading.azimuth
-
-        return "[{}] - [{}] [{}] - [{}]".format(x1, x2, y1, y2)
+    def set_motor_position(self, desired_heading: float):
+        self._current_motor_position = desired_heading
+        self.motor.set_position(self.motor_idx, desired_heading)
 
 
-class AntKontrol:
-    """Controller for Nyansat setup: integrated servo controls, IMU usage
-
-    Default components:
-    - BNO055 Absolute orientation sensor
-    - 16-channel pwm breakout servo controller
+class AntennaController:
+    """
+    Control the antenna motion device of the antenny.
     """
 
-    def __init__(self):
-        self.cfg = ConfigRepository()
-        self._gps = BasicGPSController()
-        self.imu = Bno055ImuController(
-            machine.I2C(
-                1,
-                scl=machine.Pin(self.cfg.get("i2c_bno_scl"), Pin.OUT, Pin.PULL_DOWN),
-                sda=machine.Pin(self.cfg.get("i2c_bno_sda"), Pin.OUT, Pin.PULL_DOWN),
+    def __init__(
+            self,
+            azimuth: AxisController,
+            elevation: AxisController,
+    ):
+        self.azimuth = azimuth
+        self.elevation = elevation
+
+    def set_azimuth(self, desired_heading: float):
+        LOG.info("Setting azimuth to '{}'".format(desired_heading))
+        self.azimuth.set_motor_position(desired_heading)
+        return self.get_azimuth()
+
+    def get_azimuth(self):
+        return self.azimuth.get_motor_position()
+
+    def set_elevation(self, desired_heading: float):
+        LOG.info("Setting elevation to '{}'".format(desired_heading))
+        self.elevation.set_motor_position(desired_heading)
+        return self.get_elevation()
+
+    def get_elevation(self):
+        return self.elevation.get_motor_position()
+
+    def motor_test(self):
+        raise NotImplementedError
+
+
+class AntennyAPI:
+    """
+    Interface for interacting with the antenny board.
+    """
+
+    def __init__(
+            self,
+            antenna: AntennaController,
+            imu: ImuController,
+            config: ConfigRepository,
+            screen,  # type: Optional[ScreenController]
+            telemetry,  # type: Optional[TelemetrySender]
+    ):
+        self.antenna = antenna
+        self.imu = imu
+        self.config = config
+        self._screen = screen
+        self._telemetry = telemetry
+
+    def start(self):
+        if self._screen is not None:
+            self._screen.start()
+        if self._telemetry is not None:
+            self._telemetry.start()
+
+    def stop(self):
+        if self._screen is not None:
+            self._screen.stop()
+        if self._telemetry is not None:
+            self._telemetry.stop()
+
+    def imu_is_calibrated(self) -> bool:
+        LOG.info("Checking the IMU calibration status")
+        return self.imu.get_calibration_status().is_calibrated()
+
+    def save_imu__calibration_profile(self, path: str):
+        LOG.info("Saving IMU calibration from '{}'".format(path))
+
+    def load_imu_calibration_profile(self, path: str):
+        LOG.info("Loading IMU calibration from '{}'".format(path))
+
+    def set_config_value(self, config_name: str, config_value):
+        LOG.info("Setting config entry '{}' to value '{}'".format(config_name, config_value))
+        self.config.set(config_name, config_value)
+
+    def get_config_value(self, config_name: str):
+        return self.config.get(config_name)
+
+    def print_to_display(self, data):
+        LOG.debug("Outputting '{}' to the screen.".format(data))
+        if self._screen is None:
+            raise ValueError("Please enable the 'use_screen' option in the config")
+        self._screen.display(data)
+
+    def update_telemetry(self, data: dict):
+        LOG.debug("Outputting '{}' to telemetry.".format(data))
+        if self._telemetry is None:
+            raise ValueError("Please enable the 'use_telemetry' option in the config")
+        self._telemetry.update(data)
+
+
+def mock_antenna_api_factory(
+        use_screen: bool,
+        use_telemetry: bool,
+):
+    """
+    Create a new MOCK AntennyAPI object. Useful for local debugging in a desktop python environment.
+    """
+    config = ConfigRepository()
+    imu = MockImuController()
+    motor = MockMotorController()
+    antenna_controller = AntennaController(
+            AxisController(
+                    1,
+                    imu,
+                    motor,
             ),
-            sign=(0, 0, 0)
+            AxisController(
+                    0,
+                    imu,
+                    motor,
+            ),
+    )
+    if use_screen and not config.get("use_screen"):
+        config.set("use_screen", True)
+    screen = None
+    if config.get("use_screen"):
+        screen = MockScreenController(
+                Queue()
         )
-        self._sender = UDPTelemetrySender(
-                self._gps,
-                self.imu
+    if use_telemetry and not config.get("use_telemetry"):
+        config.set("use_telemetry", True)
+    telemetry_sender = None
+    if config.get("use_telemetry"):
+        telemetry_sender = MockTelemetrySender('127.0.0.1', 1337)
+    api = AntennyAPI(
+            antenna_controller,
+            imu,
+            config,
+            screen,
+            telemetry_sender,
+    )
+    api.start()
+    return api
+
+
+def esp32_antenna_api_factory():
+    """
+    Create a new AntennyAPI object.
+    """
+    import machine
+    from machine import Pin
+
+    from imu.imu_bno055 import Bno055ImuController
+    from motor.motor_pca9685 import Pca9685Controller
+
+    config = ConfigRepository()
+
+    if config.get("use_imu"):
+        imu = Bno055ImuController(
+                machine.I2C(
+                        1,
+                        scl=machine.Pin(config.get("i2c_bno_scl"), Pin.OUT, Pin.PULL_DOWN),
+                        sda=machine.Pin(config.get("i2c_bno_sda"), Pin.OUT, Pin.PULL_DOWN),
+                ),
+                sign=(0, 0, 0)
         )
-        self.antenna = AntennaController(
-                self.imu,
-                Pca9685Controller(
-                    machine.I2C(
-                        0,
-                        scl=Pin(self.cfg.get("i2c_servo_scl"), Pin.OUT, Pin.PULL_DOWN),
-                        sda=Pin(self.cfg.get("i2c_servo_sda"), Pin.OUT, Pin.PULL_DOWN),
-                    ),
-                    min_us=500,
-                    max_us=2500,
-                    degrees=180
-                )
+    else:
+        LOG.warning("IMU disabled, please set use_imu=True in the settings and run `antkontrol`")
+        imu = MockImuController()
+    motor = Pca9685Controller(
+            machine.I2C(
+                    0,
+                    scl=Pin(config.get("i2c_servo_scl"), Pin.OUT, Pin.PULL_DOWN),
+                    sda=Pin(config.get("i2c_servo_sda"), Pin.OUT, Pin.PULL_DOWN),
+            ),
+            min_us=500,
+            max_us=2500,
+            degrees=180
+    )
+    antenna_controller = AntennaController(
+            AxisController(
+                    1,
+                    imu,
+                    motor,
+            ),
+            AxisController(
+                    0,
+                    imu,
+                    motor,
+            ),
+    )
+    screen = None
+    if config.get("use_screen"):
+        screen = MockScreenController(
+                Queue()
         )
-
-        try:
-            self._i2c_screen = machine.I2C(
-                    -1,
-                    scl=machine.Pin(self.cfg.get("i2c_screen_scl"), Pin.OUT, Pin.PULL_DOWN),
-                    sda=machine.Pin(self.cfg.get("i2c_screen_sda"), Pin.OUT, Pin.PULL_DOWN),
-            )  # on [60] ssd1306
-            self._screen = Ssd1306ScreenController(self._i2c_screen, width=128, height=32)
-            self._screen_thread = _thread.start_new_thread(self.display_status, ())
-        except:
-            self._screen = None
-            self._screen_thread = None
-
-        self._sender.start()
-        self._gps_thread = _thread.start_new_thread(self._gps.run, ())
-
-    def display_status(self):
-        while self._screen is not None:
-            try:
-                self._screen.display(self.imu.euler())
-                pass
-            except Exception as e:
-                logging.info("Status display error: {}".format(str(e)))
-            time.sleep(0.2)
-
-    def close(self):
-        self.antenna.close()
+    else:
+        LOG.warning(
+                "Screen disabled, please set use_screen=True in the settings and run `antkontrol`"
+        )
+    telemetry_sender = None
+    if config.get("use_telemetry"):
+        telemetry_sender = MockTelemetrySender('127.0.0.1', 1337)
+    else:
+        LOG.warning(
+            "Telemetry disabled, please set use_screen=True in the settings and run `antkontrol`")
+    api = AntennyAPI(
+            antenna_controller,
+            imu,
+            config,
+            screen,
+            telemetry_sender,
+    )
+    api.start()
+    return api

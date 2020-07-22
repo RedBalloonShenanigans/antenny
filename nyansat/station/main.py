@@ -19,4 +19,4 @@ def initialize_i2c_bus():
 
 initialize_i2c_bus()
 # leave this global so the entire system has access to the AntKontrol instance
-a = antenny.AntKontrol()
+api = antenny.esp32_antenna_api_factory()

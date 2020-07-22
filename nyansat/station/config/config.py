@@ -21,6 +21,8 @@ class ConfigRepository:
         # Disable optional hardware features
         "use_gps": False,
         "use_screen": False,
+        "use_telemetry": False,
+        "use_imu": False,
         # Elevation/azimuth servo defaults
         "elevation_servo_index": 0,
         "azimuth_servo_index": 1,
