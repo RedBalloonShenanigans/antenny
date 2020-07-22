@@ -286,16 +286,37 @@ class AntennaController:
         self.get_heading()
         self._calibrated_azimuth_offset = a_center - 90.0
 
-    def imu_motor_calibration(self):
-        # Offset calculation & calibration at neutral
-        self.motor_controller.set_position(self._azimuth_servo_idx, 90)
-        
+    def pwm_calibration(self, error=0.1):
+        # Azimuth calibration first
+        # Move motor to neutral
+        self.motor_controller.set_position(self._azimuth_servo_idx, degrees=90)
+        time.sleep(1)
+        base_duty = self.motor_controller.duty(self._azimuth_servo_idx)
+        base_heading, base_roll, base_pitch = self.antenna_imu.euler()
 
-        # Offset calculation & calibration at extremes
+        # Move "1" degree
+        self.motor_controller.set_position(self._azimuth_servo_idx, degrees=91)
+        time.sleep(1)
+        end_duty = self.motor_controller.duty(self._azimuth_servo_idx)
+        end_heading, end_roll, end_pitch = self.antenna_imu.euler()
 
+        diff_heading = end_heading - base_heading
 
-        # Unit calibration
-        return report
+        while abs(diff_heading - 1) > error:
+            if diff_heading > 0:
+                end_duty = end_duty - 1
+            else:
+                end_duty = end_duty + 1
+            self.motor_controller.set_position(self._azimuth_servo_idx, duty=end_duty)
+            time.sleep(1)
+            end_heading, end_roll, end_pitch = self.antenna_imu.euler()
+            diff_heading = end_heading - base_heading
+
+        calibrated_az_duty = abs(base_duty - end_duty)
+
+        # TODO Same procedure with elevation
+        # TODO Save calibrated data to some place and actually make use of it
+        return calibrated_az_duty
 
     def auto_calibration(self):
         # read from BNO055 sensor, move antenna
