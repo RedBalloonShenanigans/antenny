@@ -21,14 +21,14 @@ Once your host is set up, you can install NyanSat on your ESP32. Before anything
 To enter NyanShell, type the following in a terminal window:
 
 ```
-python3 -m nyanshell.host
+python3 -m nyansat.host
 ```
 
 ## Features
 
 ### Easy Pin Setup and Profile Management
 
-If your pin configuration is different from the default values, you can easily change to them by running the `setup <profile_name>` command. This command creates a new profile with your given name and switches to it. 
+If your pin configuration is different from the default values, you can easily change to them by running the `setup <profile_name>` command. This command creates a new profile with your given name and switches to it.
 
 If you have multiple pin configurations on the ESP32, you can switch between them using the `switch_config <profile_name>` command. This command switches to your chosen profile, leaving the original one intact, but not in use.
 

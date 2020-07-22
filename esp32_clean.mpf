@@ -1,0 +1,44 @@
+
+rm /config/__init__.py
+rm /config/config.py
+rm config
+
+rm __init__.py
+rm main.py
+put empty_file.py boot.py
+put empty_file.py main.py
+rm antenny.py
+rm main.py
+rm wifi_config.json
+rm webrepl_cfg.py
+
+rm bno055.py
+rm bno055_base.py
+rm pca9685.py
+rm ssd1306.py
+rm micropyGPS.py
+
+rm /gps/__init__.py
+rm /gps/gps.py
+rm /gps/gps_basic.py
+rm gps
+
+rm /imu/__init__.py
+rm /imu/imu.py
+rm /imu/imu_bno055.py
+rm imu
+
+rm /motor/__init__.py
+rm /motor/motor.py
+rm /motor/motor_pca9685.py
+rm motor
+
+rm /motor/__init__.py
+rm /screen/screen.py
+rm /screen/screen_ssd1306.py
+rm screen
+
+put nyansat/station/sender/__init__.py /sender/__init__.py
+put nyansat/station/sender/sender.py /sender/sender.py
+put nyansat/station/sender/sender_udp.py /sender/sender_udp.py
+rm sender

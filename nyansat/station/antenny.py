@@ -403,19 +403,23 @@ class AntKontrol:
                 )
         )
 
-        self._i2c_screen = machine.I2C(
-                -1,
-                scl=machine.Pin(self.cfg.get("i2c_screen_scl"), Pin.OUT, Pin.PULL_DOWN),
-                sda=machine.Pin(self.cfg.get("i2c_screen_sda"), Pin.OUT, Pin.PULL_DOWN),
-        )  # on [60] ssd1306
-        self._screen = Ssd1306ScreenController(self._i2c_screen, width=128, height=32)
+        try:
+            self._i2c_screen = machine.I2C(
+                    -1,
+                    scl=machine.Pin(self.cfg.get("i2c_screen_scl"), Pin.OUT, Pin.PULL_DOWN),
+                    sda=machine.Pin(self.cfg.get("i2c_screen_sda"), Pin.OUT, Pin.PULL_DOWN),
+            )  # on [60] ssd1306
+            self._screen = Ssd1306ScreenController(self._i2c_screen, width=128, height=32)
+            self._screen_thread = _thread.start_new_thread(self.display_status, ())
+        except:
+            self._screen = None
+            self._screen_thread = None
 
         self._sender.start()
-        self._screen_thread = _thread.start_new_thread(self.display_status, ())
         self._gps_thread = _thread.start_new_thread(self._gps.run, ())
 
     def display_status(self):
-        while True:
+        while self._screen is not None:
             try:
                 self._screen.display(self.imu.euler())
                 pass
