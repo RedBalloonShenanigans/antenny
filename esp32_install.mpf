@@ -3,7 +3,6 @@ md config
 put nyansat/station/config/__init__.py /config/__init__.py
 put nyansat/station/config/config.py /config/config.py
 
-put nyansat/station/initialize_i2c_bus.py initialize_i2c_bus.py
 put nyansat/station/boot.py boot.py
 put nyansat/station/antenny.py antenny.py
 put nyansat/station/main.py main.py
