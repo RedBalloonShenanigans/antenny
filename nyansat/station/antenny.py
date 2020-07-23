@@ -365,6 +365,7 @@ class AntKontrol:
                         scl=Pin(self.cfg.get("i2c_servo_scl"), Pin.OUT, Pin.PULL_DOWN),
                         sda=Pin(self.cfg.get("i2c_servo_sda"), Pin.OUT, Pin.PULL_DOWN),
                     ),
+                    address=self.cfg.get("i2c_servo_address"),
                     min_us=500,
                     max_us=2500,
                     degrees=180
