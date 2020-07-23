@@ -289,30 +289,43 @@ class AntennaController:
     def pwm_calibration(self, error=0.1):
         # Azimuth calibration first
         # Move motor to neutral
-        self.motor_controller.set_position(self._azimuth_servo_idx, degrees=90)
-        time.sleep(1)
+        base_degree = 90
+        self.motor_controller.set_position(self._azimuth_servo_idx, degrees=base_degree)
+        time.sleep(2)
         base_duty = self.motor_controller.duty(self._azimuth_servo_idx)
         base_heading, base_roll, base_pitch = self.antenna_imu.euler()
 
+        # This is a guard against
+        if base_heading < 1.0:
+            base_degree = 100
+            self.motor_controller.set_position(self._azimuth_servo_idx, degrees=base_degree)
+            time.sleep(2)
+            base_duty = self.motor_controller.duty(self._azimuth_servo_idx)
+            base_heading, base_roll, base_pitch = self.antenna_imu.euler()
+
         # Move "1" degree
-        self.motor_controller.set_position(self._azimuth_servo_idx, degrees=91)
-        time.sleep(1)
+        self.motor_controller.set_position(self._azimuth_servo_idx, degrees=base_degree+1)
+        time.sleep(2)
         end_duty = self.motor_controller.duty(self._azimuth_servo_idx)
         end_heading, end_roll, end_pitch = self.antenna_imu.euler()
 
         diff_heading = end_heading - base_heading
+        print("{} {} {}".format(diff_heading, end_heading, base_heading))
 
         while abs(diff_heading - 1) > error:
-            if diff_heading > 0:
-                end_duty = end_duty - 1
-            else:
+            if (diff_heading - 1) > 0:
                 end_duty = end_duty + 1
+            else:
+                end_duty = end_duty - 1
             self.motor_controller.set_position(self._azimuth_servo_idx, duty=end_duty)
-            time.sleep(1)
+            time.sleep(2)
             end_heading, end_roll, end_pitch = self.antenna_imu.euler()
             diff_heading = end_heading - base_heading
+            print("{} {} {}".format(diff_heading, end_heading, base_heading))
 
         calibrated_az_duty = abs(base_duty - end_duty)
+
+        print("Calibrated Azimuth Duty Cycle: {}".format(calibrated_az_duty))
 
         # TODO Same procedure with elevation
         # TODO Save calibrated data to some place and actually make use of it
