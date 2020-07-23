@@ -66,6 +66,7 @@ class NyanShell(mpfshell.MpFileShell):
                 "gps_uart_rx": ("GPS UART RX pin#: ", int),
                 "i2c_servo_scl": ("Servo SCL pin#: ", int),
                 "i2c_servo_sda": ("Servo SDA pin#: ", int),
+                "i2c_servo_address": ("Servo address (in decimal): ", int),
                 "i2c_bno_scl": ("BNO055 SCL pin#: ", int),
                 "i2c_bno_sda": ("BNO055 SDA pin#: ", int),
                 "i2c_screen_scl": ("Screen SCL pin#: ", int),
@@ -247,9 +248,9 @@ class NyanShell(mpfshell.MpFileShell):
                     try:
                         new_val = typ(input(prompt_text))
                     except ValueError:
-                        self._error("Invalid type, setting to default.\nUse \"set\" to " \
-                                    "change the parameter")
                         new_val = self.fe.config_get_default(k)
+                        self._error("Invalid type, setting to default value \"{}\".\nUse \"set\" to " \
+                                    "change the parameter".format(new_val))
 
                     self.fe.config_set(k, new_val)
 

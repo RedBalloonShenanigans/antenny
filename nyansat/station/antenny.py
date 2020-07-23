@@ -295,8 +295,6 @@ class AntennaController:
         base_duty = self.motor_controller.duty(self._azimuth_servo_idx)
         base_heading, base_roll, base_pitch = self.antenna_imu.euler()
 
-        # This is a guard against 0 transitions; probably can be compensated for
-        # TODO Actually, let's compensate for the 0 transitions
         if base_heading < 1.0:
             base_degree = 100
             self.motor_controller.set_position(self._azimuth_servo_idx, degrees=base_degree)
