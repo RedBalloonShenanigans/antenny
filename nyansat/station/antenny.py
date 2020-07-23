@@ -295,7 +295,8 @@ class AntennaController:
         base_duty = self.motor_controller.duty(self._azimuth_servo_idx)
         base_heading, base_roll, base_pitch = self.antenna_imu.euler()
 
-        # This is a guard against
+        # This is a guard against 0 transitions; probably can be compensated for
+        # TODO Actually, let's compensate for the 0 transitions
         if base_heading < 1.0:
             base_degree = 100
             self.motor_controller.set_position(self._azimuth_servo_idx, degrees=base_degree)
@@ -410,6 +411,7 @@ class AntKontrol:
                         scl=Pin(self.cfg.get("i2c_servo_scl"), Pin.OUT, Pin.PULL_DOWN),
                         sda=Pin(self.cfg.get("i2c_servo_sda"), Pin.OUT, Pin.PULL_DOWN),
                     ),
+                    address=self.cfg.get("i2c_servo_address"),
                     min_us=500,
                     max_us=2500,
                     degrees=180
