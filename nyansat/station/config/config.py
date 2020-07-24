@@ -37,8 +37,9 @@ class ConfigRepository:
         "gps_uart_rx": 27,
         "i2c_servo_scl": 21,
         "i2c_servo_sda": 22,
-        "i2c_bno_scl": 23,
-        "i2c_bno_sda": 18,
+        "i2c_servo_address": 72,
+        "i2c_bno_scl": 18,
+        "i2c_bno_sda": 19,
         "i2c_screen_scl": 25,
         "i2c_screen_sda": 26,
         # IMU calibration - cf. section 3.6.4 "Sensor calibration data" in

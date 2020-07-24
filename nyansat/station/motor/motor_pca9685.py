@@ -151,3 +151,6 @@ class Pca9685Controller(MotorController):
         self._pin(in1, True)
         self._pin(in2, True)
         self.pca9685.duty(pwm, 0)
+
+    def duty(self, index):
+        return self.pca9685.duty(index)

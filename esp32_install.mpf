@@ -16,6 +16,7 @@ put lib/BNO055/bno055_base.py bno055_base.py
 put lib/PCA9685/pca9685.py pca9685.py
 put lib/micropython/drivers/display/ssd1306.py ssd1306.py
 put lib/micropygps/micropyGPS.py micropyGPS.py
+put lib/simple-pid/simple_pid/PID.py PI.py
 
 exec import sys
 exec sys.exit()
