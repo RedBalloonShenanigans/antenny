@@ -36,6 +36,20 @@ put nyansat/station/imu/imu.py /imu/imu.py
 put nyansat/station/imu/imu_bno055.py /imu/imu_bno055.py
 put nyansat/station/imu/mock_imu.py /imu/mock_imu.py
 
+md multi_client
+put nyansat/station/multi_client/__init__.py /multi_client/__init__.py
+put nyansat/station/multi_client/follower.py /multi_client/follower.py
+put nyansat/station/multi_client/leader.py /multi_client/leader.py
+put nyansat/station/multi_client/common.py /multi_client/common.py
+
+md multi_client/protocol
+put nyansat/station/multi_client/protocol/__init__.py /multi_client/protocol/__init__.py
+put nyansat/station/multi_client/protocol/constants.py /multi_client/protocol/constants.py
+put nyansat/station/multi_client/protocol/heartbeat.py /multi_client/protocol/heartbeat.py
+put nyansat/station/multi_client/protocol/move.py /multi_client/protocol/move.py
+put nyansat/station/multi_client/protocol/packet.py /multi_client/protocol/packet.py
+put nyansat/station/multi_client/protocol/payload.py /multi_client/protocol/payload.py
+
 md motor
 put nyansat/station/motor/__init__.py /motor/__init__.py
 put nyansat/station/motor/motor.py /motor/motor.py

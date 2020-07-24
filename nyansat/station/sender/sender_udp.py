@@ -2,9 +2,11 @@ import _thread
 import logging
 import socket
 import time
-import utime
-
-import ujson
+try:
+    import utime
+    import ujson
+except ImportError:
+    pass
 
 from gps.gps import GPSController
 from imu.imu import ImuController

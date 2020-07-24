@@ -137,8 +137,8 @@ class AntennyAPI:
 
 
 def mock_antenna_api_factory(
-        use_screen: bool,
-        use_telemetry: bool,
+        use_screen: bool = False,
+        use_telemetry: bool = False,
 ):
     """
     Create a new MOCK AntennyAPI object. Useful for local debugging in a desktop python environment.
@@ -168,7 +168,8 @@ def mock_antenna_api_factory(
     if use_telemetry and not config.get("use_telemetry"):
         config.set("use_telemetry", True)
     telemetry_sender = None
-    if config.get("use_telemetry"):
+    # if config.get("use_telemetry"):
+    if use_telemetry:
         telemetry_sender = MockTelemetrySender('127.0.0.1', 1337)
     api = AntennyAPI(
             antenna_controller,

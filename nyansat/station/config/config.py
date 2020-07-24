@@ -2,7 +2,10 @@
 
 # import json as ujson # Uncomment this line for local testing
 
-import ujson
+try:
+    import ujson as json
+except ImportError:
+    import json
 import os
 
 
@@ -23,6 +26,7 @@ class ConfigRepository:
         "use_screen": False,
         "use_telemetry": False,
         "use_imu": False,
+        "use_webrepl": False,
         # Elevation/azimuth servo defaults
         "elevation_servo_index": 0,
         "azimuth_servo_index": 1,
@@ -71,7 +75,7 @@ class ConfigRepository:
     def _save(self) -> None:
         """Dump in-memory configuration values to a file on the board."""
         with open(self._config_filename, "w") as f:
-            ujson.dump(self._config, f)
+            json.dump(self._config, f)
 
     def reload(self) -> None:
         """Reload the in-memory configuration key-value store from the config
@@ -86,13 +90,13 @@ class ConfigRepository:
         try:
             if self._config_filename:
                 with open(self._config_filename, "r") as f:
-                    self._config = ujson.load(f)
+                    self._config = json.load(f)
             else:
                 while self._config_filename != last_loaded:
                     # Set config filename to the default value
                     self._config_filename = last_loaded
                     with open(self._config_filename, "r") as f:
-                        self._config = ujson.load(f)
+                        self._config = json.load(f)
                     last_loaded = self._config.get("last_loaded",
                                                    self._config_filename)
         except OSError:
@@ -150,14 +154,14 @@ class ConfigRepository:
         if self._config:
             print("Config values:")
             for key, val in self._config.items():
-                print("%s: %s" % (key, ujson.dumps(val)))
+                print("%s: %s" % (key, json.dumps(val)))
             print()
         else:
             print("No non-default configuration values set!")
 
         print("Default values:")
         for key, val in ConfigRepository.DEFAULT_CONFIG.items():
-            print("%s: %s" % (key, ujson.dumps(val)))
+            print("%s: %s" % (key, json.dumps(val)))
         print()
 
     def clear(self, backup: bool = True) -> None:

@@ -1,4 +1,5 @@
 import time
+import ntptime
 
 import machine
 import network
@@ -56,6 +57,13 @@ class Connection(object):
         if self.sta_if.isconnected():
             self.mode = STA_MODE
             print('network config:', self.sta_if.ifconfig())
+            for _ in range(self.num_retries):
+                try:
+                    ntptime.settime()
+                    break
+                except:
+                    pass
+                time.sleep(3)
 
         # Failure, starting access point
         else:
@@ -97,6 +105,5 @@ if __name__ == '__main__':
     conn = Connection()
     conn.ip_display()
 
-    import webrepl
-
-    webrepl.start()
+    # import webrepl
+    # webrepl.start()

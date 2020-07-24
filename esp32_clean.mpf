@@ -28,6 +28,20 @@ rm /imu/imu.py
 rm /imu/imu_bno055.py
 rm imu
 
+rm /multi_client/protocol/__init__.py
+rm /multi_client/protocol/constants.py
+rm /multi_client/protocol/heartbeat.py
+rm /multi_client/protocol/move.py
+rm /multi_client/protocol/packet.py
+rm /multi_client/protocol/payload.py
+rm multi_client/protocol
+
+rm /multi_client/__init__.py
+rm /multi_client/common.py
+rm /multi_client/follower.py
+rm /multi_client/leader.py
+rm multi_client
+
 rm /motor/__init__.py
 rm /motor/motor.py
 rm /motor/motor_pca9685.py

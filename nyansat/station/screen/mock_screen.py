@@ -14,8 +14,8 @@ class MockScreenController(ScreenController, Thread):
             self,
             display_queue: Queue,
     ):
-        ScreenController.__init__(self, display_queue)
         Thread.__init__(self)
+        self.display_queue = display_queue
 
     def run(self):
         previously_displayed = None
