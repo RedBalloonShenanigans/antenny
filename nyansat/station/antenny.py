@@ -194,24 +194,35 @@ def esp32_antenna_api_factory():
 
     config = ConfigRepository()
 
+    i2c_bno_scl = config.get("i2c_bno_scl")
+    i2c_bno_sda = config.get("i2c_bno_sda")
+    i2c_servo_scl = config.get("i2c_servo_scl")
+    i2c_servo_sda = config.get("i2c_servo_sda")
+    i2c_ch0 = machine.I2C(
+        0,
+        scl=machine.Pin(i2c_bno_scl, Pin.OUT, Pin.PULL_DOWN),
+        sda=machine.Pin(i2c_bno_sda, Pin.OUT, Pin.PULL_DOWN),
+    )
+
+    if (i2c_bno_scl == i2c_servo_scl) && (i2c_bno_sda == i2c_servo_sda):
+        i2c_ch1 = i2c_ch0
+    else:
+        i2c_ch1 = machine.I2C(
+            1,
+            scl=machine.Pin(i2c_bno_scl, Pin.OUT, Pin.PULL_DOWN),
+            sda=machine.Pin(i2c_bno_sda, Pin.OUT, Pin.PULL_DOWN),
+        )
+
     if config.get("use_imu"):
         imu = Bno055ImuController(
-                machine.I2C(
-                        1,
-                        scl=machine.Pin(config.get("i2c_bno_scl"), Pin.OUT, Pin.PULL_DOWN),
-                        sda=machine.Pin(config.get("i2c_bno_sda"), Pin.OUT, Pin.PULL_DOWN),
-                ),
+                i2c_ch0,
                 sign=(0, 0, 0)
         )
     else:
         LOG.warning("IMU disabled, please set use_imu=True in the settings and run `antkontrol`")
         imu = MockImuController()
     motor = Pca9685Controller(
-            machine.I2C(
-                    0,
-                    scl=Pin(config.get("i2c_servo_scl"), Pin.OUT, Pin.PULL_DOWN),
-                    sda=Pin(config.get("i2c_servo_sda"), Pin.OUT, Pin.PULL_DOWN),
-            ),
+            i2c_ch1,
             min_us=500,
             max_us=2500,
             degrees=180
