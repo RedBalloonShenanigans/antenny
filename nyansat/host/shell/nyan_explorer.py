@@ -91,7 +91,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         self.exec_("import machine")
         self.exec_("from machine import Pin")
         self.exec_(
-                "i2c = machine.I2C(-1, sda=Pin({}, Pin.OUT, Pin.PULL_DOWN), scl=({}, Pin.OUT, Pin.PULL_DOWN))".format(
+            "i2c = machine.I2C(-1, sda=Pin({}, Pin.OUT, Pin.PULL_DOWN), scl=Pin({}, Pin.OUT, Pin.PULL_DOWN))".format(
                     sda,
                     scl
                 )

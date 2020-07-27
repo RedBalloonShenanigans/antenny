@@ -368,16 +368,17 @@ class NyanShell(mpfshell.MpFileShell):
 
                 try:
                     sda = int(input("SDA Pin#: "))
-                    scl = int(input("SDA Pin#: "))
-                    addresses = self.fe.i2c_scan(sda, scl)
-                    if addresses:
-                        print(colorama.Fore.GREEN + "Found the following device addresses: {}".format(addresses))
-                    else:
-                        print(colorama.Fore.RED + "Did not find any devices")
-                    return
+                    scl = int(input("SCL Pin#: "))
                 except ValueError:
                     self._error("Invalid type for pin number. Try again using only decimal numbers")
                     return
+                addresses = self.fe.i2c_scan(sda, scl)
+                addresses_list = addresses.strip('] [').strip(', ')
+                if not addresses_list:
+                    print(colorama.Fore.RED + "Did not find any devices")
+                else:
+                    print(colorama.Fore.GREEN + "Found the following device addresses: {}".format(addresses_list))
+                return
         except PyboardError:
             self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
 
