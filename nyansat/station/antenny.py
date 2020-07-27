@@ -147,23 +147,23 @@ def mock_antenna_api_factory(
     imu = MockImuController()
     motor = MockMotorController()
     antenna_controller = AntennaController(
-            AxisController(
-                    1,
-                    imu,
-                    motor,
-            ),
-            AxisController(
-                    0,
-                    imu,
-                    motor,
-            ),
+        AxisController(
+            1,
+            imu,
+            motor,
+        ),
+        AxisController(
+            0,
+            imu,
+            motor,
+        ),
     )
     if use_screen and not config.get("use_screen"):
         config.set("use_screen", True)
     screen = None
     if config.get("use_screen"):
         screen = MockScreenController(
-                Queue()
+            Queue()
         )
     if use_telemetry and not config.get("use_telemetry"):
         config.set("use_telemetry", True)
@@ -172,11 +172,11 @@ def mock_antenna_api_factory(
     if use_telemetry:
         telemetry_sender = MockTelemetrySender('127.0.0.1', 1337)
     api = AntennyAPI(
-            antenna_controller,
-            imu,
-            config,
-            screen,
-            telemetry_sender,
+        antenna_controller,
+        imu,
+        config,
+        screen,
+        telemetry_sender,
     )
     api.start()
     return api
@@ -214,38 +214,45 @@ def esp32_antenna_api_factory():
 
     if config.get("use_imu"):
         imu = Bno055ImuController(
-                i2c_ch0,
-                sign=(0, 0, 0)
+            i2c_ch0,
+            sign=(0, 0, 0)
         )
     else:
         LOG.warning("IMU disabled, please set use_imu=True in the settings and run `antkontrol`")
         imu = MockImuController()
-    motor = Pca9685Controller(
+    try:
+        motor = Pca9685Controller(
             i2c_ch1,
             min_us=500,
             max_us=2500,
             degrees=180
-    )
+        )
+    except OSError:
+        LOG.warning("Motor disabled, entering SAFE MODE OPERATION")
+        LOG.warning("Your device may be improperly configured. Use the `setup` command to reconfigure and run "
+                    "`antkontrol`")
+        motor = MockMotorController()
+
     antenna_controller = AntennaController(
-            AxisController(
-                    1,
-                    imu,
-                    motor,
-            ),
-            AxisController(
-                    0,
-                    imu,
-                    motor,
-            ),
+        AxisController(
+            1,
+            imu,
+            motor,
+        ),
+        AxisController(
+            0,
+            imu,
+            motor,
+        ),
     )
     screen = None
     if config.get("use_screen"):
         screen = MockScreenController(
-                Queue()
+            Queue()
         )
     else:
         LOG.warning(
-                "Screen disabled, please set use_screen=True in the settings and run `antkontrol`"
+            "Screen disabled, please set use_screen=True in the settings and run `antkontrol`"
         )
     telemetry_sender = None
     if config.get("use_telemetry"):
@@ -254,11 +261,11 @@ def esp32_antenna_api_factory():
         LOG.warning(
             "Telemetry disabled, please set use_screen=True in the settings and run `antkontrol`")
     api = AntennyAPI(
-            antenna_controller,
-            imu,
-            config,
-            screen,
-            telemetry_sender,
+        antenna_controller,
+        imu,
+        config,
+        screen,
+        telemetry_sender,
     )
     api.start()
     return api
