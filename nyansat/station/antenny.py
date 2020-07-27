@@ -203,8 +203,9 @@ def esp32_antenna_api_factory():
         scl=Pin(i2c_bno_scl, Pin.OUT, Pin.PULL_DOWN),
         sda=Pin(i2c_bno_sda, Pin.OUT, Pin.PULL_DOWN),
     )
-    if (i2c_bno_scl == i2c_servo_scl) & (i2c_bno_sda == i2c_servo_sda):
+    if (i2c_bno_scl == i2c_servo_scl) and (i2c_bno_sda == i2c_servo_sda):
         i2c_ch1 = i2c_ch0
+        LOG.info("I2C Channel 0 is same as Channel 1; using chained bus")
     else:
         i2c_ch1 = machine.I2C(
             1,
@@ -213,25 +214,52 @@ def esp32_antenna_api_factory():
         )
 
     if config.get("use_imu"):
-        imu = Bno055ImuController(
-            i2c_ch0,
-            sign=(0, 0, 0)
-        )
+        try:
+            imu = Bno055ImuController(
+                i2c_ch0,
+                address=config.get("i2c_bno_address"),
+                sign=(0, 0, 0)
+            )
+        except OSError:
+            address = i2c_ch0.scan()[0]
+            if (i2c_ch0 != i2c_ch1) and address is not None:
+                imu = Bno055ImuController(
+                    i2c_ch0,
+                    address=address,
+                    sign=(0, 0, 0)
+                )
+                LOG.info("Using auto address configuration for IMU")
+            else:
+                LOG.warning("Unable to initialize IMU, check configuration")
+                LOG.warning("NOTE: Auto address configuration is not supported in chained I2C mode")
+                imu = MockImuController()
     else:
         LOG.warning("IMU disabled, please set use_imu=True in the settings and run `antkontrol`")
         imu = MockImuController()
     try:
         motor = Pca9685Controller(
             i2c_ch1,
+            address=config.get("i2c_servo_address"),
             min_us=500,
             max_us=2500,
             degrees=180
         )
     except OSError:
-        LOG.warning("Motor disabled, entering SAFE MODE OPERATION")
-        LOG.warning("Your device may be improperly configured. Use the `setup` command to reconfigure and run "
-                    "`antkontrol`")
-        motor = MockMotorController()
+        address = i2c_ch1.scan()[0]
+        if (i2c_ch1 != i2c_ch0) and address is not None:
+            motor = Pca9685Controller(
+                i2c_ch1,
+                address=address,
+                min_us=500,
+                max_us=2500,
+                degrees=180
+            )
+            LOG.info("Using auto address configuration for motor driver")
+        else:
+            LOG.warning("Unable to initialize motor driver, entering SAFE MODE OPERATION")
+            LOG.warning("Your device may be improperly configured. Use the `setup` command to reconfigure and run "
+                        "`antkontrol`")
+            motor = MockMotorController()
 
     antenna_controller = AntennaController(
         AxisController(
