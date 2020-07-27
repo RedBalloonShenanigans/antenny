@@ -40,8 +40,10 @@ class ConfigRepository:
         "i2c_servo_address": 72,
         "i2c_bno_scl": 18,
         "i2c_bno_sda": 19,
+        "i2c_bno_address": 40,
         "i2c_screen_scl": 25,
         "i2c_screen_sda": 26,
+        "i2c_screen_address": 0,
         # IMU calibration - cf. section 3.6.4 "Sensor calibration data" in
         # Bosch BNO055 datasheet. Default values are all zero
         "acc_offset_x_lsb": 0,

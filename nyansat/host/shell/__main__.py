@@ -64,13 +64,18 @@ class NyanShell(mpfshell.MpFileShell):
         self.prompts = {
                 "gps_uart_tx": ("GPS UART TX pin#: ", int),
                 "gps_uart_rx": ("GPS UART RX pin#: ", int),
+                "use_gps": ("Use GPS (true or false): ", bool),
                 "i2c_servo_scl": ("Servo SCL pin#: ", int),
                 "i2c_servo_sda": ("Servo SDA pin#: ", int),
                 "i2c_servo_address": ("Servo address (in decimal): ", int),
                 "i2c_bno_scl": ("BNO055 SCL pin#: ", int),
                 "i2c_bno_sda": ("BNO055 SDA pin#: ", int),
+                "i2c_bno_address": ("BNO055 address (in decimal): ", int),
+                "use_imu": ("Use IMU (true or false): ", bool),
                 "i2c_screen_scl": ("Screen SCL pin#: ", int),
                 "i2c_screen_sda": ("Screen SDA pin#: ", int),
+                "i2c_screen_address": ("Screen address (in decimal): ", int),
+                "use_screen": ("Use Screen (true or false): ", bool),
                 "elevation_servo_index": ("Servo default elevation index: ", float),
                 "azimuth_servo_index": ("Servo default azimuth index: ", float),
                 "elevation_max_rate": ("Servo elevation max rate: ", float),
@@ -226,6 +231,7 @@ class NyanShell(mpfshell.MpFileShell):
         """setup <CONFIG_FILE>
         Interactive script to populate a config file.
         Switches to new config after finishing setup.
+        To keep config persistent after reboots, name it "config.json"
         """
         try:
             if not len(args):
@@ -348,7 +354,7 @@ class NyanShell(mpfshell.MpFileShell):
                 self.fe.config_switch(name)
                 print(colorama.Fore.GREEN +
                         "Switched from \"{}\"".format(current) +
-                        "to \"{}\"".format(name))
+                        " to \"{}\"".format(name))
             else:
                 self._error("Please run 'antkontrol' to initialize the antenna.")
 
@@ -378,7 +384,7 @@ class NyanShell(mpfshell.MpFileShell):
                     print(colorama.Fore.RED + "Did not find any devices")
                 else:
                     print(colorama.Fore.GREEN + "Found the following device addresses: {}".format(addresses_list))
-                print(colorama.Fore.RED + "If you had a running AntKontrol instance, be sure to restart it")
+                print(colorama.Fore.RESET + "If you had a running AntKontrol instance, be sure to restart it")
                 return
         except PyboardError:
             self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
