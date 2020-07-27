@@ -145,6 +145,15 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         except PyboardError:
             raise PyboardError("Could not create antkontrol object")
 
+    def delete_antkontrol(self):
+        """Delete the existing antkontrol object on the ESP32."""
+        try:
+            ret = self.exec_("del(api)")
+            self.antenna_initialized = False
+            return ret.decode()
+        except PyboardError:
+            raise PyboardError("Could not create antkontrol object")
+
     def is_tracking(self):
         return self.tracking
 

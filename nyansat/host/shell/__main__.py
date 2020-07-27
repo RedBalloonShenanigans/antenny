@@ -653,7 +653,8 @@ class NyanShell(mpfshell.MpFileShell):
                 except:
                     self._error("Error creating antkontrol object. Please check your setup")
             else:
-                self._error("There is already a running AntKontrol instance")
+                self.fe.delete_antkontrol()
+                self.fe.create_antkontrol()
 
     def do_track(self, args):
         """track <SATELLITE_NAME>

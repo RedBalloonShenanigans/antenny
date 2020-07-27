@@ -98,11 +98,11 @@ class Bno055ImuController(ImuController):
         "mag_radius_msb": 0x6A,
     }
 
-    def __init__(self, i2c: machine.I2C, address: int = 40, sign: tuple = (0, 0, 0)):
+    def __init__(self, i2c: machine.I2C, address: int = 40, crystal=True, sign: tuple = (0, 0, 0)):
         """Initialize the BNO055 from a given micropython machine.I2C connection
         object, I2C device address, and an orientation sign integer 3-tuple.
         """
-        self.bno = BNO055(i2c, address=address, sign=sign)
+        self.bno = BNO055(i2c, address=address, crystal=crystal, sign=sign)
 
     def euler(self) -> tuple:
         """Return Euler angles in degrees: (heading, roll, pitch)."""
