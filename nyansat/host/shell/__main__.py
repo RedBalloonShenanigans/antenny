@@ -378,6 +378,7 @@ class NyanShell(mpfshell.MpFileShell):
                     print(colorama.Fore.RED + "Did not find any devices")
                 else:
                     print(colorama.Fore.GREEN + "Found the following device addresses: {}".format(addresses_list))
+                print(colorama.Fore.RED + "If you had a running AntKontrol instance, be sure to restart it")
                 return
         except PyboardError:
             self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
