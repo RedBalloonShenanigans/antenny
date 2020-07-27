@@ -355,6 +355,32 @@ class NyanShell(mpfshell.MpFileShell):
         except PyboardError:
             self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
 
+    def do_i2ctest(self, args):
+        """i2ctest
+        Scan an i2c bus for i2c device addresses
+        """
+        try:
+            if args:
+                self._error("Usage: i2ctest does not take arguments.")
+                return
+            else:
+                print("Input the SDA pin and SCL for the I2C bus to check")
+
+                try:
+                    sda = int(input("SDA Pin#: "))
+                    scl = int(input("SDA Pin#: "))
+                    addresses = self.fe.i2c_scan(sda, scl)
+                    if addresses:
+                        print(colorama.Fore.GREEN + "Found the following device addresses: {}".format(addresses))
+                    else:
+                        print(colorama.Fore.RED + "Did not find any devices")
+                    return
+                except ValueError:
+                    self._error("Invalid type for pin number. Try again using only decimal numbers")
+                    return
+        except PyboardError:
+            self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
+
     def complete_switch(self, *args):
         """Tab completion for switch command."""
         try:

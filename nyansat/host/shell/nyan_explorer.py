@@ -81,6 +81,23 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         """
         self.exec_("api.config.switch(\"{}\")".format(name))
 
+    def i2c_scan(self, sda, scl):
+        """
+        Create and scan an i2c bus for addresses; helpful for debugging
+        :param sda: Pin number for sda
+        :param scl: Pin number for scl
+        :return: Addresses found on i2c bus
+        """
+        self.exec_("import machine")
+        self.exec_("from machine import Pin")
+        self.exec_(
+                "i2c = machine.I2C(-1, sda=Pin({}, Pin.OUT, Pin.PULL_DOWN), scl=({}, Pin.OUT, Pin.PULL_DOWN))".format(
+                    sda,
+                    scl
+                )
+            )
+        return self.eval_string_expr("i2c.scan()")
+
     def imu_calibration_status(self):
         """Get IMU calibration status."""
         return json.loads(self.eval_string_expr("api.imu.get_calibration_status()"))

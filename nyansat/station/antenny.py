@@ -200,17 +200,16 @@ def esp32_antenna_api_factory():
     i2c_servo_sda = config.get("i2c_servo_sda")
     i2c_ch0 = machine.I2C(
         0,
-        scl=machine.Pin(i2c_bno_scl, Pin.OUT, Pin.PULL_DOWN),
-        sda=machine.Pin(i2c_bno_sda, Pin.OUT, Pin.PULL_DOWN),
+        scl=Pin(i2c_bno_scl, Pin.OUT, Pin.PULL_DOWN),
+        sda=Pin(i2c_bno_sda, Pin.OUT, Pin.PULL_DOWN),
     )
-
-    if (i2c_bno_scl == i2c_servo_scl) && (i2c_bno_sda == i2c_servo_sda):
+    if (i2c_bno_scl == i2c_servo_scl) & (i2c_bno_sda == i2c_servo_sda):
         i2c_ch1 = i2c_ch0
     else:
         i2c_ch1 = machine.I2C(
             1,
-            scl=machine.Pin(i2c_bno_scl, Pin.OUT, Pin.PULL_DOWN),
-            sda=machine.Pin(i2c_bno_sda, Pin.OUT, Pin.PULL_DOWN),
+            scl=Pin(i2c_bno_scl, Pin.OUT, Pin.PULL_DOWN),
+            sda=Pin(i2c_bno_sda, Pin.OUT, Pin.PULL_DOWN),
         )
 
     if config.get("use_imu"):
