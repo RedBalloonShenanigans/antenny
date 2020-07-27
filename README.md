@@ -30,7 +30,7 @@ python3 -m nyansat.host
 
 If your pin configuration is different from the default values, you can easily change to them by running the `setup <profile_name>` command. This command creates a new profile with your given name and switches to it.
 
-If you have multiple pin configurations on the ESP32, you can switch between them using the `switch_config <profile_name>` command. This command switches to your chosen profile, leaving the original one intact, but not in use.
+If you have multiple pin configurations on the ESP32, you can switch between them using the `switch <profile_name>` command. This command switches to your chosen profile, leaving the original one intact, but not in use.
 
 ### Telemetry
 
