@@ -8,7 +8,7 @@ These set up procedures expect that your base station is fully assembled and you
 
 ### Set up your host environment
 
-NyanShell provides a convenient shell interface to communicate with your NyanSat base station. To install this interface, simply type `sudo make nyanshell` in the project directory.
+NyanShell provides a convenient shell interface to communicate with your NyanSat base station. To install this interface, simply type `make nyanshell` in the project directory.
 
 ### Set up your base station environment
 
