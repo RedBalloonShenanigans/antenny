@@ -81,7 +81,7 @@ class NyanShell(mpfshell.MpFileShell):
                 "elevation_max_rate": ("Servo elevation max rate: ", float),
                 "azimuth_max_rate": ("Servo azimuth max rate: ", float),
                 "use_webrepl": ("Use WebREPL: ", bool),
-                "use_telemtry": ("Use Telemetry", bool)
+                "use_telemetry": ("Use Telemetry", bool)
         }
 
     def _intro(self):
@@ -645,28 +645,41 @@ class NyanShell(mpfshell.MpFileShell):
             self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
 
     def do_antkontrol(self, args):
-        """antkontrol
+        """antkontrol <start | status>
         Create a new global AntKontrol instance
         """
+        s_args = self._parse_file_names(args)
+        if len(s_args) != 1:
+            print("Usage: antkontrol <start | status>")
+            return
         if self._is_open():
             if not self.fe.is_antenna_initialized():
-                try:
+                if s_args[0] == "start":
+                    try:
+                        self.fe.create_antkontrol()
+                        if self.fe.is_safemode():
+                            self._error("AntKontrol is running in SAFE MODE. If you did not intend to be in this mode, "
+                                        "check your setup and restart AntKontrol")
+                        else:
+                            print("AntKontrol initialized")
+                    except:
+                        self._error("Error creating AntKontrol object. Please check your setup")
+                elif s_args[0] == 'status':
+                    print("AntKontrol is not initialized. Run `antkontrol start` to do so.")
+            else:
+                if s_args[0] == "start":
+                    self.fe.delete_antkontrol()
                     self.fe.create_antkontrol()
                     if self.fe.is_safemode():
                         self._error("AntKontrol is running in SAFE MODE. If you did not intend to be in this mode, "
                                     "check your setup and restart AntKontrol")
                     else:
                         print("AntKontrol initialized")
-                except:
-                    self._error("Error creating AntKontrol object. Please check your setup")
-            else:
-                self.fe.delete_antkontrol()
-                self.fe.create_antkontrol()
-                if self.fe.is_safemode():
-                    self._error("AntKontrol is running in SAFE MODE. If you did not intend to be in this mode, "
-                                "check your setup and restart AntKontrol")
-                else:
-                    print("AntKontrol initialized")
+                elif s_args[0] == 'status':
+                    if self.fe.is_safemode():
+                        print("AntKontrol is running in SAFE MODE")
+                    else:
+                        print("AntKontrol appears to be initialized properly")
 
     def do_track(self, args):
         """track <SATELLITE_NAME>
