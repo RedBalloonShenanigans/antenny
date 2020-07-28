@@ -114,10 +114,10 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         """Run a motor accuracy test, for testing the disparity between the motor and IMU.
 
         Arguments:
-        index -- index of motor on the PWM driver.
+        index -- index of motor on the PWM driver (defaults: 0 == elevation, 1 == azimuth).
         pos -- desired angle.
         """
-        return ast.literal_eval(self.eval_string_expr("api.antenna.motor_test({}, {})".format(index, pos)))
+        return ast.literal_eval(self.eval_string_expr("api.motor_test({}, {})".format(index, pos)))
 
     def set_elevation_degree(self, el_angle):
         """Set the elevation angle.

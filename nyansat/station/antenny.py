@@ -72,9 +72,6 @@ class AntennaController:
     def get_elevation(self):
         return self.elevation.get_motor_position()
 
-    def motor_test(self):
-        raise NotImplementedError
-
 
 class AntennyAPI:
     """
@@ -135,6 +132,19 @@ class AntennyAPI:
         if self._telemetry is None:
             raise ValueError("Please enable the 'use_telemetry' option in the config")
         self._telemetry.update(data)
+
+    def motor_test(self, index: int, positon: int):
+        # type: (...) -> Tuple[int, float, float, float]
+        """
+        Legacy motor test, chose an index to move (0 == elevation, 1 == azimuth) and return
+            the IMU values.
+        """
+        if index == 0:
+            self.antenna.elevation.set_motor_position(positon)
+        elif index == 1:
+            self.antenna.azimuth.set_motor_position(positon)
+        x, y, z = self.imu.euler()
+        return positon, x, y, z
 
 
 def mock_antenna_api_factory(
