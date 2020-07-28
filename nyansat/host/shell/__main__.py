@@ -79,7 +79,9 @@ class NyanShell(mpfshell.MpFileShell):
                 "elevation_servo_index": ("Servo default elevation index: ", float),
                 "azimuth_servo_index": ("Servo default azimuth index: ", float),
                 "elevation_max_rate": ("Servo elevation max rate: ", float),
-                "azimuth_max_rate": ("Servo azimuth max rate: ", float)
+                "azimuth_max_rate": ("Servo azimuth max rate: ", float),
+                "use_webrepl": ("Use WebREPL: ", bool),
+                "use_telemtry": ("Use Telemetry", bool)
         }
 
     def _intro(self):

@@ -31,15 +31,16 @@ class AxisController:
         self.motor_idx = motor_idx
         self.imu = imu
         self.motor = motor
-        self._current_motor_position = _DEFAULT_MOTOR_POSITION
-        self.set_motor_position(_DEFAULT_MOTOR_POSITION)
+        self._current_motor_position = self.get_motor_position()# _DEFAULT_MOTOR_POSITION
+        # self.set_motor_position(_DEFAULT_MOTOR_POSITION)
 
     def get_motor_position(self) -> float:
+        self._current_motor_position = self.motor.get_position_degrees(self.motor_idx)
         return self._current_motor_position
 
-    def set_motor_position(self, desired_heading: float):
+    def set_motor_position(self, desired_heading: int):
         self._current_motor_position = desired_heading
-        self.motor.set_position(self.motor_idx, desired_heading)
+        self.motor.smooth_move(self.motor_idx, desired_heading, 100)
 
 
 class AntennaController:
@@ -200,8 +201,8 @@ def esp32_antenna_api_factory():
     i2c_servo_sda = config.get("i2c_servo_sda")
     i2c_ch0 = machine.I2C(
         0,
-        scl=Pin(i2c_bno_scl, Pin.OUT, Pin.PULL_DOWN),
-        sda=Pin(i2c_bno_sda, Pin.OUT, Pin.PULL_DOWN),
+        scl=Pin(i2c_servo_scl, Pin.OUT, Pin.PULL_DOWN),
+        sda=Pin(i2c_servo_sda, Pin.OUT, Pin.PULL_DOWN),
     )
     if (i2c_bno_scl == i2c_servo_scl) and (i2c_bno_sda == i2c_servo_sda):
         i2c_ch1 = i2c_ch0
@@ -225,6 +226,7 @@ def esp32_antenna_api_factory():
             if (i2c_ch0 != i2c_ch1) and address is not None:
                 imu = Bno055ImuController(
                     i2c_ch0,
+                    crystal=false,
                     address=address,
                     sign=(0, 0, 0)
                 )

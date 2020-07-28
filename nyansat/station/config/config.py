@@ -37,7 +37,7 @@ class ConfigRepository:
         "gps_uart_rx": 27,
         "i2c_servo_scl": 21,
         "i2c_servo_sda": 22,
-        "i2c_servo_address": 72,
+        "i2c_servo_address": 64,
         "i2c_bno_scl": 18,
         "i2c_bno_sda": 19,
         "i2c_bno_address": 40,
