@@ -140,9 +140,13 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         try:
             ret = self.exec_("import antenny")
             ret = self.exec_("api = antenny.esp32_antenna_api_factory()")
+            ret = self.exec_("del(config)")
+            ret = self.exec_("config = api.config")
             self.antenna_initialized = True
             return ret.decode()
         except PyboardError:
+            self.exec_("from config.config import ConfigRepository")
+            self.exec_("config = ConfigRepository")
             raise PyboardError("Could not create antkontrol object")
 
     def delete_antkontrol(self):
