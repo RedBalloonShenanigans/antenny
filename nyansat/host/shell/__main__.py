@@ -272,7 +272,7 @@ class NyanShell(mpfshell.MpFileShell):
                       "or \"edit\" to change the config file " \
                       "directly")
             else:
-                self._error("Please run 'antkontrol' to initialize the antenna.")
+                self._error("Please run 'antkontrol start' to initialize the antenna.")
 
         except PyboardError:
             self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
@@ -307,7 +307,7 @@ class NyanShell(mpfshell.MpFileShell):
                 self.fe.config_set(key, new_val)
                 print("Changed " + "\"" + key + "\" from " + str(old_val) + " --> " + str(new_val))
             else:
-                self._error("Please run 'antkontrol' to initialize the antenna.")
+                self._error("Please run 'antkontrol start' to initialize the antenna.")
         except PyboardError:
             self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
 
@@ -331,7 +331,7 @@ class NyanShell(mpfshell.MpFileShell):
                 for key in self.prompts.keys():
                     print(key + ": " + self.fe.config_get(key))
             else:
-                self._error("Please run 'antkontrol' to initialize the antenna.")
+                self._error("Please run 'antkontrol start' to initialize the antenna.")
         except PyboardError:
             self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
 
@@ -358,7 +358,7 @@ class NyanShell(mpfshell.MpFileShell):
                         "Switched from \"{}\"".format(current) +
                         " to \"{}\"".format(name))
             else:
-                self._error("Please run 'antkontrol' to initialize the antenna.")
+                self._error("Please run 'antkontrol start' to initialize the antenna.")
 
         except PyboardError:
             self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
@@ -527,7 +527,7 @@ class NyanShell(mpfshell.MpFileShell):
                 self.do_save_calibration(args=None)
                 print("Calibration data is now saved to config.")
             else:
-                self._error("Please run 'antkontrol' to initialize the antenna.")
+                self._error("Please run 'antkontrol start' to initialize the antenna.")
 
         except PyboardError:
             self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
@@ -547,7 +547,7 @@ class NyanShell(mpfshell.MpFileShell):
                 if not status:
                     self._error("Error: BNO055 not detected or error in reading calibration registers.")
             else:
-                self._error("Please run 'antkontrol' to initialize the antenna.")
+                self._error("Please run 'antkontrol start' to initialize the antenna.")
         except PyboardError:
             self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
 
@@ -566,7 +566,7 @@ class NyanShell(mpfshell.MpFileShell):
                 if not status:
                     self._error("Error: BNO055 not detected or error in writing calibration registers.")
             else:
-                self._error("Please run 'antkontrol' to initialize the antenna.")
+                self._error("Please run 'antkontrol start' to initialize the antenna.")
         except PyboardError:
             self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
 
@@ -604,7 +604,7 @@ class NyanShell(mpfshell.MpFileShell):
                 print("Real IMU angles: %d", real_pos)
                 print("Expected position: %d", real_pos)
             else:
-                self._error("Please run 'antkontrol' to initialize the antenna.")
+                self._error("Please run 'antkontrol start' to initialize the antenna.")
         except PyboardError:
             self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
 
@@ -622,7 +622,7 @@ class NyanShell(mpfshell.MpFileShell):
                 except ValueError:
                     print("<ELEVATION> must be a floating point number!")
             else:
-                self._error("Please run 'antkontrol' to initialize the antenna.")
+                self._error("Please run 'antkontrol start' to initialize the antenna.")
         except PyboardError:
             self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
 
@@ -640,7 +640,7 @@ class NyanShell(mpfshell.MpFileShell):
                 except ValueError:
                     print("<AZIMUTH> must be a floating point number!")
             else:
-                self._error("Please run 'antkontrol' to initialize the antenna.")
+                self._error("Please run 'antkontrol start' to initialize the antenna.")
         except PyboardError:
             self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
 
@@ -665,7 +665,7 @@ class NyanShell(mpfshell.MpFileShell):
                     except:
                         self._error("Error creating AntKontrol object. Please check your setup")
                 elif s_args[0] == 'status':
-                    print("AntKontrol is not initialized. Run `antkontrol start` to do so.")
+                    print("AntKontrol is not initialized. Run 'antkontrol start' to do so.")
             else:
                 if s_args[0] == "start":
                     self.fe.delete_antkontrol()
@@ -693,7 +693,7 @@ class NyanShell(mpfshell.MpFileShell):
                 except NotVisibleError:
                     self._error("The satellite is not visible from your position")
             else:
-                self._error("Please run 'antkontrol' to initialize the antenna.")
+                self._error("Please run 'antkontrol start' to initialize the antenna.")
         except PyboardError:
             self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
 
@@ -708,7 +708,7 @@ class NyanShell(mpfshell.MpFileShell):
                 else:
                     self._error("The antenna is not currently tracking any satellite.")
             else:
-                self._error("Please run 'antkontrol' to initialize the antenna.")
+                self._error("Please run 'antkontrol start' to initialize the antenna.")
         except PyboardError:
             self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
 
