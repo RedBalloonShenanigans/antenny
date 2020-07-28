@@ -652,11 +652,21 @@ class NyanShell(mpfshell.MpFileShell):
             if not self.fe.is_antenna_initialized():
                 try:
                     self.fe.create_antkontrol()
+                    if self.fe.is_safemode():
+                        self._error("AntKontrol is running in SAFE MODE. If you did not intend to be in this mode, "
+                                    "check your setup and restart AntKontrol")
+                    else:
+                        print("AntKontrol initialized")
                 except:
-                    self._error("Error creating antkontrol object. Please check your setup")
+                    self._error("Error creating AntKontrol object. Please check your setup")
             else:
                 self.fe.delete_antkontrol()
                 self.fe.create_antkontrol()
+                if self.fe.is_safemode():
+                    self._error("AntKontrol is running in SAFE MODE. If you did not intend to be in this mode, "
+                                "check your setup and restart AntKontrol")
+                else:
+                    print("AntKontrol initialized")
 
     def do_track(self, args):
         """track <SATELLITE_NAME>

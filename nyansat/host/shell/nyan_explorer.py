@@ -152,7 +152,20 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
             self.antenna_initialized = False
             return ret.decode()
         except PyboardError:
-            raise PyboardError("Could not create antkontrol object")
+            raise PyboardError("Could not delete antkontrol object")
+
+    def is_safemode(self):
+        """Check if the API is in SAFE MODE"""
+        try:
+            ret = self.eval_string_expr("api.is_safemode()")
+            # The following is inelegant, but a result of eval_string_expr's return
+            if ret == 'False':
+                ret = False
+            else:
+                ret = True
+            return ret
+        except PyboardError:
+            raise PyboardError("Could not communicate with antkontrol object")
 
     def is_tracking(self):
         return self.tracking

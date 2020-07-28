@@ -125,6 +125,9 @@ class AntennyAPI:
         if self._telemetry is not None:
             self._telemetry.stop()
 
+    def is_safemode(self):
+        return self.safe_mode
+
     def imu_is_calibrated(self) -> bool:
         LOG.info("Checking the IMU calibration status")
         return self.imu.get_calibration_status().is_calibrated()
