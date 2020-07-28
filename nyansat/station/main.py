@@ -1,11 +1,19 @@
+"""
+Antenny main entry point, runs after boot.py.
+"""
 import time
-import logging
-import antenny
 import machine
 
-from antenny_threading import Queue
-
-from multi_client.follower import AntennyFollowerNode, MCAST_PORT, UDPFollowerClient
+# Account for the fact that libraries like logging and asyncio need to be installed, after a
+#   successful connection on reboot.
+failed_imports = False
+try:
+    import logging
+    import antenny
+    from antenny_threading import Queue
+    from multi_client.follower import AntennyFollowerNode, MCAST_PORT, UDPFollowerClient
+except ImportError:
+    failed_imports = True
 
 
 def initialize_i2c_bus():
@@ -23,10 +31,15 @@ def initialize_i2c_bus():
     pin.value(0)
 
 
-logging.basicConfig(level=logging.DEBUG)
-initialize_i2c_bus()
-# leave this global so the entire system has access to the AntKontrol instance
-api = antenny.esp32_antenna_api_factory()
+if not failed_imports:
+    logging.basicConfig(level=logging.DEBUG)
+    initialize_i2c_bus()
+    # leave this global so the entire system has access to the AntKontrol instance
+    api = antenny.esp32_antenna_api_factory()
+else:
+    print("WARNING: necessary imports failed, please reboot the device after installing the "
+          "necessary dependencies")
+    api = None
 
 
 def join_leader(my_id: int):

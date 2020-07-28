@@ -18,6 +18,7 @@ setup(
         "skyfield",
         "websocket_client",
         "python-Levenshtein",
+        "mpfshell",
     ],
     keywords=["micropython", ],
     classifiers=[],
