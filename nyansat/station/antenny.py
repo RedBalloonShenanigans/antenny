@@ -31,8 +31,7 @@ class AxisController:
         self.motor_idx = motor_idx
         self.imu = imu
         self.motor = motor
-        self._current_motor_position = self.get_motor_position()# _DEFAULT_MOTOR_POSITION
-        # self.set_motor_position(_DEFAULT_MOTOR_POSITION)
+        self._current_motor_position = self.get_motor_position()
 
     def get_motor_position(self) -> float:
         self._current_motor_position = self.motor.get_position_degrees(self.motor_idx)
@@ -40,7 +39,7 @@ class AxisController:
 
     def set_motor_position(self, desired_heading: int):
         self._current_motor_position = desired_heading
-        self.motor.smooth_move(self.motor_idx, desired_heading, 100)
+        self.motor.smooth_move(self.motor_idx, desired_heading, 50)
 
 
 class AntennaController:
@@ -232,12 +231,12 @@ def esp32_antenna_api_factory():
                 sign=(0, 0, 0)
             )
         except OSError:
-            address = i2c_ch1.scan()[0]
-            if (i2c_ch0 != i2c_ch1) and address is not None:
+            address = i2c_ch1.scan()
+            if (i2c_ch0 != i2c_ch1) and (len(address) != 0):
                 imu = Bno055ImuController(
                     i2c_ch1,
-                    crystal=false,
-                    address=address,
+                    crystal=False,
+                    address=address[0],
                     sign=(0, 0, 0)
                 )
                 LOG.info("Using auto address configuration for IMU")
@@ -257,11 +256,11 @@ def esp32_antenna_api_factory():
             degrees=180
         )
     except OSError:
-        address = i2c_ch0.scan()[0]
-        if (i2c_ch1 != i2c_ch0) and address is not None:
+        address = i2c_ch0.scan()
+        if (i2c_ch1 != i2c_ch0) and (len(address) != 0):
             motor = Pca9685Controller(
                 i2c_ch0,
-                address=address,
+                address=address[0],
                 min_us=500,
                 max_us=2500,
                 degrees=180
