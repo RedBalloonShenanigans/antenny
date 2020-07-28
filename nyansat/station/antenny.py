@@ -37,7 +37,7 @@ class AxisController:
         self._current_motor_position = self.motor.get_position_degrees(self.motor_idx)
         return self._current_motor_position
 
-    def set_motor_position(self, desired_heading: int):
+    def set_motor_position(self, desired_heading: float):
         self._current_motor_position = desired_heading
         self.motor.smooth_move(self.motor_idx, desired_heading, 50)
 
@@ -54,21 +54,41 @@ class AntennaController:
     ):
         self.azimuth = azimuth
         self.elevation = elevation
+        self._motion_started = False
+
+    def start_motion(self, azimuth: int, elevation: int):
+        """
+        Mark motion
+        """
+        self._motion_started = True
+        self.set_azimuth(azimuth)
+        self.set_elevation(elevation)
+
+    def stop_motion(self):
+        self._motion_started = False
 
     def set_azimuth(self, desired_heading: float):
+        if not self._motion_started:
+            raise RuntimeError("Please start motion before moving the antenna")
         LOG.info("Setting azimuth to '{}'".format(desired_heading))
         self.azimuth.set_motor_position(desired_heading)
         return self.get_azimuth()
 
     def get_azimuth(self):
+        if not self._motion_started:
+            raise RuntimeError("Please start motion before querying the azimuth position")
         return self.azimuth.get_motor_position()
 
     def set_elevation(self, desired_heading: float):
+        if not self._motion_started:
+            raise RuntimeError("Please start motion before moving the antenna")
         LOG.info("Setting elevation to '{}'".format(desired_heading))
         self.elevation.set_motor_position(desired_heading)
         return self.get_elevation()
 
     def get_elevation(self):
+        if not self._motion_started:
+            raise RuntimeError("Please start motion before querying the elevation position")
         return self.elevation.get_motor_position()
 
 
