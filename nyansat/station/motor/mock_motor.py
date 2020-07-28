@@ -10,6 +10,9 @@ class MockMotorController(MotorController):
     def set_position(self, index, degrees=None, radians=None, us=None, duty=None):
         self._position = degrees
 
+    def get_position(self, index, degrees=None, radians=None, us=None, duty=None):
+        return self._position
+
     def degrees(self, index):
         """Return the position in degrees of the servo with the given index."""
         return self._position

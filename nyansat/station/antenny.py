@@ -34,7 +34,7 @@ class AxisController:
         self._current_motor_position = self.get_motor_position()
 
     def get_motor_position(self) -> float:
-        self._current_motor_position = self.motor.get_position_degrees(self.motor_idx)
+        self._current_motor_position = self.motor.get_position(self.motor_idx)
         return self._current_motor_position
 
     def set_motor_position(self, desired_heading: float):
@@ -104,12 +104,14 @@ class AntennyAPI:
             config: ConfigRepository,
             screen,  # type: Optional[ScreenController]
             telemetry,  # type: Optional[TelemetrySender]
+            safe_mode: bool,
     ):
         self.antenna = antenna
         self.imu = imu
         self.config = config
         self._screen = screen
         self._telemetry = telemetry
+        self.safe_mode = safe_mode
 
     def start(self):
         if self._screen is not None:
@@ -207,6 +209,7 @@ def mock_antenna_api_factory(
         config,
         screen,
         telemetry_sender,
+        True,
     )
     api.start()
     return api
@@ -223,6 +226,7 @@ def esp32_antenna_api_factory():
     from motor.motor_pca9685 import Pca9685Controller
 
     config = ConfigRepository()
+    safe_mode = False
 
     i2c_bno_scl = config.get("i2c_bno_scl")
     i2c_bno_sda = config.get("i2c_bno_sda")
@@ -290,6 +294,7 @@ def esp32_antenna_api_factory():
             LOG.warning("Unable to initialize motor driver, entering SAFE MODE OPERATION")
             LOG.warning("Your device may be improperly configured. Use the `setup` command to reconfigure and run "
                         "`antkontrol`")
+            safe_mode = True
             motor = MockMotorController()
 
     antenna_controller = AntennaController(
@@ -325,6 +330,7 @@ def esp32_antenna_api_factory():
         config,
         screen,
         telemetry_sender,
+        safe_mode,
     )
     api.start()
     return api

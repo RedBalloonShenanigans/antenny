@@ -75,7 +75,7 @@ class Pca9685Controller(MotorController):
         duty = min(self.max_duty, max(self.min_duty, int(duty)))
         self.pca9685.duty(index, duty)
 
-    def get_position_degrees(self, index):
+    def get_position(self, index):
         """Get the position of a servo in degrees."""
         assert index in self.SERVOS
 
