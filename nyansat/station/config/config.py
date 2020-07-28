@@ -109,8 +109,7 @@ class ConfigRepository:
         """Create a new configuration file and ensure each call to "reload" uses
         the correct file. Does not overwrite if the file already exists.
         """
-        if self._config_filename == ConfigRepository.DEFAULT_CONFIG["last_loaded"]:
-            self.set("last_loaded", name)
+        self.set("last_loaded", name)
         self._config_filename = name
         self.reload()
 

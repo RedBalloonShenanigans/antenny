@@ -32,6 +32,19 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         except PyboardError:
             return False
 
+    def config_status(self):
+        """Test if there is a valid config object on the board; if not, try to create one"""
+        try:
+            self.exec_("isinstance(config, ConfigRepository")
+            return True
+        except PyboardError:
+            self.exec_("config = ConfigRepository()")
+            ret = self.eval_string_expr("isinstance(config, ConfigRepository)")
+            if ret == "False":
+                return False
+            else:
+                return True
+
     def which_config(self):
         """Get the name of the currently used config file."""
         return self.eval_string_expr("api.config.current_file()")

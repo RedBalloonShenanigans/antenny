@@ -44,7 +44,7 @@ class NyanShell(mpfshell.MpFileShell):
         else:
             cmd.Cmd.__init__(self)
 
-        self.emptyline = lambda : None
+        self.emptyline = lambda: None
 
         if platform.system() == "Windows":
             self.use_rawinput = False
@@ -60,39 +60,39 @@ class NyanShell(mpfshell.MpFileShell):
         self._intro()
         self._set_prompt_path()
 
-        self.emptyline = lambda : None
+        self.emptyline = lambda: None
         self.prompts = {
-                "gps_uart_tx": ("GPS UART TX pin#: ", int),
-                "gps_uart_rx": ("GPS UART RX pin#: ", int),
-                "use_gps": ("Use GPS (true or false): ", bool),
-                "i2c_servo_scl": ("Servo SCL pin#: ", int),
-                "i2c_servo_sda": ("Servo SDA pin#: ", int),
-                "i2c_servo_address": ("Servo address (in decimal): ", int),
-                "i2c_bno_scl": ("BNO055 SCL pin#: ", int),
-                "i2c_bno_sda": ("BNO055 SDA pin#: ", int),
-                "i2c_bno_address": ("BNO055 address (in decimal): ", int),
-                "use_imu": ("Use IMU (true or false): ", bool),
-                "i2c_screen_scl": ("Screen SCL pin#: ", int),
-                "i2c_screen_sda": ("Screen SDA pin#: ", int),
-                "i2c_screen_address": ("Screen address (in decimal): ", int),
-                "use_screen": ("Use Screen (true or false): ", bool),
-                "elevation_servo_index": ("Servo default elevation index: ", float),
-                "azimuth_servo_index": ("Servo default azimuth index: ", float),
-                "elevation_max_rate": ("Servo elevation max rate: ", float),
-                "azimuth_max_rate": ("Servo azimuth max rate: ", float),
-                "use_webrepl": ("Use WebREPL: ", bool),
-                "use_telemetry": ("Use Telemetry", bool)
+            "gps_uart_tx": ("GPS UART TX pin#: ", int),
+            "gps_uart_rx": ("GPS UART RX pin#: ", int),
+            "use_gps": ("Use GPS (true or false): ", bool),
+            "i2c_servo_scl": ("Servo SCL pin#: ", int),
+            "i2c_servo_sda": ("Servo SDA pin#: ", int),
+            "i2c_servo_address": ("Servo address (in decimal): ", int),
+            "i2c_bno_scl": ("BNO055 SCL pin#: ", int),
+            "i2c_bno_sda": ("BNO055 SDA pin#: ", int),
+            "i2c_bno_address": ("BNO055 address (in decimal): ", int),
+            "use_imu": ("Use IMU (true or false): ", bool),
+            "i2c_screen_scl": ("Screen SCL pin#: ", int),
+            "i2c_screen_sda": ("Screen SDA pin#: ", int),
+            "i2c_screen_address": ("Screen address (in decimal): ", int),
+            "use_screen": ("Use Screen (true or false): ", bool),
+            "elevation_servo_index": ("Servo default elevation index: ", float),
+            "azimuth_servo_index": ("Servo default azimuth index: ", float),
+            "elevation_max_rate": ("Servo elevation max rate: ", float),
+            "azimuth_max_rate": ("Servo azimuth max rate: ", float),
+            "use_webrepl": ("Use WebREPL: ", bool),
+            "use_telemetry": ("Use Telemetry", bool)
         }
 
     def _intro(self):
         """Text that appears when shell is first launched."""
         if self.color:
             self.intro = (
-                "\n"
-                + colorama.Fore.GREEN
-                + "** Welcome to NyanSat File Shell ** "
-                + colorama.Fore.RESET
-                + "\n"
+                    "\n"
+                    + colorama.Fore.GREEN
+                    + "** Welcome to NyanSat File Shell ** "
+                    + colorama.Fore.RESET
+                    + "\n"
             )
         else:
             self.intro += (
@@ -108,7 +108,7 @@ class NyanShell(mpfshell.MpFileShell):
     def _is_open(self):
         """Check if a connection has been established with an ESP32."""
         return super()._MpFileShell__is_open()
-    
+
     def _disconnect(self):
         return super()._MpFileShell__disconnect()
 
@@ -127,13 +127,13 @@ class NyanShell(mpfshell.MpFileShell):
 
         if self.color:
             self.prompt = (
-                colorama.Fore.BLUE
-                + "nyanshell ["
-                + colorama.Fore.YELLOW
-                + pwd
-                + colorama.Fore.BLUE
-                + "]> "
-                + colorama.Fore.RESET
+                    colorama.Fore.BLUE
+                    + "nyanshell ["
+                    + colorama.Fore.YELLOW
+                    + pwd
+                    + colorama.Fore.BLUE
+                    + "]> "
+                    + colorama.Fore.RESET
             )
         else:
             self.prompt = "nyanshell [" + pwd + "]> "
@@ -179,10 +179,10 @@ class NyanShell(mpfshell.MpFileShell):
             return False
 
         if (
-            not args.startswith("ser:/dev/")
-            and not args.startswith("ser:COM")
-            and not args.startswith("tn:")
-            and not args.startswith("ws:")
+                not args.startswith("ser:/dev/")
+                and not args.startswith("ser:COM")
+                and not args.startswith("tn:")
+                and not args.startswith("ws:")
         ):
 
             if platform.system() == "Windows":
@@ -229,87 +229,100 @@ class NyanShell(mpfshell.MpFileShell):
 
     complete_edit = MpFileShell.complete_get
 
+    def parse_error(self, e):
+        error_list = str(e).strip('()').split(", b'")
+        error_list[0] = error_list[0][1:]
+        ret = []
+        for err in error_list:
+            ret.append(bytes(err[0:-1], 'utf-8').decode('unicode-escape'))
+        return ret
+
     def do_setup(self, args):
         """setup <CONFIG_FILE>
         Interactive script to populate a config file.
         Switches to new config after finishing setup.
         To keep config persistent after reboots, name it "config.json"
         """
-        try:
+        if self._is_open():
             if not len(args):
                 self._error("Missing argument: <CONFIG_FILE>")
+                return
+            try:
+                if self.fe.config_status():
+                    s_args = self._parse_file_names(args)
+                    name, = s_args
+                    current = self.fe.which_config()
 
-            elif self._is_open() and self.fe.is_antenna_initialized():
-                s_args = self._parse_file_names(args)
-                name, = s_args
-                current = self.fe.which_config()
+                    self.fe.config_new(name)
 
-                self.fe.config_new(name)
+                    print(colorama.Fore.GREEN +
+                          "Welcome to Antenny!" +
+                          colorama.Fore.RESET)
+                    print("Please enter the following information about your hardware\n")
 
-                print(colorama.Fore.GREEN +
-                      "Welcome to Antenny!" +
-                      colorama.Fore.RESET)
-                print("Please enter the following information about your hardware\n")
+                    for k, info in self.prompts.items():
+                        prompt_text, typ = info
+                        try:
+                            new_val = typ(input(prompt_text))
+                        except ValueError:
+                            new_val = self.fe.config_get_default(k)
+                            self._error("Invalid type, setting to default value \"{}\".\nUse \"set\" to " \
+                                        "change the parameter".format(new_val))
 
-                for k,info in self.prompts.items():
-                    prompt_text, typ = info
-                    try:
-                        new_val = typ(input(prompt_text))
-                    except ValueError:
-                        new_val = self.fe.config_get_default(k)
-                        self._error("Invalid type, setting to default value \"{}\".\nUse \"set\" to " \
-                                    "change the parameter".format(new_val))
+                        self.fe.config_set(k, new_val)
 
-                    self.fe.config_set(k, new_val)
+                    if self.caching:
+                        self.fe.cache = {}
 
-                if self.caching:
-                    self.fe.cache = {}
+                    print(colorama.Fore.GREEN +
+                          "\nConfiguration set for \"{}\"!\n".format(name) +
+                          colorama.Fore.RESET +
+                          "You can use \"set\" to change individual parameters\n" \
+                          "or \"edit\" to change the config file " \
+                          "directly")
+                else:
+                    self._error("Could not access existing configuration object or create one.")
 
-                print(colorama.Fore.GREEN +
-                      "\nConfiguration set for \"{}\"!\n".format(name) +
-                      colorama.Fore.RESET +
-                      "You can use \"set\" to change individual parameters\n" \
-                      "or \"edit\" to change the config file " \
-                      "directly")
-            else:
-                self._error("Please run 'antkontrol start' to initialize the antenna.")
-
-        except PyboardError:
-            self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
+            except PyboardError as e:
+                self._error("Command faulted while trying to set configuration.")
+                error_list = self.parse_error(e)
+                print(error_list[2])
 
     def do_set(self, args):
         """set <CONFIG_PARAM> <NEW_VAL>
         Set a parameter in the configuration file to a new value."""
-        try:
+        if self._is_open():
             if not len(args):
                 self._error("missing arguments: <config_param> <new_val>")
+                return
+            s_args = self._parse_file_names(args)
+            if len(s_args) < 2:
+                self._error("Missing argument: <new_val>")
+                return
+            try:
+                if self.fe.config_status():
+                    key, new_val = s_args
+                    try:
+                        old_val = self.fe.config_get(key)
+                    except:
+                        self._error("No such configuration parameter")
+                        return
 
-            elif self._is_open() and self.fe.is_antenna_initialized():
-                s_args = self._parse_file_names(args)
-                if len(s_args) < 2:
-                    self._error("Missing argument: <new_val>")
-                    return
+                    _, typ = self.prompts[key]
+                    try:
+                        new_val = typ(new_val)
+                    except ValueError as e:
+                        self._error(str(e))
+                        return
 
-                key, new_val = s_args
-                try:
-                    old_val = self.fe.config_get(key)
-                except:
-                    self._error("No such configuration parameter")
-                    return
-
-                _, typ = self.prompts[key]
-                try:
-                    new_val = typ(new_val)
-                except ValueError as e:
-                    self._error(str(e))
-                    return
-
-                self.fe.config_set(key, new_val)
-                print("Changed " + "\"" + key + "\" from " + str(old_val) + " --> " + str(new_val))
-            else:
-                self._error("Please run 'antkontrol start' to initialize the antenna.")
-        except PyboardError:
-            self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
+                    self.fe.config_set(key, new_val)
+                    print("Changed " + "\"" + key + "\" from " + str(old_val) + " --> " + str(new_val))
+                else:
+                    self._error("Could not access existing configuration object or create one.")
+            except PyboardError as e:
+                self._error("Command faulted while trying to set configuration.")
+                error_list = self.parse_error(e)
+                print(error_list[2])
 
     def complete_set(self, *args):
         """Tab completion for 'set' command."""
@@ -318,78 +331,79 @@ class NyanShell(mpfshell.MpFileShell):
         else:
             return []
 
-    def do_configs(self, args):
+    def do_configs(self):
         """configs
         Print a list of all configuration parameters."""
-        try:
-            if self._is_open() and self.fe.is_antenna_initialized():
-                print(colorama.Fore.GREEN +
-                      "-Config parameters-\n" +
-                      colorama.Fore.CYAN +
-                      "Using \"{}\"".format(self.fe.which_config()) +
-                      colorama.Fore.RESET)
-                for key in self.prompts.keys():
-                    print(key + ": " + self.fe.config_get(key))
-            else:
-                self._error("Please run 'antkontrol start' to initialize the antenna.")
-        except PyboardError:
-            self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
+        if self._is_open():
+            try:
+                if self.fe.config_status():
+                    print(colorama.Fore.GREEN +
+                          "-Config parameters-\n" +
+                          colorama.Fore.CYAN +
+                          "Using \"{}\"".format(self.fe.which_config()) +
+                          colorama.Fore.RESET)
+                    for key in self.prompts.keys():
+                        print(key + ": " + self.fe.config_get(key))
+                else:
+                    self._error("Could not access existing configuration object or create one.")
+            except PyboardError as e:
+                self._error("Command faulted while trying to access configuration")
+                error_list = self.parse_error(e)
+                print(error_list[2])
 
     def do_switch(self, args):
         """switch <CONFIG_FILE>
         Switch to using a different config file."""
-        try:
-            if not len(args):
-                self._error("Missing arguments: <config_file>")
+        if self._is_open():
+            if len(args) != 1:
+                self._error("Usage: switch <CONFIG_FILE>")
+                return
+            s_args = self._parse_file_names(args)
+            try:
+                if self.fe.config_status():
+                    name, = s_args
+                    files = self.fe.ls()
+                    if name not in files:
+                        self._error("No such file")
+                        return
+                    current = self.fe.which_config()
+                    self.fe.config_switch(name)
+                    print(colorama.Fore.GREEN +
+                          "Switched from \"{}\"".format(current) +
+                          " to \"{}\"".format(name))
+                else:
+                    self._error("Could not access existing configuration object or create one.")
 
-            elif self._is_open() and self.fe.is_antenna_initialized():
-                s_args = self._parse_file_names(args)
-                if len(s_args) > 1:
-                    self._error("Usage: switch <CONFIG_FILE>")
-                    return
-                name, = s_args
-                files = self.fe.ls()
-                if name not in files:
-                    self._error("No such file")
-                    return
-                current = self.fe.which_config()
-                self.fe.config_switch(name)
-                print(colorama.Fore.GREEN +
-                        "Switched from \"{}\"".format(current) +
-                        " to \"{}\"".format(name))
-            else:
-                self._error("Please run 'antkontrol start' to initialize the antenna.")
+            except PyboardError as e:
+                self._error("Command faulted while trying to acess or set new configuration")
+                error_list = self.parse_error(e)
+                print(error_list[2])
 
-        except PyboardError:
-            self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
-
-    def do_i2ctest(self, args):
+    def do_i2ctest(self):
         """i2ctest
         Scan an i2c bus for i2c device addresses
         """
         try:
-            if args:
-                self._error("Usage: i2ctest does not take arguments.")
-                return
-            else:
-                print("Input the SDA pin and SCL for the I2C bus to check")
+            print("Input the SDA pin and SCL for the I2C bus to check")
 
-                try:
-                    sda = int(input("SDA Pin#: "))
-                    scl = int(input("SCL Pin#: "))
-                except ValueError:
-                    self._error("Invalid type for pin number. Try again using only decimal numbers")
-                    return
-                addresses = self.fe.i2c_scan(sda, scl)
-                addresses_list = addresses.strip('] [').strip(', ')
-                if not addresses_list:
-                    print(colorama.Fore.RED + "Did not find any devices")
-                else:
-                    print(colorama.Fore.GREEN + "Found the following device addresses: {}".format(addresses_list))
-                print(colorama.Fore.RESET + "If you had a running AntKontrol instance, be sure to restart it")
+            try:
+                sda = int(input("SDA Pin#: "))
+                scl = int(input("SCL Pin#: "))
+            except ValueError:
+                self._error("Invalid type for pin number. Try again using only decimal numbers")
                 return
-        except PyboardError:
-            self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
+            addresses = self.fe.i2c_scan(sda, scl)
+            addresses_list = addresses.strip('] [').strip(', ')
+            if not addresses_list:
+                print(colorama.Fore.RED + "Did not find any devices")
+            else:
+                print(colorama.Fore.GREEN + "Found the following device addresses: {}".format(addresses_list))
+            print(colorama.Fore.RESET + "If you had a running AntKontrol instance, be sure to restart it")
+            return
+        except PyboardError as e:
+            self._error("Unable to scan the I2C bus")
+            error_list = self.parse_error(e)
+            print(error_list[2])
 
     def complete_switch(self, *args):
         """Tab completion for switch command."""
@@ -399,7 +413,6 @@ class NyanShell(mpfshell.MpFileShell):
             files = []
         current = self.fe.which_config()
         return [f for f in files if f.startswith(args[0]) and f.endswith(".json")]
-
 
     def _calibration_wait_message(self, gyro_calibrated, accel_calibrated, magnet_calibrated, use_ellipsis=True):
         """
@@ -449,7 +462,7 @@ class NyanShell(mpfshell.MpFileShell):
                 magnet_calibrated = magnet_level > 0
 
                 print("System calibrated?",
-                        f"{yes_display_string}" if system_calibrated else no_display_string)
+                      f"{yes_display_string}" if system_calibrated else no_display_string)
 
                 print("\n")
                 if gyro_calibrated:
@@ -498,13 +511,14 @@ class NyanShell(mpfshell.MpFileShell):
                     print("┌ CALIBRATION STATUS")
                     print("│")
                     print("│ * Gyroscope calibrated?",
-                            f"{yes_display_string} (level {gyro_level}/3)" if gyro_calibrated else no_display_string)
+                          f"{yes_display_string} (level {gyro_level}/3)" if gyro_calibrated else no_display_string)
                     print("│ * Accelerometer calibrated?",
-                        f"{yes_display_string} (level {accel_level}/3)" if accel_calibrated else no_display_string)
+                          f"{yes_display_string} (level {accel_level}/3)" if accel_calibrated else no_display_string)
                     print("│ * Magnetometer calibrated?",
-                        f"{yes_display_string} (level {magnet_level}/3)" if magnet_calibrated else no_display_string)
+                          f"{yes_display_string} (level {magnet_level}/3)" if magnet_calibrated else no_display_string)
                     print("│")
-                    wait_message = self._calibration_wait_message(gyro_calibrated, accel_calibrated, magnet_calibrated, use_ellipsis=False)
+                    wait_message = self._calibration_wait_message(gyro_calibrated, accel_calibrated, magnet_calibrated,
+                                                                  use_ellipsis=False)
                     wait_message += (" " + waiting_dots if wait_message else "")
 
                     # Write the wait message with an appropriate amount of trailing whitespace in order
@@ -524,107 +538,134 @@ class NyanShell(mpfshell.MpFileShell):
 
                 print(f"System calibration complete: {yes_display_string}")
                 print("Saving calibration data ...")
-                self.do_save_calibration(args=None)
+                self.do_save_calibration()
                 print("Calibration data is now saved to config.")
             else:
                 self._error("Please run 'antkontrol start' to initialize the antenna.")
 
-        except PyboardError:
-            self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
+        except PyboardError as e:
+            self._error("The AntKontrol object is either not responding or your current configuration does not "
+                        "support IMU calibration.")
+            print("You can try to restart AntKontrol by running 'antkontrol start'")
+            print("If you believe your configuration is incorrect, run 'configs' to check your configuration and "
+                  "'setup <CONFIG_FILE>' to create a new one")
+            error_list = self.parse_error(e)
+            print(error_list[2])
 
-    def do_save_calibration(self, args):
+    def do_save_calibration(self):
         """save_calibration
         Save current IMU calibration data to the current configuration.
         """
-        try:
-            if args:
-                self._error("Usage: save_calibration does not take arguments.")
-                return
+        if self._is_open():
+            try:
+                if self.fe.is_antenna_initialized():
+                    status = self.fe.imu_save_calibration_profile()
 
-            if self._is_open() and self.fe.is_antenna_initialized():
-                status = self.fe.imu_save_calibration_profile()
+                    if not status:
+                        self._error("Error: BNO055 not detected or error in reading calibration registers.")
+                else:
+                    self._error("Please run 'antkontrol start' to initialize the antenna.")
+            except PyboardError as e:
+                self._error("The AntKontrol object is either not responding or your current configuration does not "
+                            "support IMU calibration.")
+                print("You can try to restart AntKontrol by running 'antkontrol start'")
+                print("If you believe your configuration is incorrect, run 'configs' to check your configuration and "
+                      "'setup <CONFIG_FILE>' to create a new one")
+                error_list = self.parse_error(e)
+                print(error_list[2])
 
-                if not status:
-                    self._error("Error: BNO055 not detected or error in reading calibration registers.")
-            else:
-                self._error("Please run 'antkontrol start' to initialize the antenna.")
-        except PyboardError:
-            self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
-
-    def do_upload_calibration(self, args):
+    def do_upload_calibration(self):
         """upload_calibration
         Upload the currently stored calibration data to the connected IMU.
         """
-        try:
-            if args:
-                self._error("Usage: upload_calibration does not take arguments.")
-                return
+        if self._is_open():
+            try:
+                if self.fe.is_antenna_initialized():
+                    status = self.fe.imu_upload_calibration_profile()
 
-            if self._is_open() and self.fe.is_antenna_initialized():
-                status = self.fe.imu_upload_calibration_profile()
-
-                if not status:
-                    self._error("Error: BNO055 not detected or error in writing calibration registers.")
-            else:
-                self._error("Please run 'antkontrol start' to initialize the antenna.")
-        except PyboardError:
-            self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
+                    if not status:
+                        self._error("Error: BNO055 not detected or error in writing calibration registers.")
+                else:
+                    self._error("Please run 'antkontrol start' to initialize the antenna.")
+            except PyboardError as e:
+                self._error("The AntKontrol object is either not responding or your current configuration does not "
+                            "support IMU calibration.")
+                print("You can try to restart AntKontrol by running 'antkontrol start'")
+                print("If you believe your configuration is incorrect, run 'configs' to check your configuration and "
+                      "'setup <CONFIG_FILE>' to create a new one")
+                error_list = self.parse_error(e)
+                print(error_list[2])
 
     def do_motortest(self, args):
         """motortest <EL | AZ> <ANGLE>
         Test the motors to plot their accuracy against the measured IMU values.
         """
-        try:
-            if not len(args):
-                self._error("Missing arguments: <EL | AZ> <ANGLE>")
-            elif self._is_open() and self.fe.is_antenna_initialized():
-                print("Running motor testing routine...")
-                s_args = self._parse_file_names(args)
-                if len(s_args) != 2:
-                    self._error("Usage: motortest <EL | AZ> <ANGLE>")
-                    return
-                error_str = "The first parameter must be EL or AZ. <ANGLE> must be an integer or float"
-                try:
-                    motor, pos = s_args
-                    if motor == "EL":
-                        index = self.fe.config_get(self.fe.EL_SERVO_INDEX)
-                    elif motor == "AZ":
-                        index = self.fe.config_get(self.fe.AZ_SERVO_INDEX)
-                    else:
+        if len(args) != 2:
+            self._error("Usage: motortest <EL | AZ> <ANGLE>")
+            return
+        s_args = self._parse_file_names(args)
+        error_str = "The first parameter must be EL or AZ. <ANGLE> must be an integer or float"
+        if self._is_open():
+            try:
+                if self.fe.is_antenna_initialized():
+                    print("Running motor testing routine...")
+                    if self.fe.is_safemode():
+                        self._error("AntKontrol is in SAFE MODE. Attached motors will not move")
+                        print("If you did not intend to be in SAFE MODE, check your configuration and run "
+                              "'antkontrol start'")
+                    try:
+                        motor, pos = s_args
+                        if motor == "EL":
+                            index = self.fe.config_get(self.fe.EL_SERVO_INDEX)
+                        elif motor == "AZ":
+                            index = self.fe.config_get(self.fe.AZ_SERVO_INDEX)
+                        else:
+                            self._error(error_str)
+                            return
+                        pos = float(pos)
+                    except ValueError:
                         self._error(error_str)
                         return
-                    pos = float(pos)
-                except ValueError:
-                    self._error(error_str)
-                    return
-                data = self.fe.motor_test(index, pos)
-                real_pos, x_angle, y_angle, z_angle = data
+                    data = self.fe.motor_test(index, pos)
+                    real_pos, x_angle, y_angle, z_angle = data
 
-                # Need to do math here
-                print("Real IMU angles: %d", real_pos)
-                print("Expected position: %d", real_pos)
-            else:
-                self._error("Please run 'antkontrol start' to initialize the antenna.")
-        except PyboardError:
-            self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
+                    # Need to do math here
+                    print("Real IMU angles: %d", real_pos)
+                    print("Expected position: %d", real_pos)
+                else:
+                    self._error("Please run 'antkontrol start' to initialize the antenna.")
+            except PyboardError as e:
+                self._error("The AntKontrol object is not responding. Restart it with 'antkontrol start'")
+                error_list = self.parse_error(e)
+                print(error_list[2])
 
     def do_elevation(self, args):
         """elevation <ELEVATION>
         Set the elevation to the level given in degrees by the first argument.
         """
+        if len(args) != 1:
+            self._error("Usage: elevation <ELEVATION>")
+            return
         try:
-            if not len(args):
-                self._error("Missing argument: <ELEVATION>")
-            elif self._is_open() and self.fe.is_antenna_initialized():
-                try:
-                    el = float(args)
+            el = float(args)
+        except ValueError:
+            print("<ELEVATION> must be a floating point number!")
+            return
+
+        if self._is_open():
+            try:
+                if self.fe.is_antenna_initialized():
+                    if self.fe.is_safemode():
+                        self._error("AntKontrol is in SAFE MODE. Attached motors will not move")
+                        print("If you did not intend to be in SAFE MODE, check your configuration and run "
+                              "'antkontrol start'")
                     self.fe.set_elevation_degree(el)
-                except ValueError:
-                    print("<ELEVATION> must be a floating point number!")
-            else:
-                self._error("Please run 'antkontrol start' to initialize the antenna.")
-        except PyboardError:
-            self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
+                else:
+                    self._error("Please run 'antkontrol start' to initialize the antenna.")
+            except PyboardError as e:
+                self._error("The AntKontrol object is not responding. Restart it with 'antkontrol start'")
+                error_list = self.parse_error(e)
+                print(error_list[2])
 
     def do_azimuth(self, args):
         """azimuth <AZIMUTH>
@@ -634,6 +675,10 @@ class NyanShell(mpfshell.MpFileShell):
             if not len(args):
                 self._error("Missing argument: <AZIMUTH>")
             elif self._is_open() and self.fe.is_antenna_initialized():
+                if self.fe.is_safemode():
+                    self._error("AntKontrol is in SAFE MODE. Attached motors will not move")
+                    print("If you did not intend to be in SAFE MODE, check your configuration and run "
+                          "'antkontrol start'")
                 try:
                     az = float(args)
                     self.fe.set_azimuth_degree(az)
@@ -641,12 +686,14 @@ class NyanShell(mpfshell.MpFileShell):
                     print("<AZIMUTH> must be a floating point number!")
             else:
                 self._error("Please run 'antkontrol start' to initialize the antenna.")
-        except PyboardError:
-            self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
+        except PyboardError as e:
+            self._error("The AntKontrol object is not responding. Restart it with 'antkontrol start'")
+            error_list = self.parse_error(e)
+            print(error_list[2])
 
     def do_antkontrol(self, args):
         """antkontrol <start | status>
-        Create a new global AntKontrol instance
+        Create a new global AntKontrol instance or query the status of an existing one
         """
         s_args = self._parse_file_names(args)
         if len(s_args) != 1:
@@ -657,6 +704,8 @@ class NyanShell(mpfshell.MpFileShell):
                 self.start_antkontrol()
             elif s_args[0] == "status":
                 self.status_antkontrol()
+            else:
+                print("Usage: antkontrol <start | status>")
 
     def start_antkontrol(self):
         if self.fe.is_antenna_initialized():
@@ -668,8 +717,10 @@ class NyanShell(mpfshell.MpFileShell):
                             "check your setup and restart AntKontrol")
             else:
                 print("AntKontrol initialized")
-        except:
+        except PyboardError as e:
             self._error("Error creating AntKontrol object. Please check your setup")
+            error_list = self.parse_error(e)
+            print(error_list[2])
 
     def status_antkontrol(self):
         if not self.fe.is_antenna_initialized():
@@ -693,8 +744,10 @@ class NyanShell(mpfshell.MpFileShell):
                     self._error("The satellite is not visible from your position")
             else:
                 self._error("Please run 'antkontrol start' to initialize the antenna.")
-        except PyboardError:
-            self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
+        except PyboardError as e:
+            self._error("The AntKontrol object is not responding. Restart it with 'antkontrol start'")
+            error_list = self.parse_error(e)
+            print(error_list[2])
 
     def do_cancel(self, args):
         """cancel
@@ -708,8 +761,10 @@ class NyanShell(mpfshell.MpFileShell):
                     self._error("The antenna is not currently tracking any satellite.")
             else:
                 self._error("Please run 'antkontrol start' to initialize the antenna.")
-        except PyboardError:
-            self._error("The AntKontrol object is not responding. Restart it with 'antkontrol'")
+        except PyboardError as e:
+            self._error("The AntKontrol object is not responding. Restart it with 'antkontrol start'")
+            error_list = self.parse_error(e)
+            print(error_list[2])
 
 
 def main():
@@ -783,7 +838,7 @@ def main():
         % (sys.version_info[0], sys.version_info[1], serial.VERSION)
     )
 
-    nyanshell= NyanShell(not args.nocolor, not args.nocache, args.reset)
+    nyanshell = NyanShell(not args.nocolor, not args.nocache, args.reset)
 
     if args.open is not None:
         if args.board is None:
@@ -835,4 +890,3 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-
