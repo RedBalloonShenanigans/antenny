@@ -217,15 +217,15 @@ def esp32_antenna_api_factory():
     if config.get("use_imu"):
         try:
             imu = Bno055ImuController(
-                i2c_ch0,
+                i2c_ch1,
                 address=config.get("i2c_bno_address"),
                 sign=(0, 0, 0)
             )
         except OSError:
-            address = i2c_ch0.scan()[0]
+            address = i2c_ch1.scan()[0]
             if (i2c_ch0 != i2c_ch1) and address is not None:
                 imu = Bno055ImuController(
-                    i2c_ch0,
+                    i2c_ch1,
                     crystal=false,
                     address=address,
                     sign=(0, 0, 0)
@@ -240,17 +240,17 @@ def esp32_antenna_api_factory():
         imu = MockImuController()
     try:
         motor = Pca9685Controller(
-            i2c_ch1,
+            i2c_ch0,
             address=config.get("i2c_servo_address"),
             min_us=500,
             max_us=2500,
             degrees=180
         )
     except OSError:
-        address = i2c_ch1.scan()[0]
+        address = i2c_ch0.scan()[0]
         if (i2c_ch1 != i2c_ch0) and address is not None:
             motor = Pca9685Controller(
-                i2c_ch1,
+                i2c_ch0,
                 address=address,
                 min_us=500,
                 max_us=2500,
