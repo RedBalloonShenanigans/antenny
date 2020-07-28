@@ -42,7 +42,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         Arguments:
         key -- name of config parameter.
         """
-        command = "api.config.get(\"{}\")".format(key)
+        command = "config.get(\"{}\")".format(key)
         return self.eval_string_expr(command)
 
     def config_set(self, key, val):
@@ -53,9 +53,9 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         val -- value of paramter
         """
         if isinstance(val, int) or isinstance(val, float):
-            self.exec_("api.config.set(\"%s\", %d)" % (key, val))
+            self.exec_("config.set(\"%s\", %d)" % (key, val))
         elif isinstance(val, str):
-            self.exec_("api.config.set(\"%s\", %s)" % (key, val))
+            self.exec_("config.set(\"%s\", %s)" % (key, val))
 
     def config_get_default(self, key):
         """Get the default value of a config parameter.
@@ -63,7 +63,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         Arguments:
         key -- name of config parameter.
         """
-        return self.eval_string_expr("api.config.get_default(\"{}\")".format(key))
+        return self.eval_string_expr("config.get_default(\"{}\")".format(key))
 
     def config_new(self, name):
         """Create a new config file on the ESP32.
@@ -71,7 +71,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         Arguments:
         name -- name of new config file.
         """
-        self.exec_("api.config.new(\"{}\")".format(name))
+        self.exec_("config.new(\"{}\")".format(name))
 
     def config_switch(self, name):
         """Switch to using a different config file.
@@ -79,7 +79,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         Arguments:
         name -- name of config file.
         """
-        self.exec_("api.config.switch(\"{}\")".format(name))
+        self.exec_("config.switch(\"{}\")".format(name))
 
     def i2c_scan(self, sda, scl):
         """

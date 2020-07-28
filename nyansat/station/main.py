@@ -4,6 +4,7 @@ import antenny
 import machine
 
 from antenny_threading import Queue
+from config.config import ConfigRepository
 
 from multi_client.follower import AntennyFollowerNode, MCAST_PORT, UDPFollowerClient
 
@@ -26,7 +27,13 @@ def initialize_i2c_bus():
 logging.basicConfig(level=logging.DEBUG)
 initialize_i2c_bus()
 # leave this global so the entire system has access to the AntKontrol instance
-api = antenny.esp32_antenna_api_factory()
+try:
+    api = antenny.esp32_antenna_api_factory()
+    config = api.config
+except Exception as e:
+    print("Unable to create an ESP32 Antenny instance: {}".format(e))
+    print("To change config values use `config.set(key, value)`")
+    config = ConfigRepository()
 
 
 def join_leader(my_id: int):
