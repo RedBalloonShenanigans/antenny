@@ -11,6 +11,7 @@ try:
     import logging
     import antenny
     from antenny_threading import Queue
+    from config.config import ConfigRepository
     from multi_client.follower import AntennyFollowerNode, MCAST_PORT, UDPFollowerClient
 except ImportError:
     failed_imports = True
@@ -36,10 +37,12 @@ if not failed_imports:
     initialize_i2c_bus()
     # leave this global so the entire system has access to the AntKontrol instance
     api = antenny.esp32_antenna_api_factory()
+    config = api.config
 else:
     print("WARNING: necessary imports failed, please reboot the device after installing the "
           "necessary dependencies")
     api = None
+    config = ConfigRepository()
 
 
 def join_leader(my_id: int):
