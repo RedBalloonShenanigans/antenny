@@ -51,7 +51,7 @@ class Connection(object):
             if self.sta_if.isconnected():
                 break
             print("Waiting for connection {}/{}".format(retry_count, self.num_retries))
-            time.sleep(3)
+            time.sleep(1)
 
         # Success:
         if self.sta_if.isconnected():
@@ -63,7 +63,7 @@ class Connection(object):
                     break
                 except:
                     pass
-                time.sleep(3)
+                time.sleep(1)
 
         # Failure, starting access point
         else:
