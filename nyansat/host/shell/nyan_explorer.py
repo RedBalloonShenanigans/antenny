@@ -1,7 +1,9 @@
 import ast
 import asyncio
+from dataclasses import dataclass
 import json
 import threading
+from typing import List
 
 from time import sleep
 
@@ -110,6 +112,130 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
                 )
             )
         return self.eval_string_expr("i2c.scan()")
+
+    
+    def bno_test(self, sda, scl):
+        """
+        Create a BNO controller object for the given I2C sda/scl configuration. Uses the default
+        value of 40 for the BNO055 I2C address.
+        :param sda: Pin number for sda
+        :param scl: Pin number for scl
+        :return: A BnoTestDiagnostics object containing relevant T/F information about the setup
+        """
+        i2c_bus_scannable = False
+        i2c_addresses = []
+        bno_object_created = False
+        bno_object_calibrated = False
+
+        # Test scanning I2C bus
+        try:
+            addresses = self.i2c_scan(sda, scl)
+        except PyboardError:
+            return BnoTestDiagnostics(
+                i2c_bus_scannable,
+                i2c_addresses,
+                bno_object_created,
+                bno_object_calibrated
+            )
+        i2c_bus_scannable = True
+
+        # Test what's on the I2C bus and their addresses
+        try:
+            i2c_addresses = [int(n) for n in addresses.strip('] [').split(', ')]
+            if not i2c_addresses:
+                return BnoTestDiagnostics(
+                    i2c_bus_scannable,
+                    i2c_addresses,
+                    bno_object_created,
+                    bno_object_calibrated
+                )
+        except ValueError:
+            return BnoTestDiagnostics(
+                i2c_bus_scannable,
+                i2c_addresses,
+                bno_object_created,
+                bno_object_calibrated
+            )
+
+        # Test creating BNO object
+        try:
+            self.exec_("from imu.imu_bno055 import Bno055ImuController")
+            self.exec_("bno = Bno055ImuController(i2c)")
+        except PyboardError:
+            return BnoTestDiagnostics(
+                i2c_bus_scannable,
+                i2c_addresses,
+                bno_object_created,
+                bno_object_calibrated
+            )
+        bno_object_created = True
+
+        # Test calibration status of BNO object
+        try:
+            calibration_status = json.loads(self.eval_string_expr("bno.get_calibration_status()"))
+            bno_object_calibrated = calibration_status['system'] > 0
+        except PyboardError:
+            bno_object_calibrated = False
+
+        return BnoTestDiagnostics(
+            i2c_bus_scannable,
+            i2c_addresses,
+            bno_object_created,
+            bno_object_calibrated
+        )
+
+    def pwm_test(self, sda, scl):
+        """
+        Create a PCA9685 controller object for the given I2C sda/scl configuration. Uses the default
+        value of 40 for the controller's address.
+        :param sda: Pin number for sda
+        :param scl: Pin number for scl
+        :return: A PwmTestDiagnostics object containing relevant T/F information about the setup
+        """
+        i2c_bus_scannable = False
+        i2c_addresses = []
+        pca_object_created = False
+
+        # Test scanning I2C bus
+        try:
+            addresses = self.i2c_scan(sda, scl)
+        except PyboardError:
+            return PwmTestDiagnostics(
+                i2c_bus_scannable,
+                i2c_addresses,
+                pca_object_created
+            )
+        i2c_bus_scannable = True
+
+        # Test what's on the I2C bus and their addresses
+        try:
+            i2c_addresses = [int(n) for n in addresses.strip('] [').split(', ')]
+            if not i2c_addresses:
+                return PwmTestDiagnostics(
+                    i2c_bus_scannable,
+                    i2c_addresses,
+                    pca_object_created
+                )
+        except ValueError:
+            return PwmTestDiagnostics(
+                i2c_bus_scannable,
+                i2c_addresses,
+                pca_object_created
+            )
+
+        # Test creating BNO object
+        try:
+            self.exec_("from motor.motor_pca9685 import Pca9685Controller")
+            self.exec_("pca = Pca9685Controller(i2c)")
+            pca_object_created = True
+        except PyboardError:
+            pca_object_created = False
+
+        return PwmTestDiagnostics(
+            i2c_bus_scannable,
+            i2c_addresses,
+            pca_object_created
+        )
 
     def imu_calibration_status(self):
         """Get IMU calibration status."""
@@ -222,3 +348,18 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
 class NyanExplorerCaching(NyanExplorer, MpFileExplorerCaching):
     """Wrapper for MpFileExplorerCaching that includes the new NyanPyboard/NyanExplorer functionality."""
     pass
+
+@dataclass
+class BnoTestDiagnostics:
+    """Store diagnostic T/F values for BNO test. Used in the handling for 'bnotest' command."""
+    i2c_bus_scannable: bool
+    i2c_addresses: List[int]
+    bno_object_created: bool
+    bno_object_calibrated: bool
+
+@dataclass
+class PwmTestDiagnostics:
+    """Store diagnostic T/F values for PWM test. Used in the handling for 'pwmtest' command."""
+    i2c_bus_scannable: bool
+    i2c_addresses: List[int]
+    pca_object_created: bool

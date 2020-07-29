@@ -405,6 +405,55 @@ class NyanShell(mpfshell.MpFileShell):
             error_list = self.parse_error(e)
             print(error_list[2])
 
+    def do_bnotest(self, args):
+        """bnotest
+        Return some diagnostic data that may be helpful in connecting a BNO055 device.
+        """
+        if not self._is_open():
+            return
+
+        print("Input the SDA pin and SCL of the BNO device to test")
+        try:
+            sda = int(input("SDA Pin#: "))
+            scl = int(input("SCL Pin#: "))
+        except ValueError:
+            self._error("Invalid type for pin number. Try again using only decimal numbers")
+            return
+
+        bno_test_diagnostics = self.fe.bno_test(sda, scl)
+        print("---")
+        print("I2C bus usable?", bno_test_diagnostics.i2c_bus_scannable)
+        if len(bno_test_diagnostics.i2c_addresses) == 0:
+            print("I2C address detected? False")
+        else:
+            print("I2C address detected? True, addresses =", bno_test_diagnostics.i2c_addresses)
+        print("BNO connection established?", bno_test_diagnostics.bno_object_created)
+        print("BNO calibrated?", bno_test_diagnostics.bno_object_calibrated)
+
+    def do_pwmtest(self, args):
+        """pwmtest
+        Return some diagnostic data that may be helpful in connecting a PCA9685 device.
+        """
+        if not self._is_open():
+            return
+
+        print("Input the SDA pin and SCL of the PWM driver to test")
+        try:
+            sda = int(input("SDA Pin#: "))
+            scl = int(input("SCL Pin#: "))
+        except ValueError:
+            self._error("Invalid type for pin number. Try again using only decimal numbers")
+            return
+
+        pwm_test_diagnostics = self.fe.pwm_test(sda, scl)
+        print("---")
+        print("I2C bus usable?", pwm_test_diagnostics.i2c_bus_scannable)
+        if len(pwm_test_diagnostics.i2c_addresses) == 0:
+            print("I2C address detected? False")
+        else:
+            print("I2C address detected? True, addresses =", pwm_test_diagnostics.i2c_addresses)
+        print("PWM connection established?", pwm_test_diagnostics.pca_object_created)
+
     def complete_switch(self, *args):
         """Tab completion for switch command."""
         try:
