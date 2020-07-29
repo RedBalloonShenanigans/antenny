@@ -47,7 +47,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
 
     def which_config(self):
         """Get the name of the currently used config file."""
-        return self.eval_string_expr("api.config.current_file()")
+        return self.eval_string_expr("config.current_file()")
 
     def config_get(self, key):
         """Get the value of an individual config parameter.

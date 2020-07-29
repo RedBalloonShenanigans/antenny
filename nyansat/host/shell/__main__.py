@@ -81,7 +81,7 @@ class NyanShell(mpfshell.MpFileShell):
             "elevation_max_rate": ("Servo elevation max rate: ", float),
             "azimuth_max_rate": ("Servo azimuth max rate: ", float),
             "use_webrepl": ("Use WebREPL: ", bool),
-            "use_telemetry": ("Use Telemetry", bool)
+            "use_telemetry": ("Use Telemetry: ", bool)
         }
 
     def _intro(self):
@@ -538,7 +538,7 @@ class NyanShell(mpfshell.MpFileShell):
 
                 print(f"System calibration complete: {yes_display_string}")
                 print("Saving calibration data ...")
-                self.do_save_calibration()
+                self.do_save_calibration(None)
                 print("Calibration data is now saved to config.")
             else:
                 self._error("Please run 'antkontrol start' to initialize the antenna.")
