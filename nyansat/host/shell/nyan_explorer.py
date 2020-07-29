@@ -3,6 +3,7 @@ import asyncio
 from dataclasses import dataclass
 import json
 import threading
+from typing import List
 
 from time import sleep
 
@@ -122,7 +123,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         :return: A BnoTestDiagnostics object containing relevant T/F information about the setup
         """
         i2c_bus_scannable = False
-        i2c_address_detected = False
+        i2c_addresses = []
         bno_object_created = False
         bno_object_calibrated = False
 
@@ -132,23 +133,29 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         except PyboardError:
             return BnoTestDiagnostics(
                 i2c_bus_scannable,
-                i2c_address_detected,
+                i2c_addresses,
                 bno_object_created,
                 bno_object_calibrated
             )
         i2c_bus_scannable = True
 
         # Test what's on the I2C bus and their addresses
-        addresses_list = addresses.strip('] [').strip(', ')
-        if not addresses_list:
+        try:
+            i2c_addresses = [int(n) for n in addresses.strip('] [').split(', ')]
+            if not i2c_addresses:
+                return BnoTestDiagnostics(
+                    i2c_bus_scannable,
+                    i2c_addresses,
+                    bno_object_created,
+                    bno_object_calibrated
+                )
+        except ValueError:
             return BnoTestDiagnostics(
                 i2c_bus_scannable,
-                i2c_address_detected,
+                i2c_addresses,
                 bno_object_created,
                 bno_object_calibrated
             )
-        else:
-            i2c_address_detected = True
 
         # Test creating BNO object
         try:
@@ -157,7 +164,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         except PyboardError:
             return BnoTestDiagnostics(
                 i2c_bus_scannable,
-                i2c_address_detected,
+                i2c_addresses,
                 bno_object_created,
                 bno_object_calibrated
             )
@@ -172,7 +179,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
 
         return BnoTestDiagnostics(
             i2c_bus_scannable,
-            i2c_address_detected,
+            i2c_addresses,
             bno_object_created,
             bno_object_calibrated
         )
@@ -186,7 +193,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         :return: A PwmTestDiagnostics object containing relevant T/F information about the setup
         """
         i2c_bus_scannable = False
-        i2c_address_detected = False
+        i2c_addresses = []
         pca_object_created = False
 
         # Test scanning I2C bus
@@ -195,33 +202,38 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         except PyboardError:
             return PwmTestDiagnostics(
                 i2c_bus_scannable,
-                i2c_address_detected,
+                i2c_addresses,
                 pca_object_created
             )
         i2c_bus_scannable = True
 
         # Test what's on the I2C bus and their addresses
-        addresses_list = addresses.strip('] [').strip(', ')
-        if not addresses_list:
+        try:
+            i2c_addresses = [int(n) for n in addresses.strip('] [').split(', ')]
+            if not i2c_addresses:
+                return PwmTestDiagnostics(
+                    i2c_bus_scannable,
+                    i2c_addresses,
+                    pca_object_created
+                )
+        except ValueError:
             return PwmTestDiagnostics(
                 i2c_bus_scannable,
-                i2c_address_detected,
+                i2c_addresses,
                 pca_object_created
             )
-        else:
-            i2c_address_detected = True
 
         # Test creating BNO object
         try:
             self.exec_("from motor.motor_pca9685 import Pca9685Controller")
-            self.exec_("bno = Pca9685Controller(i2c)")
+            self.exec_("pca = Pca9685Controller(i2c)")
             pca_object_created = True
         except PyboardError:
             pca_object_created = False
 
         return PwmTestDiagnostics(
             i2c_bus_scannable,
-            i2c_address_detected,
+            i2c_addresses,
             pca_object_created
         )
 
@@ -341,7 +353,7 @@ class NyanExplorerCaching(NyanExplorer, MpFileExplorerCaching):
 class BnoTestDiagnostics:
     """Store diagnostic T/F values for BNO test. Used in the handling for 'bnotest' command."""
     i2c_bus_scannable: bool
-    i2c_address_detected: bool
+    i2c_addresses: List[int]
     bno_object_created: bool
     bno_object_calibrated: bool
 
@@ -349,5 +361,5 @@ class BnoTestDiagnostics:
 class PwmTestDiagnostics:
     """Store diagnostic T/F values for PWM test. Used in the handling for 'pwmtest' command."""
     i2c_bus_scannable: bool
-    i2c_address_detected: bool
+    i2c_addresses: List[int]
     pca_object_created: bool
