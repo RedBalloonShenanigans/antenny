@@ -10,7 +10,6 @@ nyanshell: setup
 _check_serial_param:
 	@[ "${SERIAL}" ] || ( echo "SERIAL flag is not set\nSet SERIAL to your ESP32's port"; exit 1 )
 
-
 clean: _check_serial_param
 	echo "\n" > empty_file.py
 	mpfshell -o ser:$(SERIAL) -s esp32_clean.mpf
