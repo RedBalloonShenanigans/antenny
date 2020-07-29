@@ -355,10 +355,10 @@ class NyanShell(mpfshell.MpFileShell):
         """switch <CONFIG_FILE>
         Switch to using a different config file."""
         if self._is_open():
-            if len(args) != 1:
+            s_args = self._parse_file_names(args)
+            if len(s_args) != -1:
                 self._error("Usage: switch <CONFIG_FILE>")
                 return
-            s_args = self._parse_file_names(args)
             try:
                 if self.fe.config_status():
                     name, = s_args
@@ -607,10 +607,10 @@ class NyanShell(mpfshell.MpFileShell):
         """motortest <EL | AZ> <ANGLE>
         Test the motors to plot their accuracy against the measured IMU values.
         """
-        if len(args) != 2:
+        s_args = self._parse_file_names(args)
+        if len(s_args) != 2:
             self._error("Usage: motortest <EL | AZ> <ANGLE>")
             return
-        s_args = self._parse_file_names(args)
         error_str = "The first parameter must be EL or AZ. <ANGLE> must be an integer or float"
         if self._is_open():
             try:
@@ -619,9 +619,9 @@ class NyanShell(mpfshell.MpFileShell):
                     self.safemode_guard()
                     try:
                         motor, pos = s_args
-                        if motor == "EL":
+                        if motor.to_upper() == "EL":
                             index = self.fe.config_get(self.fe.EL_SERVO_INDEX)
-                        elif motor == "AZ":
+                        elif motor.to_upper() == "AZ":
                             index = self.fe.config_get(self.fe.AZ_SERVO_INDEX)
                         else:
                             self._error(error_str)
@@ -647,7 +647,7 @@ class NyanShell(mpfshell.MpFileShell):
         """elevation <ELEVATION>
         Set the elevation to the level given in degrees by the first argument.
         """
-        if len(args) != 1:
+        if not len(args):
             self._error("Usage: elevation <ELEVATION>")
             return
         try:
@@ -673,7 +673,7 @@ class NyanShell(mpfshell.MpFileShell):
         Set the azimuth to the level given in degrees by the first argument.
         """
         # TODO: merge this function with do_elevation in one move command
-        if len(args) != 1:
+        if not len(args):
             self._error("Usage: azimuth <AZIMUTH>")
             return
         try:
