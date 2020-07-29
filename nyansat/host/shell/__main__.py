@@ -423,7 +423,10 @@ class NyanShell(mpfshell.MpFileShell):
         bno_test_diagnostics = self.fe.bno_test(sda, scl)
         print("---")
         print("I2C bus usable?", bno_test_diagnostics.i2c_bus_scannable)
-        print("I2C address detected?", bno_test_diagnostics.i2c_address_detected)
+        if len(bno_test_diagnostics.i2c_addresses) == 0:
+            print("I2C address detected? False")
+        else:
+            print("I2C address detected? True, addresses =", bno_test_diagnostics.i2c_addresses)
         print("BNO connection established?", bno_test_diagnostics.bno_object_created)
         print("BNO calibrated?", bno_test_diagnostics.bno_object_calibrated)
 
@@ -445,7 +448,10 @@ class NyanShell(mpfshell.MpFileShell):
         pwm_test_diagnostics = self.fe.pwm_test(sda, scl)
         print("---")
         print("I2C bus usable?", pwm_test_diagnostics.i2c_bus_scannable)
-        print("I2C address detected?", pwm_test_diagnostics.i2c_address_detected)
+        if len(pwm_test_diagnostics.i2c_addresses) == 0:
+            print("I2C address detected? False")
+        else:
+            print("I2C address detected? True, addresses =", pwm_test_diagnostics.i2c_addresses)
         print("PWM connection established?", pwm_test_diagnostics.pca_object_created)
 
     def complete_switch(self, *args):
