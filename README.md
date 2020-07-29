@@ -24,13 +24,47 @@ To enter NyanShell, type the following in a terminal window:
 python3 -m nyansat.host
 ```
 
+You should be greeted with a terminal window that looks like this:
+
+![Initial Terminal Window](doc_images/start_terminal.png)
+
+The device is not connected automatically. You have several options to connect to the device; type the commands listed under your preferred connection option
+
+### Connecting Via Serial
+
+```
+open <your ESP32's serial port>
+```
+
+### Connecting Via WebREPL
+
+```
+open ws:<your ESP32's IP address>,<your webrepl password>
+```
+
+### Exploring the Shell
+
+Once you have connected to your ESP32, we still need to configure it to properly use NyanSat. However, this is a good opportunity to check out all of the available commands at your disposal! Type `help` to get the list.
+
+To get more information about each documented command, you can type `help <command>` to get a brief description of the command including how to use it.
+
+### Configuring AntKontrol
+
+The heart of NyanSat is AntKontrol, a scalable API that you can extend to add more features on your NyanSat device. An AntKontrol instance is usually started up when the ESP32 boots up. However, if you wish to create a new instance, you can run `antkontrol start`. 
+
+AntKontrol attempts to integrate different hardware into one interface. It is usually able to recover from misbehaving hardware and provide reduced functionality. However, if the motor implementation does not initialize properly, AntKontrol enters SAFE MODE. In this state, any commands issued will not move your base station's motors until you determine what the fault is. To determine if your device is in SAFE MODE, run `antkontrol status`. 
+
+![Querying AntKontrol's Status](doc_images/safe_mode.png)
+
+One of the main reasons why AntKontrol would enter SAFE MODE is an incorrect configuration. Depending on your setup, you may have a different pin layout, device addresses, or hardware than what NyanSat is using. Accordingly, you can use the `setup` and `i2ctest` commands to resolve the first two issues. For different hardware, the `repl` command provides you with a full Python interpreter, which you can use to implement your own exciting hardware. 
+
 ## Features
 
 ### Easy Pin Setup and Profile Management
 
 If your pin configuration is different from the default values, you can easily change to them by running the `setup <profile_name>` command. This command creates a new profile with your given name and switches to it.
 
-If you have multiple pin configurations on the ESP32, you can switch between them using the `switch_config <profile_name>` command. This command switches to your chosen profile, leaving the original one intact, but not in use.
+If you have multiple pin configurations on the ESP32, you can switch between them using the `switch <profile_name>` command. This command switches to your chosen profile, leaving the original one intact, but not in use.
 
 ### Telemetry
 
