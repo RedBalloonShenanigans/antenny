@@ -616,7 +616,7 @@ class NyanShell(mpfshell.MpFileShell):
             try:
                 if self.fe.is_antenna_initialized():
                     print("Running motor testing routine...")
-                    self.safemode_guard()j
+                    self.safemode_guard()
                     try:
                         motor, pos = s_args
                         if motor == "EL":
