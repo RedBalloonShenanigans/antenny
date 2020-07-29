@@ -379,7 +379,7 @@ class NyanShell(mpfshell.MpFileShell):
                 error_list = self.parse_error(e)
                 print(error_list[2])
 
-    def do_i2ctest(self):
+    def do_i2ctest(self, args):
         """i2ctest
         Scan an i2c bus for i2c device addresses
         """
@@ -548,11 +548,11 @@ class NyanShell(mpfshell.MpFileShell):
                         "support IMU calibration.")
             print("You can try to restart AntKontrol by running 'antkontrol start'")
             print("If you believe your configuration is incorrect, run 'configs' to check your configuration and "
-                  "'setup <CONFIG_FILE>' to create a new one")
+                  "'setup <CONFIG_FILE>' to create a new one\n")
             error_list = self.parse_error(e)
             print(error_list[2])
 
-    def do_save_calibration(self):
+    def do_save_calibration(self, args):
         """save_calibration
         Save current IMU calibration data to the current configuration.
         """
@@ -570,11 +570,11 @@ class NyanShell(mpfshell.MpFileShell):
                             "support IMU calibration.")
                 print("You can try to restart AntKontrol by running 'antkontrol start'")
                 print("If you believe your configuration is incorrect, run 'configs' to check your configuration and "
-                      "'setup <CONFIG_FILE>' to create a new one")
+                      "'setup <CONFIG_FILE>' to create a new one\n")
                 error_list = self.parse_error(e)
                 print(error_list[2])
 
-    def do_upload_calibration(self):
+    def do_upload_calibration(self, args):
         """upload_calibration
         Upload the currently stored calibration data to the connected IMU.
         """
@@ -592,7 +592,7 @@ class NyanShell(mpfshell.MpFileShell):
                             "support IMU calibration.")
                 print("You can try to restart AntKontrol by running 'antkontrol start'")
                 print("If you believe your configuration is incorrect, run 'configs' to check your configuration and "
-                      "'setup <CONFIG_FILE>' to create a new one")
+                      "'setup <CONFIG_FILE>' to create a new one\n")
                 error_list = self.parse_error(e)
                 print(error_list[2])
 
@@ -619,9 +619,9 @@ class NyanShell(mpfshell.MpFileShell):
                     self.safemode_guard()
                     try:
                         motor, pos = s_args
-                        if motor.to_upper() == "EL":
+                        if motor.upper() == "EL":
                             index = self.fe.config_get(self.fe.EL_SERVO_INDEX)
-                        elif motor.to_upper() == "AZ":
+                        elif motor.upper() == "AZ":
                             index = self.fe.config_get(self.fe.AZ_SERVO_INDEX)
                         else:
                             self._error(error_str)
@@ -677,7 +677,7 @@ class NyanShell(mpfshell.MpFileShell):
             self._error("Usage: azimuth <AZIMUTH>")
             return
         try:
-            el = float(args)
+            az = float(args)
         except ValueError:
             print("<AZIMUTH> must be a floating point number!")
             return
