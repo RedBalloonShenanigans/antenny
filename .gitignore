@@ -15,3 +15,7 @@ nyanshell/nyanshell.egg-info/*
 *.log
 
 tmp/*
+
+# Generated files during install
+webrepl_cfg.py
+wifi_config.json

@@ -11,19 +11,27 @@ The RBS Antenny board is designed using Altium Designer and Assembled by in-hous
 - Soldering Iron Kit
 - Power supply (6v-30v) or lipo battery
 
+## Antenny board hardware setup guide and schematic
+
+- [setup guide](https://github.com/RedBalloonShenanigans/antenny/tree/master/hardware/Antenny_board_hardware_setup_guide.pdf)
+
+- [Antenny V1 Board Schematic](https://github.com/RedBalloonShenanigans/antenny/tree/master/hardware/Antenny_V1_Schematic.pdf)
+
+- [Antenny V2 Board Schematic](https://github.com/RedBalloonShenanigans/antenny/tree/master/hardware/Antenny_V2_Schematic.pdf)
+
 ## Antenny_board folder
 
 These folder contains the RBS Antenny Board Altium Designer source file. 
 
 - Antenna_base.PcbDoc
 
-Verison 1.0 of RBS Anteeny Board Layout
+Verison 1.0 of RBS Antenny Board Layout
 
 P6 GND; P5 VCCV6; P4 PWM
 
 - Antenna_base_v2.PcbDoc
 
-Verison 2.0 of RBS Anteeny Board Layout
+Verison 2.0 of RBS Antenny Board Layout
 
 ## IMU_board folder 
 

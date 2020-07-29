@@ -1,7 +1,11 @@
 
-put nyansat/station/main.py main.py
+md config
+put nyansat/station/config/__init__.py /config/__init__.py
+put nyansat/station/config/config.py /config/config.py
+
 put nyansat/station/boot.py boot.py
 put nyansat/station/antenny.py antenny.py
+put nyansat/station/main.py main.py
 put nyansat/station/__init__.py __init__.py
 put wifi_config.json 
 
@@ -11,17 +15,13 @@ put lib/PCA9685/pca9685.py pca9685.py
 put lib/micropython/drivers/display/ssd1306.py ssd1306.py
 put lib/micropygps/micropyGPS.py micropyGPS.py
 
-exec import boot
-exec boot.do_connect()
 exec import sys
 exec sys.exit()
+exec from boot import Connection
+exec Connection()
 exec import upip
 exec upip.install('logging')
 exec upip.install('asyncio')
-
-md config
-put nyansat/station/config/__init__.py /config/__init__.py
-put nyansat/station/config/config.py /config/config.py
 
 md gps
 put nyansat/station/gps/__init__.py /gps/__init__.py

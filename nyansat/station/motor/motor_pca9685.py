@@ -75,6 +75,15 @@ class Pca9685Controller(MotorController):
         duty = min(self.max_duty, max(self.min_duty, int(duty)))
         self.pca9685.duty(index, duty)
 
+    def get_position_degrees(self, index):
+        """Get the position of a servo in degrees."""
+        assert index in self.SERVOS
+
+        span = self.max_duty - self.min_duty
+        duty = self.pca9685.duty(index)
+        degrees = (duty - self.min_duty) * self._degrees[index] / span
+        return degrees
+
     def __move_one(self, timer):
         index, end, step = self._move_data
         cur = self.pca9685.duty(index)

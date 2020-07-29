@@ -9,11 +9,14 @@ setup(
     author="Red Balloon Security",
     url="https://github.com/RedBalloonShenanigans/antenny/",
     install_requires=[
+        "aiohttp",
         "colorama",
+        "fuzzywuzzy",
         "mpfshell==0.9.1",
         "pyserial",
         "rbs-tui-dom",
-        "websocket_client",
+        "skyfield",
+        "websocket_client"
     ],
     keywords=["micropython", ],
     classifiers=[],
