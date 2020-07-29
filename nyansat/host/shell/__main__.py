@@ -596,6 +596,13 @@ class NyanShell(mpfshell.MpFileShell):
                 error_list = self.parse_error(e)
                 print(error_list[2])
 
+    def safemode_guard(self):
+        """Warns user if AntKontrol is in SAFE MODE while using motor-class commands"""
+        if self.fe.is_safemode():
+            self._error("AntKontrol is in SAFE MODE. Attached motors will not move")
+            print("If you did not intend to be in SAFE MODE, check your configuration and run "
+                  "'antkontrol start'")
+
     def do_motortest(self, args):
         """motortest <EL | AZ> <ANGLE>
         Test the motors to plot their accuracy against the measured IMU values.
@@ -609,10 +616,7 @@ class NyanShell(mpfshell.MpFileShell):
             try:
                 if self.fe.is_antenna_initialized():
                     print("Running motor testing routine...")
-                    if self.fe.is_safemode():
-                        self._error("AntKontrol is in SAFE MODE. Attached motors will not move")
-                        print("If you did not intend to be in SAFE MODE, check your configuration and run "
-                              "'antkontrol start'")
+                    self.safemode_guard()j
                     try:
                         motor, pos = s_args
                         if motor == "EL":
@@ -655,10 +659,7 @@ class NyanShell(mpfshell.MpFileShell):
         if self._is_open():
             try:
                 if self.fe.is_antenna_initialized():
-                    if self.fe.is_safemode():
-                        self._error("AntKontrol is in SAFE MODE. Attached motors will not move")
-                        print("If you did not intend to be in SAFE MODE, check your configuration and run "
-                              "'antkontrol start'")
+                    self.safemode_guard()
                     self.fe.set_elevation_degree(el)
                 else:
                     self._error("Please run 'antkontrol start' to initialize the antenna.")
@@ -671,25 +672,27 @@ class NyanShell(mpfshell.MpFileShell):
         """azimuth <AZIMUTH>
         Set the azimuth to the level given in degrees by the first argument.
         """
+        # TODO: merge this function with do_elevation in one move command
+        if len(args) != 1:
+            self._error("Usage: azimuth <AZIMUTH>")
+            return
         try:
-            if not len(args):
-                self._error("Missing argument: <AZIMUTH>")
-            elif self._is_open() and self.fe.is_antenna_initialized():
-                if self.fe.is_safemode():
-                    self._error("AntKontrol is in SAFE MODE. Attached motors will not move")
-                    print("If you did not intend to be in SAFE MODE, check your configuration and run "
-                          "'antkontrol start'")
-                try:
-                    az = float(args)
+            el = float(args)
+        except ValueError:
+            print("<AZIMUTH> must be a floating point number!")
+            return
+        
+        if self._is_open():
+            try:
+                if self.fe.is_antenna_initialized():
+                    self.safemode_guard()
                     self.fe.set_azimuth_degree(az)
-                except ValueError:
-                    print("<AZIMUTH> must be a floating point number!")
-            else:
-                self._error("Please run 'antkontrol start' to initialize the antenna.")
-        except PyboardError as e:
-            self._error("The AntKontrol object is not responding. Restart it with 'antkontrol start'")
-            error_list = self.parse_error(e)
-            print(error_list[2])
+                else:
+                    self._error("Please run 'antkontrol start' to initialize the antenna.")
+            except PyboardError as e:
+                self._error("The AntKontrol object is not responding. Restart it with 'antkontrol start'")
+                error_list = self.parse_error(e)
+                print(error_list[2])
 
     def do_antkontrol(self, args):
         """antkontrol <start | status>
