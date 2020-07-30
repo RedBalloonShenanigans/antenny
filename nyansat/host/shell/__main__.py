@@ -548,7 +548,7 @@ class NyanShell(mpfshell.MpFileShell):
                 e
             )
             print("You can try to restart AntKontrol by running 'antkontrol start'")
-            print("If you believe your configuration is incorrect, run 'configs' to check your configuration and "
+            print("If you believe your configuration is incorrect, run 'configs' to check your configuration and ")
 
     def do_save_calibration(self, args):
         """save_calibration
