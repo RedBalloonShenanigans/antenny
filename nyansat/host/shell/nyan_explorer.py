@@ -28,6 +28,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         """Test if there is an AntKontrol object on the board"""
         try:
             self.exec_("isinstance(api, antenny.AntennyAPI)")
+            #self.exec_("isinstance(a, antenny.AntKontrol)")
             return True
         except PyboardError:
             return False
@@ -222,4 +223,8 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
 
 class NyanExplorerCaching(NyanExplorer, MpFileExplorerCaching):
     """Wrapper for MpFileExplorerCaching that includes the new NyanPyboard/NyanExplorer functionality."""
+    pass
+
+
+class NyanExplorerError(Exception):
     pass
