@@ -300,14 +300,22 @@ def esp32_antenna_api_factory():
             safe_mode = True
             motor = MockMotorController()
 
+    try:
+        azimuth_index = config.get("azimuth_servo_index")
+        elevation_index = config.get("elevation_servo_index")
+    except:
+        LOG.warning("Unable to retrieve servo indices, using default values. Your motor movement may be incorrect")
+        azimuth_index = 1
+        elevation_index = 0
+
     antenna_controller = AntennaController(
         AxisController(
-            config.get("azimuth_servo_index"),
+            azimuth_index,
             imu,
             motor,
         ),
         AxisController(
-            config.get("elevation_servo_index"),
+            elevation_index,
             imu,
             motor,
         ),
