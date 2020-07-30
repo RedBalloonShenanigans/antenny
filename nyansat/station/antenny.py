@@ -302,12 +302,12 @@ def esp32_antenna_api_factory():
 
     antenna_controller = AntennaController(
         AxisController(
-            1,
+            config.get("azimuth_servo_index"),
             imu,
             motor,
         ),
         AxisController(
-            0,
+            config.get("elevation_servo_index"),
             imu,
             motor,
         ),
