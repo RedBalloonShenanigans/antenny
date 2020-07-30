@@ -660,18 +660,7 @@ class NyanShell(mpfshell.MpFileShell):
         parsed_args = parse_cli_args(args, 'elevation', 1, arg_properties)
         el, = parsed_args
         self.client.elevation(el)
-        if self._is_open():
-            try:
-                if self.fe.is_antenna_initialized():
-                    self.client.safemode_guard()
-                    self.fe.set_elevation_degree(el)
-                else:
-                    self.printer.print_error("Please run 'antkontrol start' to initialize the antenna.")
-            except PyboardError as e:
-                self.printer.print_error_and_exception(
-                    "The AntKontrol object is not responding. Restart it with 'antkontrol start'",
-                    e
-                )
+
 
     def do_azimuth(self, args):
         """azimuth <AZIMUTH>

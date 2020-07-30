@@ -9,7 +9,8 @@ from mp.mpfexp import MpFileExplorer, MpFileExplorerCaching
 from mp.pyboard import PyboardError
 from nyansat.host.shell.nyan_pyboard import NyanPyboard
 
-from nyansat.host.satellite_observer import SatelliteObserver, parse_tle_file, NotVisibleError
+from nyansat.host.satellite_observer import SatelliteObserver, parse_tle_file
+from nyansat.host.shell.errors import NotVisibleError
 
 import nyansat.host.satdata_client as SatelliteScraper
 
