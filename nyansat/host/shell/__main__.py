@@ -26,6 +26,21 @@ from nyansat.host.shell.terminal_printer import TerminalPrinter
 from nyansat.host.shell.antenny_client import AntennyClient
 
 
+def arg_exception_handler(func):
+    """
+    Decorator for catching improper arguments to the do_something commands.
+    """
+    def wrapper(*args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except ValueError as e:
+            logging.error(e)
+        except RuntimeError as e:
+            logging.error(e)
+
+    return wrapper
+
+
 class NyanShell(mpfshell.MpFileShell):
     """Extension of MPFShell that adds NyanSat-specific features"""
 
@@ -613,40 +628,7 @@ class NyanShell(mpfshell.MpFileShell):
         ]
         parsed_args = parse_cli_args(args, 'motortest', 2, arg_properties)
         motor, pos = parsed_args
-        # TODO: Working on this one right now.
-        """
-        #error_str = "The first parameter must be EL or AZ. <ANGLE> must be an integer or float"
-            try:
-                if self.fe.is_antenna_initialized():
-                    print("Running motor testing routine...")
-                    self.client.safemode_guard()
-                    try:
-                        motor, pos = parsed_args
-                        if motor == "EL":
-                            index = self.fe.config_get(self.fe.EL_SERVO_INDEX)
-                        elif motor == "AZ":
-                            index = self.fe.config_get(self.fe.AZ_SERVO_INDEX)
-                        else:
-                            self.printer.print_error(error_str)
-                            return
-                        pos = float(pos)
-                    except ValueError:
-                        self.printer.print_error(error_str)
-                        return
-                    data = self.fe.motor_test(index, pos)
-                    real_pos, x_angle, y_angle, z_angle = data
-
-                    # Need to do math here
-                    print("Real IMU angles: %d", real_pos)
-                    print("Expected position: %d", real_pos)
-                else:
-                    self.printer.print_error("Please run 'antkontrol start' to initialize the antenna.")
-            except PyboardError as e:
-                self.printer.print_error_and_exception(
-                    "The AntKontrol object is not responding. Restart it with 'antkontrol start'",
-                    e
-                )
-        """
+        self.client.motor_test(motor, pos)
 
     def do_elevation(self, args):
         """elevation <ELEVATION>

@@ -12,14 +12,14 @@ def exception_handler(func):
     def wrapper(*args, **kwargs):
         try:
             func(*args, **kwargs)
+        except NotRespondingError as e:
+            logging.error(e)
+            print("The AntKontrol object is not responding. Restart it with 'antkontrol start'")
         except NoAntKontrolError as e:
             print("Please run 'antkontrol start' to initialize the antenna.")
             logging.error(e)
         except DeviceNotOpenError as e:
             print("Not connected to device. Use 'open' first.")
-            logging.error(e)
-        except PyboardError as e:
-            print("The AntKontrol object is not responding. Restart it with 'antkontrol start'")
             logging.error(e)
         except AntKontrolInitError as e:
             logging.error(e)
@@ -168,8 +168,17 @@ class AntennyClient(object):
         print("If you had a running AntKontrol instance, be sure to restart it")
 
     @exception_handler
-    def motor_test(self):
+    def motor_test(self, motor, pos):
         self.guard_open()
         self.guard_init()
         self.safemode_guard()
-        pass
+        if motor == 'EL':
+            index = self.fe.config_get(self.fe.EL_SERVO_INDEX)
+        elif motor == "AZ":
+            index = self.fe.config_get(self.fe.AZ_SERVO_INDEX)
+
+        data = self.fe.motor_test(index, pos)
+        real_pos, x_angle, y_angle, z_angle = data
+
+        print("real imu angles: %d", real_pos)
+        print("expected position: %d", real_pos)
