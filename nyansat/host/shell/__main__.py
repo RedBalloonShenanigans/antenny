@@ -80,8 +80,8 @@ class NyanShell(mpfshell.MpFileShell):
             "azimuth_servo_index": ("Servo default azimuth index: ", float),
             "elevation_max_rate": ("Servo elevation max rate: ", float),
             "azimuth_max_rate": ("Servo azimuth max rate: ", float),
-            "use_webrepl": ("Use WebREPL: ", bool),
-            "use_telemetry": ("Use Telemetry: ", bool)
+            "use_webrepl": ("Use WebREPL (true or false): ", bool),
+            "use_telemetry": ("Use Telemetry (true or false): ", bool)
         }
 
     def _intro(self):
@@ -335,7 +335,7 @@ class NyanShell(mpfshell.MpFileShell):
         else:
             return []
 
-    def do_configs(self):
+    def do_configs(self, args):
         """configs
         Print a list of all configuration parameters."""
         if self._is_open():
