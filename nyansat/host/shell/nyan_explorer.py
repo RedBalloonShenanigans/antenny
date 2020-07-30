@@ -9,7 +9,8 @@ from mp.mpfexp import MpFileExplorer, MpFileExplorerCaching
 from mp.pyboard import PyboardError
 from nyansat.host.shell.nyan_pyboard import NyanPyboard
 
-from nyansat.host.satellite_observer import SatelliteObserver, parse_tle_file, NotVisibleError
+from nyansat.host.satellite_observer import SatelliteObserver, parse_tle_file
+from nyansat.host.shell.errors import NotVisibleError
 
 import nyansat.host.satdata_client as SatelliteScraper
 
@@ -28,6 +29,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         """Test if there is an AntKontrol object on the board"""
         try:
             self.exec_("isinstance(api, antenny.AntennyAPI)")
+            #self.exec_("isinstance(a, antenny.AntKontrol)")
             return True
         except PyboardError:
             return False
@@ -157,10 +159,11 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
             ret = self.exec_("config = api.config")
             self.antenna_initialized = True
             return ret.decode()
-        except PyboardError:
+        except PyboardError as e:
             self.exec_("from config.config import ConfigRepository")
             self.exec_("config = ConfigRepository")
-            raise PyboardError("Could not create antkontrol object")
+            # This is ugly as SHIT. Needs to be fixed with PROPER error handling
+            return e
 
     def delete_antkontrol(self):
         """Delete the existing antkontrol object on the ESP32."""
@@ -169,7 +172,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
             self.antenna_initialized = False
             return ret.decode()
         except PyboardError:
-            raise PyboardError("Could not delete antkontrol object")
+            pass
 
     def is_safemode(self):
         """Check if the API is in SAFE MODE"""
@@ -182,7 +185,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
                 ret = True
             return ret
         except PyboardError:
-            raise PyboardError("Could not communicate with antkontrol object")
+            pass
 
     def is_tracking(self):
         return self.tracking
@@ -221,4 +224,8 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
 
 class NyanExplorerCaching(NyanExplorer, MpFileExplorerCaching):
     """Wrapper for MpFileExplorerCaching that includes the new NyanPyboard/NyanExplorer functionality."""
+    pass
+
+
+class NyanExplorerError(Exception):
     pass

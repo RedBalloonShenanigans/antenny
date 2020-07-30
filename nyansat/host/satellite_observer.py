@@ -83,7 +83,3 @@ class SatelliteObserver(object):
         elevation, _, _ = self.get_current_stats()
         return elevation > SatelliteObserver.LOWEST_VISIBLE_ELEVATION
 
-
-class NotVisibleError(Exception):
-    pass
-
