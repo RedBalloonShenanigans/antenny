@@ -50,9 +50,15 @@ def exception_handler(func):
         except ConfigStatusError as e:
             logging.error(e)
             print("Could not access existing configuration object or create one.")
+        except NoSuchConfigError as e:
+            logging.error(e)
+            print("No such configuration parameter.")
         except ConfigUnknownError as e:
             logging.error(e)
             print("Command faulted while trying to set configuration.")
+        except ValueError as e:
+            logging.error(e)
+            print("Incorrect parameter type.")
 
     return wrapper
 
@@ -238,5 +244,20 @@ class AntennyClient(object):
                   "You can use \"set\" to change individual parameters\n"
                   "or \"edit\" to change the config file "
                   "directly")
+        else:
+            raise ConfigStatusError
+
+    @exception_handler
+    def set(self, key, new_val):
+        self.guard_open()
+        if self.fe.config_status():
+
+            # TODO: raise appropriate NoSuchConfig error in nyan_explorer
+            old_val = self.fe.config_get(key)
+            _, typ = self.prompts[key]
+            new_val = typ(new_val)
+
+            self.fe.config_set(key, new_val)
+            print("Changed " + "\"" + key + "\" from " + str(old_val) + " --> " + str(new_val))
         else:
             raise ConfigStatusError

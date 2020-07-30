@@ -260,29 +260,9 @@ class NyanShell(mpfshell.MpFileShell):
                 )
             ]
             parsed_args = parse_cli_args(args, 'set', 1, arg_properties)
-            try:
-                if self.fe.config_status():
-                    key, new_val = parsed_args
-                    try:
-                        old_val = self.fe.config_get(key)
-                    except:
-                        self.printer.print_error("No such configuration parameter")
-                        return
-
-                    _, typ = self.client.prompts[key]
-                    try:
-                        new_val = typ(new_val)
-                    except ValueError as e:
-                        self.printer.print_error(str(e))
-                        return
-
-                    self.fe.config_set(key, new_val)
-                    print("Changed " + "\"" + key + "\" from " + str(old_val) + " --> " + str(new_val))
-                else:
-                    self.printer.print_error("Could not access existing configuration object or create one.")
-            except PyboardError as e:
-                self.printer.print_error_and_exception("Command faulted while trying to set configuration", e)
-
+            key, new_val = parsed_args
+            self.client.set(key, new_val)
+            
     def complete_set(self, *args):
         """Tab completion for 'set' command."""
         if self._is_open():
@@ -510,47 +490,13 @@ class NyanShell(mpfshell.MpFileShell):
         """save_calibration
         Save current IMU calibration data to the current configuration.
         """
-        if self._is_open():
-            try:
-                if self.fe.is_antenna_initialized():
-                    status = self.fe.imu_save_calibration_profile()
-
-                    if not status:
-                        self.printer.print_error("Error: BNO055 not detected or error in reading calibration registers.")
-                else:
-                    self.printer.print_error("Please run 'antkontrol start' to initialize the antenna.")
-            except PyboardError as e:
-                self.printer.print_error_and_exception(
-                    "The AntKontrol object is either not responding or your current configuration does not support IMU "
-                    "calibration.",
-                    e
-                )
-                print("You can try to restart AntKontrol by running 'antkontrol start'")
-                print("If you believe your configuration is incorrect, run 'configs' to check your configuration and "
-                      "'setup <CONFIG_FILE>' to create a new one\n")
+        self.client.save_calibration()
 
     def do_upload_calibration(self, args):
         """upload_calibration
         Upload the currently stored calibration data to the connected IMU.
         """
-        if self._is_open():
-            try:
-                if self.fe.is_antenna_initialized():
-                    status = self.fe.imu_upload_calibration_profile()
-
-                    if not status:
-                        self.printer.print_error("Error: BNO055 not detected or error in writing calibration registers.")
-                else:
-                    self.printer.print_error("Please run 'antkontrol start' to initialize the antenna.")
-            except PyboardError as e:
-                self.printer.print_error_and_exception(
-                    "The AntKontrol object is either not responding or your current configuration does not support IMU "
-                    "calibration.",
-                    e
-                )
-                print("You can try to restart AntKontrol by running 'antkontrol start'")
-                print("If you believe your configuration is incorrect, run 'configs' to check your configuration and "
-                      "'setup <CONFIG_FILE>' to create a new one\n")
+        self.client.upload_calibration()
 
     def do_motortest(self, args):
         """motortest <EL | AZ> <ANGLE>
