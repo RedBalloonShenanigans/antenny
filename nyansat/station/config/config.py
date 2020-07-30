@@ -1,7 +1,5 @@
 # src/config.py
 
-# import json as ujson # Uncomment this line for local testing
-
 try:
     import ujson as json
 except ImportError:
@@ -107,8 +105,8 @@ class ConfigRepository:
                                                    self._config_filename)
                     if (last_loaded in loaded
                             and last_loaded != self._config_filename):
-                        logging.error(f"Cyclic config files! Using default: "
-                                      + f"{default_config}.")
+                        logging.error("Cyclic config files! Using default: "
+                                      + default_config)
                         self._config_filename = default_config
                         self.reload()
                         self._config["last_loaded"] = self._config_filename
