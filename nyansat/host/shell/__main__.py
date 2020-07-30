@@ -81,7 +81,7 @@ class NyanShell(mpfshell.MpFileShell):
             "elevation_max_rate": ("Servo elevation max rate: ", float),
             "azimuth_max_rate": ("Servo azimuth max rate: ", float),
             "use_webrepl": ("Use WebREPL: ", bool),
-            "use_telemetry": ("Use Telemetry", bool)
+            "use_telemetry": ("Use Telemetry: ", bool)
         }
 
     def _intro(self):
@@ -137,6 +137,22 @@ class NyanShell(mpfshell.MpFileShell):
             )
         else:
             self.prompt = "nyanshell [" + pwd + "]> "
+
+    def parse_error(self, e):
+        error_list = str(e).strip('()').split(", b'")
+        error_list[0] = error_list[0][1:]
+        ret = []
+        for err in error_list:
+            ret.append(bytes(err[0:-1], 'utf-8').decode('unicode-escape'))
+        return ret
+
+    def print_error_and_exception(self, error, exception):
+        self._error(error)
+        error_list = self.parse_error(exception)
+        try:
+            print(error_list[2])
+        except:
+            pass
 
     def _connect(self, port):
         """Attempt to connect to the ESP32.
@@ -229,14 +245,6 @@ class NyanShell(mpfshell.MpFileShell):
 
     complete_edit = MpFileShell.complete_get
 
-    def parse_error(self, e):
-        error_list = str(e).strip('()').split(", b'")
-        error_list[0] = error_list[0][1:]
-        ret = []
-        for err in error_list:
-            ret.append(bytes(err[0:-1], 'utf-8').decode('unicode-escape'))
-        return ret
-
     def do_setup(self, args):
         """setup <CONFIG_FILE>
         Interactive script to populate a config file.
@@ -284,9 +292,7 @@ class NyanShell(mpfshell.MpFileShell):
                     self._error("Could not access existing configuration object or create one.")
 
             except PyboardError as e:
-                self._error("Command faulted while trying to set configuration.")
-                error_list = self.parse_error(e)
-                print(error_list[2])
+                self.print_error_and_exception("Command faulted while trying to set configuration", e)
 
     def do_set(self, args):
         """set <CONFIG_PARAM> <NEW_VAL>
@@ -320,9 +326,7 @@ class NyanShell(mpfshell.MpFileShell):
                 else:
                     self._error("Could not access existing configuration object or create one.")
             except PyboardError as e:
-                self._error("Command faulted while trying to set configuration.")
-                error_list = self.parse_error(e)
-                print(error_list[2])
+                self.print_error_and_exception("Command faulted while trying to set configuration", e)
 
     def complete_set(self, *args):
         """Tab completion for 'set' command."""
@@ -347,9 +351,7 @@ class NyanShell(mpfshell.MpFileShell):
                 else:
                     self._error("Could not access existing configuration object or create one.")
             except PyboardError as e:
-                self._error("Command faulted while trying to access configuration")
-                error_list = self.parse_error(e)
-                print(error_list[2])
+                self.print_error_and_exception("Command faulted while trying to access configuration", e)
 
     def do_switch(self, args):
         """switch <CONFIG_FILE>
@@ -375,9 +377,7 @@ class NyanShell(mpfshell.MpFileShell):
                     self._error("Could not access existing configuration object or create one.")
 
             except PyboardError as e:
-                self._error("Command faulted while trying to acess or set new configuration")
-                error_list = self.parse_error(e)
-                print(error_list[2])
+                self.print_error_and_exception("Command faulted while trying to access or set new configuration", e)
 
     def do_i2ctest(self, args):
         """i2ctest
@@ -401,9 +401,7 @@ class NyanShell(mpfshell.MpFileShell):
             print(colorama.Fore.RESET + "If you had a running AntKontrol instance, be sure to restart it")
             return
         except PyboardError as e:
-            self._error("Unable to scan the I2C bus")
-            error_list = self.parse_error(e)
-            print(error_list[2])
+            self.print_error_and_exception("Unable to scan the I2C bus", e)
 
     def complete_switch(self, *args):
         """Tab completion for switch command."""
@@ -538,19 +536,20 @@ class NyanShell(mpfshell.MpFileShell):
 
                 print(f"System calibration complete: {yes_display_string}")
                 print("Saving calibration data ...")
-                self.do_save_calibration()
+                self.do_save_calibration(None)
                 print("Calibration data is now saved to config.")
             else:
                 self._error("Please run 'antkontrol start' to initialize the antenna.")
 
         except PyboardError as e:
-            self._error("The AntKontrol object is either not responding or your current configuration does not "
-                        "support IMU calibration.")
+            self.print_error_and_exception(
+                "The AntKontrol object is either not responding or your current configuration does not support IMU "
+                "calibration.",
+                e
+            )
             print("You can try to restart AntKontrol by running 'antkontrol start'")
             print("If you believe your configuration is incorrect, run 'configs' to check your configuration and "
                   "'setup <CONFIG_FILE>' to create a new one\n")
-            error_list = self.parse_error(e)
-            print(error_list[2])
 
     def do_save_calibration(self, args):
         """save_calibration
@@ -566,13 +565,14 @@ class NyanShell(mpfshell.MpFileShell):
                 else:
                     self._error("Please run 'antkontrol start' to initialize the antenna.")
             except PyboardError as e:
-                self._error("The AntKontrol object is either not responding or your current configuration does not "
-                            "support IMU calibration.")
+                self.print_error_and_exception(
+                    "The AntKontrol object is either not responding or your current configuration does not support IMU "
+                    "calibration.",
+                    e
+                )
                 print("You can try to restart AntKontrol by running 'antkontrol start'")
                 print("If you believe your configuration is incorrect, run 'configs' to check your configuration and "
                       "'setup <CONFIG_FILE>' to create a new one\n")
-                error_list = self.parse_error(e)
-                print(error_list[2])
 
     def do_upload_calibration(self, args):
         """upload_calibration
@@ -588,13 +588,14 @@ class NyanShell(mpfshell.MpFileShell):
                 else:
                     self._error("Please run 'antkontrol start' to initialize the antenna.")
             except PyboardError as e:
-                self._error("The AntKontrol object is either not responding or your current configuration does not "
-                            "support IMU calibration.")
+                self.print_error_and_exception(
+                    "The AntKontrol object is either not responding or your current configuration does not support IMU "
+                    "calibration.",
+                    e
+                )
                 print("You can try to restart AntKontrol by running 'antkontrol start'")
                 print("If you believe your configuration is incorrect, run 'configs' to check your configuration and "
                       "'setup <CONFIG_FILE>' to create a new one\n")
-                error_list = self.parse_error(e)
-                print(error_list[2])
 
     def safemode_guard(self):
         """Warns user if AntKontrol is in SAFE MODE while using motor-class commands"""
@@ -639,9 +640,10 @@ class NyanShell(mpfshell.MpFileShell):
                 else:
                     self._error("Please run 'antkontrol start' to initialize the antenna.")
             except PyboardError as e:
-                self._error("The AntKontrol object is not responding. Restart it with 'antkontrol start'")
-                error_list = self.parse_error(e)
-                print(error_list[2])
+                self.print_error_and_exception(
+                    "The AntKontrol object is not responding. Restart it with 'antkontrol start'",
+                    e
+                )
 
     def do_elevation(self, args):
         """elevation <ELEVATION>
@@ -664,9 +666,10 @@ class NyanShell(mpfshell.MpFileShell):
                 else:
                     self._error("Please run 'antkontrol start' to initialize the antenna.")
             except PyboardError as e:
-                self._error("The AntKontrol object is not responding. Restart it with 'antkontrol start'")
-                error_list = self.parse_error(e)
-                print(error_list[2])
+                self.print_error_and_exception(
+                    "The AntKontrol object is not responding. Restart it with 'antkontrol start'",
+                    e
+                )
 
     def do_azimuth(self, args):
         """azimuth <AZIMUTH>
@@ -690,9 +693,10 @@ class NyanShell(mpfshell.MpFileShell):
                 else:
                     self._error("Please run 'antkontrol start' to initialize the antenna.")
             except PyboardError as e:
-                self._error("The AntKontrol object is not responding. Restart it with 'antkontrol start'")
-                error_list = self.parse_error(e)
-                print(error_list[2])
+                self.print_error_and_exception(
+                    "The AntKontrol object is not responding. Restart it with 'antkontrol start'",
+                    e
+                )
 
     def do_antkontrol(self, args):
         """antkontrol <start | status>
@@ -714,16 +718,25 @@ class NyanShell(mpfshell.MpFileShell):
         if self.fe.is_antenna_initialized():
             self.fe.delete_antkontrol()
         try:
-            self.fe.create_antkontrol()
+            ret = self.fe.create_antkontrol()
             if self.fe.is_safemode():
                 self._error("AntKontrol is running in SAFE MODE. If you did not intend to be in this mode, "
                             "check your setup and restart AntKontrol")
             else:
-                print("AntKontrol initialized")
+                if self.fe.is_antenna_initialized():
+                    print("AntKontrol initialized")
+                    return
+                else:
+                    self.print_error_and_exception(
+                        "Error creating AntKontrol object. Please check your physical setup and configuration match up",
+                        ret
+                    )
+
         except PyboardError as e:
-            self._error("Error creating AntKontrol object. Please check your setup")
-            error_list = self.parse_error(e)
-            print(error_list[2])
+            self.print_error_and_exception(
+                "Error creating AntKontrol object. Please check your physical setup and configuration match up",
+                e
+            )
 
     def status_antkontrol(self):
         if not self.fe.is_antenna_initialized():
@@ -748,9 +761,10 @@ class NyanShell(mpfshell.MpFileShell):
             else:
                 self._error("Please run 'antkontrol start' to initialize the antenna.")
         except PyboardError as e:
-            self._error("The AntKontrol object is not responding. Restart it with 'antkontrol start'")
-            error_list = self.parse_error(e)
-            print(error_list[2])
+            self.print_error_and_exception(
+                "The AntKontrol object is not responding. Restart it with 'antkontrol start'",
+                e
+            )
 
     def do_cancel(self, args):
         """cancel
@@ -765,9 +779,10 @@ class NyanShell(mpfshell.MpFileShell):
             else:
                 self._error("Please run 'antkontrol start' to initialize the antenna.")
         except PyboardError as e:
-            self._error("The AntKontrol object is not responding. Restart it with 'antkontrol start'")
-            error_list = self.parse_error(e)
-            print(error_list[2])
+            self.print_error_and_exception(
+                "The AntKontrol object is not responding. Restart it with 'antkontrol start'",
+                e
+            )
 
 
 def main():

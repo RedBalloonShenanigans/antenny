@@ -47,7 +47,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
 
     def which_config(self):
         """Get the name of the currently used config file."""
-        return self.eval_string_expr("api.config.current_file()")
+        return self.eval_string_expr("config.current_file()")
 
     def config_get(self, key):
         """Get the value of an individual config parameter.
@@ -157,10 +157,11 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
             ret = self.exec_("config = api.config")
             self.antenna_initialized = True
             return ret.decode()
-        except PyboardError:
+        except PyboardError as e:
             self.exec_("from config.config import ConfigRepository")
             self.exec_("config = ConfigRepository")
-            raise PyboardError("Could not create antkontrol object")
+            # This is ugly as SHIT. Needs to be fixed with PROPER error handling
+            return e
 
     def delete_antkontrol(self):
         """Delete the existing antkontrol object on the ESP32."""
@@ -169,7 +170,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
             self.antenna_initialized = False
             return ret.decode()
         except PyboardError:
-            raise PyboardError("Could not delete antkontrol object")
+            pass
 
     def is_safemode(self):
         """Check if the API is in SAFE MODE"""
@@ -182,7 +183,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
                 ret = True
             return ret
         except PyboardError:
-            raise PyboardError("Could not communicate with antkontrol object")
+            pass
 
     def is_tracking(self):
         return self.tracking
