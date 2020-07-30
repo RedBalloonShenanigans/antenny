@@ -599,23 +599,23 @@ class NyanShell(mpfshell.MpFileShell):
         """motortest <EL | AZ> <ANGLE>
         Test the motors to plot their accuracy against the measured IMU values.
         """
-        if self._is_open():
-            arg_properties = [
-                CLIArgumentProperty(
-                    str,
-                    {
-                        'EL', 'AZ'
-                    }
-                ),
-                CLIArgumentProperty(
-                    float,
-                    {
-                        None
-                    }
-                )
-            ]
-            parsed_args = parse_cli_args(args, 'motortest', 2, arg_properties)
-            error_str = "The first parameter must be EL or AZ. <ANGLE> must be an integer or float"
+        arg_properties = [
+            CLIArgumentProperty(
+                str,
+                {
+                    'EL', 'AZ'
+                }
+            ),
+            CLIArgumentProperty(
+                float,
+                None
+            )
+        ]
+        parsed_args = parse_cli_args(args, 'motortest', 2, arg_properties)
+        motor, pos = parsed_args
+        # TODO: Working on this one right now.
+        """
+        #error_str = "The first parameter must be EL or AZ. <ANGLE> must be an integer or float"
             try:
                 if self.fe.is_antenna_initialized():
                     print("Running motor testing routine...")
@@ -646,6 +646,7 @@ class NyanShell(mpfshell.MpFileShell):
                     "The AntKontrol object is not responding. Restart it with 'antkontrol start'",
                     e
                 )
+        """
 
     def do_elevation(self, args):
         """elevation <ELEVATION>
@@ -661,7 +662,6 @@ class NyanShell(mpfshell.MpFileShell):
         el, = parsed_args
         self.client.elevation(el)
 
-
     def do_azimuth(self, args):
         """azimuth <AZIMUTH>
         Set the azimuth to the level given in degrees by the first argument.
@@ -676,18 +676,7 @@ class NyanShell(mpfshell.MpFileShell):
         ]
         parsed_args = parse_cli_args(args, 'azimuth', 1, arg_properties)
         az, = parsed_args
-        if self._is_open():
-            try:
-                if self.fe.is_antenna_initialized():
-                    self.client.safemode_guard()
-                    self.fe.set_azimuth_degree(az)
-                else:
-                    self.printer.print_error("Please run 'antkontrol start' to initialize the antenna.")
-            except PyboardError as e:
-                self.printer.print_error_and_exception(
-                    "The AntKontrol object is not responding. Restart it with 'antkontrol start'",
-                    e
-                )
+        self.client.azimuth(az)
 
     def do_antkontrol(self, args):
         """antkontrol <start | status>
@@ -696,50 +685,14 @@ class NyanShell(mpfshell.MpFileShell):
         arg_properties = [
             CLIArgumentProperty(
                 str,
-                None
+                {
+                    'start', 'status'
+                }
             )
         ]
         parsed_args = parse_cli_args(args, 'antkontrol', 1, arg_properties)
-        if self._is_open():
-            if parsed_args[0] == "start":
-                self.start_antkontrol()
-            elif parsed_args[0] == "status":
-                self.status_antkontrol()
-            else:
-                print("Usage: antkontrol <start | status>")
-
-    def start_antkontrol(self):
-        if self.fe.is_antenna_initialized():
-            self.fe.delete_antkontrol()
-        try:
-            ret = self.fe.create_antkontrol()
-            if self.fe.is_safemode():
-                self.printer.print_error("AntKontrol is running in SAFE MODE. If you did not intend to be in this mode, "
-                            "check your setup and restart AntKontrol")
-            else:
-                if self.fe.is_antenna_initialized():
-                    print("AntKontrol initialized")
-                    return
-                else:
-                    self.printer.print_error_and_exception(
-                        "Error creating AntKontrol object. Please check your physical setup and configuration match up",
-                        ret
-                    )
-
-        except PyboardError as e:
-            self.printer.print_error_and_exception(
-                "Error creating AntKontrol object. Please check your physical setup and configuration match up",
-                e
-            )
-
-    def status_antkontrol(self):
-        if not self.fe.is_antenna_initialized():
-            print("AntKontrol is not initialized. Run 'antkontrol start' to do so.")
-        else:
-            if self.fe.is_safemode():
-                print("AntKontrol is running in SAFE MODE")
-            else:
-                print("AntKontrol appears to be initialized properly")
+        mode, = parsed_args
+        self.client.antkontrol(mode)
 
     def do_track(self, args):
         """track <SATELLITE_NAME>

@@ -29,7 +29,6 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         """Test if there is an AntKontrol object on the board"""
         try:
             self.exec_("isinstance(api, antenny.AntennyAPI)")
-            #self.exec_("isinstance(a, antenny.AntKontrol)")
             return True
         except PyboardError:
             return False
