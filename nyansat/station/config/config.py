@@ -6,6 +6,7 @@ try:
     import ujson as json
 except ImportError:
     import json
+import logging
 import os
 
 
@@ -88,13 +89,15 @@ class ConfigRepository:
         Note: it is possible to enter an infinite loop if configs have
         "last_loaded" values that point to one another.
         """
-        last_loaded = ConfigRepository.DEFAULT_CONFIG.get("last_loaded")
+        default_config = ConfigRepository.DEFAULT_CONFIG.get("last_loaded")
+        last_loaded = default_config
 
         try:
             if self._config_filename:
                 with open(self._config_filename, "r") as f:
                     self._config = json.load(f)
             else:
+                loaded = set()
                 while self._config_filename != last_loaded:
                     # Set config filename to the default value
                     self._config_filename = last_loaded
@@ -102,8 +105,18 @@ class ConfigRepository:
                         self._config = json.load(f)
                     last_loaded = self._config.get("last_loaded",
                                                    self._config_filename)
+                    if (last_loaded in loaded
+                            and last_loaded != self._config_filename):
+                        logging.error(f"Cyclic config files! Using default: "
+                                      + f"{default_config}.")
+                        self._config_filename = default_config
+                        self.reload()
+                        self._config["last_loaded"] = self._config_filename
+                    else:
+                        loaded.add(last_loaded)
         except OSError:
             self._config = dict(ConfigRepository.DEFAULT_CONFIG)
+            self._config["last_loaded"] = self._config_filename
 
     def new(self, name: str) -> None:
         """Create a new configuration file and ensure each call to "reload" uses
