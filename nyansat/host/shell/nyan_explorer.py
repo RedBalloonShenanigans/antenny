@@ -160,7 +160,6 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         except PyboardError:
             self.exec_("from config.config import ConfigRepository")
             self.exec_("config = ConfigRepository")
-            raise PyboardError("Could not create antkontrol object")
 
     def delete_antkontrol(self):
         """Delete the existing antkontrol object on the ESP32."""
@@ -169,7 +168,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
             self.antenna_initialized = False
             return ret.decode()
         except PyboardError:
-            raise PyboardError("Could not delete antkontrol object")
+            pass
 
     def is_safemode(self):
         """Check if the API is in SAFE MODE"""
@@ -182,7 +181,7 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
                 ret = True
             return ret
         except PyboardError:
-            raise PyboardError("Could not communicate with antkontrol object")
+            pass
 
     def is_tracking(self):
         return self.tracking
