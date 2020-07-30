@@ -47,6 +47,18 @@ class I2CNoAddressesError(Exception):
     pass
 
 
+class ConfigStatusError(Exception):
+    pass
+
+
+class NoSuchConfigError(Exception):
+    pass
+
+
+class ConfigUnknownError(Exception):
+    pass
+
+
 if __name__ == '__main__':
     class W(Warning):
         print("Warning....")

@@ -81,28 +81,7 @@ class NyanShell(mpfshell.MpFileShell):
         self._set_prompt_path()
 
         self.emptyline = lambda: None
-        self.prompts = {
-            "gps_uart_tx": ("GPS UART TX pin#: ", int),
-            "gps_uart_rx": ("GPS UART RX pin#: ", int),
-            "use_gps": ("Use GPS (true or false): ", bool),
-            "i2c_servo_scl": ("Servo SCL pin#: ", int),
-            "i2c_servo_sda": ("Servo SDA pin#: ", int),
-            "i2c_servo_address": ("Servo address (in decimal): ", int),
-            "i2c_bno_scl": ("BNO055 SCL pin#: ", int),
-            "i2c_bno_sda": ("BNO055 SDA pin#: ", int),
-            "i2c_bno_address": ("BNO055 address (in decimal): ", int),
-            "use_imu": ("Use IMU (true or false): ", bool),
-            "i2c_screen_scl": ("Screen SCL pin#: ", int),
-            "i2c_screen_sda": ("Screen SDA pin#: ", int),
-            "i2c_screen_address": ("Screen address (in decimal): ", int),
-            "use_screen": ("Use Screen (true or false): ", bool),
-            "elevation_servo_index": ("Servo default elevation index: ", float),
-            "azimuth_servo_index": ("Servo default azimuth index: ", float),
-            "elevation_max_rate": ("Servo elevation max rate: ", float),
-            "azimuth_max_rate": ("Servo azimuth max rate: ", float),
-            "use_webrepl": ("Use WebREPL: ", bool),
-            "use_telemetry": ("Use Telemetry: ", bool)
-        }
+
 
     def _intro(self):
         """Text that appears when shell is first launched."""
@@ -267,19 +246,15 @@ class NyanShell(mpfshell.MpFileShell):
             )
         ]
         parsed_args = parse_cli_args(args, 'setup', 1, arg_properties)
+        name, = parsed_args
         if self._is_open():
 
             try:
                 if self.fe.config_status():
-                    name, = parsed_args
                     current = self.fe.which_config()
-
                     self.fe.config_new(name)
 
-                    print(colorama.Fore.GREEN +
-                          "Welcome to Antenny!" +
-                          colorama.Fore.RESET)
-                    print("Please enter the following information about your hardware\n")
+
 
                     for k, info in self.prompts.items():
                         prompt_text, typ = info
@@ -327,7 +302,7 @@ class NyanShell(mpfshell.MpFileShell):
                         self.printer.print_error("No such configuration parameter")
                         return
 
-                    _, typ = self.prompts[key]
+                    _, typ = self.client.prompts[key]
                     try:
                         new_val = typ(new_val)
                     except ValueError as e:
@@ -344,7 +319,7 @@ class NyanShell(mpfshell.MpFileShell):
     def complete_set(self, *args):
         """Tab completion for 'set' command."""
         if self._is_open():
-            return [key for key in self.prompts.keys() if key.startswith(args[0])]
+            return [key for key in self.client.prompts.keys() if key.startswith(args[0])]
         else:
             return []
 
