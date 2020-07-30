@@ -548,7 +548,8 @@ class NyanShell(mpfshell.MpFileShell):
                 e
             )
             print("You can try to restart AntKontrol by running 'antkontrol start'")
-            print("If you believe your configuration is incorrect, run 'configs' to check your configuration and ")
+            print("If you believe your configuration is incorrect, run 'configs' to check your configuration and "
+                  "'setup <CONFIG_FILE>' to create a new one\n")
 
     def do_save_calibration(self, args):
         """save_calibration
@@ -717,12 +718,20 @@ class NyanShell(mpfshell.MpFileShell):
         if self.fe.is_antenna_initialized():
             self.fe.delete_antkontrol()
         try:
-            self.fe.create_antkontrol()
+            ret = self.fe.create_antkontrol()
             if self.fe.is_safemode():
                 self._error("AntKontrol is running in SAFE MODE. If you did not intend to be in this mode, "
                             "check your setup and restart AntKontrol")
             else:
-                print("AntKontrol initialized")
+                if self.fe.is_antenna_initialized():
+                    print("AntKontrol initialized")
+                    return
+                else:
+                    self.print_error_and_exception(
+                        "Error creating AntKontrol object. Please check your physical setup and configuration match up",
+                        ret
+                    )
+
         except PyboardError as e:
             self.print_error_and_exception(
                 "Error creating AntKontrol object. Please check your physical setup and configuration match up",

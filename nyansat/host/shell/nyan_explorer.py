@@ -157,9 +157,11 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
             ret = self.exec_("config = api.config")
             self.antenna_initialized = True
             return ret.decode()
-        except PyboardError:
+        except PyboardError as e:
             self.exec_("from config.config import ConfigRepository")
             self.exec_("config = ConfigRepository")
+            # This is ugly as SHIT. Needs to be fixed with PROPER error handling
+            return e
 
     def delete_antkontrol(self):
         """Delete the existing antkontrol object on the ESP32."""
