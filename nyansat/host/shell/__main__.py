@@ -247,40 +247,7 @@ class NyanShell(mpfshell.MpFileShell):
         ]
         parsed_args = parse_cli_args(args, 'setup', 1, arg_properties)
         name, = parsed_args
-        if self._is_open():
-
-            try:
-                if self.fe.config_status():
-                    current = self.fe.which_config()
-                    self.fe.config_new(name)
-
-
-
-                    for k, info in self.prompts.items():
-                        prompt_text, typ = info
-                        try:
-                            new_val = typ(input(prompt_text))
-                        except ValueError:
-                            new_val = self.fe.config_get_default(k)
-                            self.printer.print_error("Invalid type, setting to default value \"{}\".\nUse \"set\" to " \
-                                        "change the parameter".format(new_val))
-
-                        self.fe.config_set(k, new_val)
-
-                    if self.caching:
-                        self.fe.cache = {}
-
-                    print(colorama.Fore.GREEN +
-                          "\nConfiguration set for \"{}\"!\n".format(name) +
-                          colorama.Fore.RESET +
-                          "You can use \"set\" to change individual parameters\n" \
-                          "or \"edit\" to change the config file " \
-                          "directly")
-                else:
-                    self.printer.print_error("Could not access existing configuration object or create one.")
-
-            except PyboardError as e:
-                self.printer.print_error_and_exception("Command faulted while trying to set configuration", e)
+        self.client.setup(name)
 
     def do_set(self, args):
         """set <CONFIG_PARAM> <NEW_VAL>
