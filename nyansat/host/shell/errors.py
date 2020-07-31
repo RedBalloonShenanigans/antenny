@@ -63,6 +63,10 @@ class NoSuchFileError(Exception):
     pass
 
 
+class NotTrackingError(Exception):
+    pass
+
+
 if __name__ == '__main__':
     class W(Warning):
         print("Warning....")
