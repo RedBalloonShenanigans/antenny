@@ -1,23 +1,37 @@
-import _thread
 import logging
 import socket
-import time
-try:
-    import utime
-    import ujson
-except ImportError:
-    pass
+import struct
 
+from antenny_threading import Thread
+from imu.mock_imu import MockImuController
 from gps.gps import GPSController
 from imu.imu import ImuController
-from sender.sender import TelemetrySender
+
+try:
+    import utime as time
+    import ujson as json
+except ImportError:
+    import time
+    import json
+
+try:
+    from sender.sender import TelemetrySender
+except ImportError:
+    TelemetrySender = object
 
 LOGGER = logging.getLogger("station.sender.udp")
 NYANSAT_CLIENT_MAGIC = b"nyansat_client"
 
+MCAST_GRP = '239.255.255.250'
+MCAST_PORT = 31337
+IS_ALL_GROUPS = False
+INADDR_ANY = 0
+MAX_MESSAGE_SIZE = 1024
 
-class UDPTelemetrySender(TelemetrySender):
-    """Send key-value data over UDP to be displayed on client end."""
+DEFAULT_POLL_DELAY = 0.001
+
+
+class AbstractTelemetrySender(Thread, TelemetrySender):
 
     def __init__(
             self,
@@ -25,32 +39,32 @@ class UDPTelemetrySender(TelemetrySender):
             imu_controller: ImuController,
             interval: float = 0.2
     ):
-        """Create a TelemetrySenderUDP object with destination address and port
-        obtained from the current user-set config.
-        """
-        self._socket = socket.socket(
-            socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP
-        )
-        self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._socket.bind(('', 31337))
+        super(AbstractTelemetrySender, self).__init__()
         self._gps_controller = gps_controller
         self._imu_controller = imu_controller
         self._interval = interval
-        self._stop = False
-        self._receiver = None
-        self._send_thread = None
-        self._receive_thread = None
 
-    def _send_telemetry(self):
-        if self._receiver is None:
-            return
+    def run(self):
+        while self.running:
+            telemetry = self._fetch_telemetry_data()
+            self._send_message(telemetry)
+            time.sleep(self._interval)
 
-        data = {"time": utime.ticks_ms()}
+    def _fetch_telemetry_data(self):
+        """
+        Format & enqueu teleme
+        """
+        if hasattr(time, 'tick_ms'):
+            data = {"time": time.ticks_ms()}
+        else:
+            data = {"time": time.time()}
         imu_position = self._imu_controller.euler()
         if imu_position is not None:
+            # TODO: these values need to be chosen based on a configuration index
             data.update({
                 "azimuth": imu_position[1],
-                "elevation": imu_position[0]
+                "elevation": imu_position[0],
+                # "z": imu_position[2],
             })
         gps_status = self._gps_controller.get_status()
         if gps_status is not None:
@@ -61,35 +75,54 @@ class UDPTelemetrySender(TelemetrySender):
                 "altitude": gps_status.altitude,
                 "speed": gps_status.speed,
             })
-        self._socket.sendto(ujson.dumps(data).encode('utf-8'), self._receiver)
+        return data
 
-    def _run_send_loop(self):
-        while not self._stop:
-            try:
-                self._send_telemetry()
-            except Exception as e:
-                LOGGER.error("Failed to send telemetry: {}".format(str(e)))
-            time.sleep(self._interval)
-        self._send_thread = None
+    def _send_message(self, message: dict):
+        raise NotImplementedError
 
-    def _run_receive_loop(self):
-        while not self._stop:
-            try:
-                message, receiver = self._socket.recvfrom(1024)
-                if message == NYANSAT_CLIENT_MAGIC:
-                    self._receiver = receiver
-            except Exception:
-                LOGGER.error("Failed to accept telemetry client")
-            time.sleep(self._interval)
-        self._receive_thread = None
 
-    def start(self):
-        print("START")
-        self._stop = False
-        self._send_thread = _thread.start_new_thread(self._run_send_loop, ())
-        self._receive_thread = _thread.start_new_thread(self._run_receive_loop, ())
+def socket_inet_aton(ip_address: str):
+    """
+    Implementation of socket.inet_aton(), not implemented in micropython.
+    """
+    values = ip_address.split('.')
+    result = b""
+    for value in values:
+        result += struct.pack("!B", int(value))
+    return result
 
-    def stop(self):
-        self._stop = True
-        while self._send_thread is not None or self._receive_thread is None:
-            time.sleep(self._interval)
+
+class UDPTelemetrySender(AbstractTelemetrySender):
+    """
+    UDP multicast implementation of a telemetry sender.
+    """
+
+    def __init__(
+            self,
+            broadcast_port: int,
+            gps_controller: GPSController,
+            imu_controller: ImuController,
+            interval: float = 0.2
+    ):
+        super(UDPTelemetrySender, self).__init__(gps_controller, imu_controller, interval)
+        self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self._socket.bind(('', broadcast_port))
+        self._port = broadcast_port
+
+    def _send_message(self, message: dict):
+        self._socket.sendto(json.dumps(message).encode('utf8'), (MCAST_GRP, self._port))
+
+
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
+    from gps.mock_gps_controller import MockGPSController
+
+    sender = UDPTelemetrySender(
+            MCAST_PORT,
+            MockGPSController(),
+            MockImuController(),
+    )
+    sender.start()
+    time.sleep(int(1e3))
+    sender.stop()

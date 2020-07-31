@@ -30,6 +30,7 @@ md gps
 put nyansat/station/gps/__init__.py /gps/__init__.py
 put nyansat/station/gps/gps.py /gps/gps.py
 put nyansat/station/gps/gps_basic.py /gps/gps_basic.py
+put nyansat/station/gps/mock_gps_controller.py /gps/mock_gps_controller.py
 
 md imu
 put nyansat/station/imu/__init__.py /imu/__init__.py
