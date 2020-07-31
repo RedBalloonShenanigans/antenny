@@ -25,9 +25,9 @@ import nyansat.host.satdata_client as SatelliteScraper
 
 class AntennyClient(object):
 
-    def __init__(self, fe: MpFileExplorer):
-        self.fe = fe
-        self.invoker = CommandInvoker(fe.con)
+    def __init__(self):
+        self.fe = None
+        self.invoker = None
         self.tracking = None
         self.prompts = {
             "gps_uart_tx": ("GPS UART TX pin#: ", int),
@@ -51,6 +51,10 @@ class AntennyClient(object):
             "use_webrepl": ("Use WebREPL: ", bool),
             "use_telemetry": ("Use Telemetry: ", bool)
         }
+
+    def initialize(self, fe : MpFileExplorer):
+        self.fe = fe
+        self.invoker = CommandInvoker(fe.con)
 
     def safemode_guard(self):
         """Warns user if AntKontrol is in SAFE MODE while using motor-class commands"""

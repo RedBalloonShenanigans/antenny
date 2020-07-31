@@ -78,9 +78,8 @@ class NyanShell(mpfshell.MpFileShell):
         self.reset = reset
 
         self.fe = None
-        self.client = None
+        self.client = AntennyClient()
         # self.printer = TerminalPrinter()
-
 
         self.repl = None
         self.tokenizer = Tokenizer()
@@ -119,7 +118,7 @@ class NyanShell(mpfshell.MpFileShell):
         FileExplorer's self.con object.
         """
         super()._MpFileShell__connect(port)
-        self.client = AntennyClient(self.fe)
+        self.client.initialize(self.fe)
 
     def _set_prompt_path(self):
         """Prompt that appears at the beginning of every line in the shell."""
@@ -208,17 +207,6 @@ class NyanShell(mpfshell.MpFileShell):
 
     complete_edit = MpFileShell.complete_get
 
-    def parse_error(self, e):
-        error_list = str(e).strip('()').split(", b'")
-        error_list[0] = error_list[0][1:]
-        ret = []
-        for err in error_list:
-            ret.append(bytes(err[0:-1], 'utf-8').decode('unicode-escape'))
-        return ret
-
-    def do_test(self, args):
-        print(args)
-
     @cli_handler
     def do_setup(self, args):
         """setup <CONFIG_FILE>
@@ -244,9 +232,13 @@ class NyanShell(mpfshell.MpFileShell):
             CLIArgumentProperty(
                 str,
                 None
+            ),
+            CLIArgumentProperty(
+                str,
+                None
             )
         ]
-        parsed_args = parse_cli_args(args, 'set', 1, arg_properties)
+        parsed_args = parse_cli_args(args, 'set', 2, arg_properties)
         key, new_val = parsed_args
         self.client.set(key, new_val)
 

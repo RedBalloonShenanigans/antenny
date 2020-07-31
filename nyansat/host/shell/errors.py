@@ -25,6 +25,7 @@ def cli_handler(func):
 
     return wrapper
 
+
 class AntennyException(Exception):
     # Abstract Class
     # TODO: some decorator needed here? Not sure how to properly do abstract
