@@ -4,7 +4,10 @@ try:
     import ujson as json
 except ImportError:
     import json
-import logging
+try:
+    import logging
+except ImportError:
+    pass
 import os
 
 
@@ -105,8 +108,11 @@ class ConfigRepository:
                                                    self._config_filename)
                     if (last_loaded in loaded
                             and last_loaded != self._config_filename):
-                        logging.error("Cyclic config files! Using default: "
-                                      + default_config)
+                        try:
+                            logging.error("Cyclic config files! Using default: "
+                                          + default_config)
+                        except NameError:
+                            pass
                         self._config_filename = default_config
                         self.reload()
                         self._config["last_loaded"] = self._config_filename
