@@ -5,14 +5,14 @@ from rbs_tui_dom.dom import DOMWindow
 from rbs_tui_dom.dom.text import DOMText
 from rbs_tui_dom.entity import EntityEventType
 
-from nyansat.host.client import NyanSatClient
+from nyansat.host.client import NyanSatTelemetryClient
 
 
 class TelemetryView:
     def __init__(
             self,
             window: DOMWindow,
-            client: NyanSatClient
+            client: NyanSatTelemetryClient
     ):
         self._dom_window = window
         self._dom_ip = cast(DOMText, window.get_element_by_id("ip_value"))

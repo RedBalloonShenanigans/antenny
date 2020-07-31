@@ -2,7 +2,6 @@ import asyncio
 import logging
 
 import argparse
-from typing import Optional
 
 from rbs_tui_dom.dom import DOMWindow
 from rbs_tui_dom.dom.layout import DOMStackLayout
@@ -10,7 +9,7 @@ from rbs_tui_dom.dom.style import DOMStyle, Color, Alignment, Margin, Display
 from rbs_tui_dom.dom.text import DOMText, DOMTextFill
 from rbs_tui_dom.dom.types import HORIZONTAL, FULL_WIDTH, FULL_SIZE, VERTICAL
 
-from nyansat.host.client import NyanSatClient
+from nyansat.host.client import NyanSatTelemetryClient
 from nyansat.host.dom.dom_shell import DOMNyanSatShell
 from nyansat.host.view.root import RootView
 from nyansat.host.view.telemetry import TelemetryView
@@ -216,7 +215,7 @@ def create_dom(shell: DOMNyanSatShell):
    ])
 
 
-async def run(server_iface: str, server_port: int, station_ip: Optional[str], station_port: int):
+async def run(server_port: int):
     logging.basicConfig(
         filename='hacksat_ui.log',
         level=logging.getLevelName("INFO"),
@@ -224,7 +223,8 @@ async def run(server_iface: str, server_port: int, station_ip: Optional[str], st
         datefmt="%m/%d/%Y %H:%M:%S",
     )
     try:
-        client = NyanSatClient(server_iface, server_port, station_ip, station_port)
+        loop = asyncio.get_event_loop()
+        client = NyanSatTelemetryClient(loop, server_port)
 
         shell = DOMNyanSatShell(id="shell", style=DOMStyle(size=(FULL_WIDTH, 15)))
         window = DOMWindow(disable_click=True)
@@ -243,29 +243,13 @@ async def run(server_iface: str, server_port: int, station_ip: Optional[str], st
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='A TUI for the nyansat station.')
     parser.add_argument(
-        '--iface',
-        default="0.0.0.0",
-        help='The ip of the interface on which the UDP server should be listening'
-    )
-    parser.add_argument(
         '--port',
         type=int,
         default=31337,
         help='The port on which the UDP server should be listening'
     )
-    parser.add_argument(
-        '--station-ip',
-        help='The IP of ESP32 running the nyansat station. If not provided, a UDP broadcast packet'
-             'is sent out to find the nyansat station.'
-    )
-    parser.add_argument(
-        '--station-port',
-        type=int,
-        default=31337,
-        help='The port of the UDP server running the nyansat station.'
-    )
     args = parser.parse_args()
 
     event_loop = asyncio.get_event_loop()
-    event_loop.run_until_complete(run(args.iface, args.port, args.station_ip, args.station_port))
+    event_loop.run_until_complete(run(args.port))
     event_loop.run_forever()
