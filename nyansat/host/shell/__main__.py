@@ -254,16 +254,15 @@ class NyanShell(mpfshell.MpFileShell):
     def do_set(self, args):
         """set <CONFIG_PARAM> <NEW_VAL>
         Set a parameter in the configuration file to a new value."""
-        if self._is_open():
-            arg_properties = [
-                CLIArgumentProperty(
-                    str,
-                    None
-                )
-            ]
-            parsed_args = parse_cli_args(args, 'set', 1, arg_properties)
-            key, new_val = parsed_args
-            self.client.set(key, new_val)
+        arg_properties = [
+            CLIArgumentProperty(
+                str,
+                None
+            )
+        ]
+        parsed_args = parse_cli_args(args, 'set', 1, arg_properties)
+        key, new_val = parsed_args
+        self.client.set(key, new_val)
 
     def complete_set(self, *args):
         """Tab completion for 'set' command."""
@@ -289,7 +288,6 @@ class NyanShell(mpfshell.MpFileShell):
         parsed_args = parse_cli_args(args, 'switch', 1, arg_properties)
         name, = parsed_args
         self.client.switch(name)
-
 
     def do_i2ctest(self, args):
         """i2ctest
@@ -611,37 +609,13 @@ class NyanShell(mpfshell.MpFileShell):
         ]
         parsed_args = parse_cli_args(args, 'track', 1, arg_properties)
         sat_name, = parsed_args
-        try:
-            if self._is_open() and self.fe.is_antenna_initialized():
-                try:
-                    self.fe.wrap_track(sat_name)
-                except NotVisibleError:
-                    self.printer.print_error("The satellite is not visible from your position")
-            else:
-                self.printer.print_error("Please run 'antkontrol start' to initialize the antenna.")
-        except PyboardError as e:
-            self.printer.print_error_and_exception(
-                "The AntKontrol object is not responding. Restart it with 'antkontrol start'",
-                e
-            )
+        self.client.track(sat_name)
 
     def do_cancel(self, args):
         """cancel
         Cancel tracking mode.
         """
-        try:
-            if self._is_open() and self.fe.is_antenna_initialized():
-                if self.fe.is_tracking():
-                    self.fe.cancel()
-                else:
-                    self.printer.print_error("The antenna is not currently tracking any satellite.")
-            else:
-                self.printer.print_error("Please run 'antkontrol start' to initialize the antenna.")
-        except PyboardError as e:
-            self.printer.print_error_and_exception(
-                "The AntKontrol object is not responding. Restart it with 'antkontrol start'",
-                e
-            )
+        self.client.track()
 
 
 def main():

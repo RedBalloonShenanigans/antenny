@@ -62,6 +62,9 @@ def exception_handler(func):
         except NoSuchFileError as e:
             logging.error(e)
             print("No such file")
+        except NotTrackingError as e:
+            logging.error(e)
+            print("The antenna is not currently tracking any satellite")
 
     return wrapper
 
@@ -153,16 +156,22 @@ class AntennyClient(object):
                 print("AntKontrol appears to be initialized properly")
 
     @exception_handler
-    def track(self):
+    def track(self, sat_name):
         self.guard_open()
         self.guard_init()
-        # TODO: Get back to this, this one has a bunch of logic inside NyanExplorer
+        # TODO: raise NotVisibleError
+        self.fe.wrap_track(sat_name)
         pass
 
     @exception_handler
     def cancel(self):
         # TODO: Same as for track
-        pass
+        self.guard_open()
+        self.guard_init()
+        if self.fe.is_tracking():
+            self.fe.cancel()
+        else:
+            raise NotTrackingError
 
     @exception_handler
     def upload_calibration(self):
