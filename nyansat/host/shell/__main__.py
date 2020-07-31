@@ -262,7 +262,7 @@ class NyanShell(mpfshell.MpFileShell):
             parsed_args = parse_cli_args(args, 'set', 1, arg_properties)
             key, new_val = parsed_args
             self.client.set(key, new_val)
-            
+
     def complete_set(self, *args):
         """Tab completion for 'set' command."""
         if self._is_open():
@@ -273,18 +273,7 @@ class NyanShell(mpfshell.MpFileShell):
     def do_configs(self, args):
         """configs
         Print a list of all configuration parameters."""
-        if self._is_open():
-            try:
-                if self.fe.config_status():
-                    print("-Config parameters-\n" +
-                          "Using \"{}\"".format(self.fe.which_config())
-                          )
-                    for key in self.prompts.keys():
-                        print(key + ": " + self.fe.config_get(key))
-                else:
-                    self.printer.print_error("Could not access existing configuration object or create one.")
-            except PyboardError as e:
-                self.printer.print_error_and_exception("Command faulted while trying to access configuration", e)
+        self.client.configs()
 
     def do_switch(self, args):
         """switch <CONFIG_FILE>

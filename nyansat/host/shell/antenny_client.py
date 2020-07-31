@@ -261,3 +261,17 @@ class AntennyClient(object):
             print("Changed " + "\"" + key + "\" from " + str(old_val) + " --> " + str(new_val))
         else:
             raise ConfigStatusError
+
+    @exception_handler
+    def configs(self):
+        # TODO: Something with ConfigUnknownError
+        self.guard_open()
+        if self.fe.config_status():
+            print("-Config parameters-\n" +
+                  "Using \"{}\"".format(self.fe.which_config()))
+            for key in self.prompts.keys():
+                print(key + ": " + self.fe.config_get(key))
+        else:
+            raise ConfigStatusError
+
+
