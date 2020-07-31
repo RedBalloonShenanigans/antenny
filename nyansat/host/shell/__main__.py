@@ -47,8 +47,10 @@ class NyanShell(mpfshell.MpFileShell):
     YES_DISPLAY_STRING = colorama.Fore.GREEN + "YES" + colorama.Fore.RESET
     NO_DISPLAY_STRING = colorama.Fore.RED + "NO" + colorama.Fore.RESET
     GYRO_CALIBRATION_MESSAGE = "To calibrate the gyroscope, let the sensor rest on a level surface for a few seconds."
-    ACCEL_CALIBRATION_MESSAGE = "To calibrate the accelerometer, slowly move the sensor into >=6 distinct orientations,\nsome perpendicular to the xyz axes."
-    MAGNET_CALIBRATION_MESSAGE = "To calibrate the magnetometer, move the sensor in figure-8 shapes through the air a few times."
+    ACCEL_CALIBRATION_MESSAGE = "To calibrate the accelerometer, slowly move the sensor into >=6 distinct " \
+                                "orientations,\nsome perpendicular to the xyz axes. "
+    MAGNET_CALIBRATION_MESSAGE = "To calibrate the magnetometer, move the sensor in figure-8 shapes through the air a " \
+                                 "few times. "
 
     def __init__(self, color=False, caching=False, reset=False):
         """Creates Cmd-based shell object.
