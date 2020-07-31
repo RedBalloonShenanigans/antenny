@@ -1,9 +1,23 @@
 # Client middle layer
+import ast
+import asyncio
+import json
 import logging
+import threading
+
+from time import sleep
 
 from nyansat.host.shell.terminal_printer import TerminalPrinter
 from nyansat.host.shell.nyan_explorer import NyanExplorer
 from nyansat.host.shell.errors import *
+
+from mp.pyboard import PyboardError
+from nyansat.host.shell.nyan_pyboard import NyanPyboard
+
+from nyansat.host.satellite_observer import SatelliteObserver, parse_tle_file
+from nyansat.host.shell.errors import NotVisibleError
+
+import nyansat.host.satdata_client as SatelliteScraper
 
 
 # TODO: Move error messages into the errors.py as a self.message attribute
@@ -74,6 +88,7 @@ class AntennyClient(object):
     def __init__(self, fe: NyanExplorer, printer: TerminalPrinter):
         self.fe = fe
         self.printer = printer
+        self.tracking = None
         self.prompts = {
             "gps_uart_tx": ("GPS UART TX pin#: ", int),
             "gps_uart_rx": ("GPS UART RX pin#: ", int),
@@ -160,7 +175,7 @@ class AntennyClient(object):
         self.guard_open()
         self.guard_init()
         # TODO: raise NotVisibleError
-        self.fe.wrap_track(sat_name)
+        self.wrap_track(sat_name)
         pass
 
     @exception_handler
@@ -293,3 +308,37 @@ class AntennyClient(object):
         self.fe.config_switch(name)
         print("Switched from \"{}\"".format(current) +
               " to \"{}\"".format(name))
+
+    def is_tracking(self):
+        return self.tracking
+
+    def _track_update(self, observer):
+        """Update the antenna position every 2 seconds"""
+        print(f"Tracking {observer.sat_name} ...")
+        while self.tracking:
+            elevation, azimuth, distance = observer.get_current_stats()
+            self.fe.set_elevation_degree(elevation)
+            self.fe.set_azimuth_degree(azimuth)
+            sleep(2)
+
+    async def track(self, sat_name):
+        """Track a satellite across the sky"""
+        coords = (40.0, -73.0)
+        tle_data_encoded = await SatelliteScraper.load_tle()
+        tle_data = parse_tle_file(tle_data_encoded)
+        observer = SatelliteObserver.parse_tle(coords, sat_name, tle_data)
+
+        if not observer.get_visible():
+            self.cancel()
+            raise NotVisibleError
+        t = threading.Thread(target=self._track_update, args=(observer,))
+        t.start()
+
+    def wrap_track(self, sat_name):
+        """Entry point for tracking mode"""
+        self.tracking = True
+        asyncio.run(self.track(sat_name))
+
+    def cancel(self):
+        """Cancel tracking mode"""
+        self.tracking = False

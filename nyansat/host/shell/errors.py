@@ -67,6 +67,14 @@ class NotTrackingError(Exception):
     pass
 
 
+class AntennaAPIFactoryError(Exception):
+    pass
+
+
+class ConfigImportError(Exception):
+    pass
+
+
 if __name__ == '__main__':
     class W(Warning):
         print("Warning....")

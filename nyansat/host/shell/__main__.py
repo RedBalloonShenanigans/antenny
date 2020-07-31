@@ -74,6 +74,9 @@ class NyanShell(mpfshell.MpFileShell):
         self.reset = reset
 
         self.fe = None
+        self.invoker = None
+        # TODO: replace all self.fe with self.invoker (all self.fe here should only have to do with antenny-specific
+        # TODO: stuff, so that's what the command invoker class is for. No need to hijack FileExplorer.)
         self.repl = None
         self.tokenizer = Tokenizer()
 
