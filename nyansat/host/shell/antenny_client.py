@@ -25,7 +25,8 @@ import nyansat.host.satdata_client as SatelliteScraper
 
 class AntennyClient(object):
 
-    def __init__(self):
+    def __init__(self, caching):
+        self.caching = caching
         self.fe = None
         self.invoker = None
         self.tracking = None
@@ -233,13 +234,24 @@ class AntennyClient(object):
     def setup(self, name):
         self.guard_open()
         current = self.invoker.which_config()
+        self.invoker.config_new(name)
         print("Welcome to Antenny!")
         print("Please enter the following information about your hardware\n")
 
         for k, info in self.prompts.items():
             prompt_text, typ = info
             try:
-                new_val = typ(input(prompt_text))
+                if typ == bool:
+                    literal_input = input(prompt_text)
+                    if literal_input == "False" or literal_input == "0":
+                        new_val = False
+                    elif literal_input == "True" or literal_input == "1":
+                        new_val = True
+                    else:
+                        raise ValueError
+                else:
+                    new_val = typ(input(prompt_text))
+
             except ValueError:
                 new_val = self.invoker.config_get_default(k)
                 print("Invalid type, setting to default value \"{}\".\nUse \"set\" to "
@@ -248,8 +260,8 @@ class AntennyClient(object):
             self.invoker.config_set(k, new_val)
 
         # TODO: figure this out, do we need this (make caching by default?)
-        # if self.caching:
-            # self.fe.cache = {}
+        if self.caching:
+            self.fe.cache = {}
 
         print("\nConfiguration set for \"{}\"!\n".format(name) +
               "You can use \"set\" to change individual parameters\n"

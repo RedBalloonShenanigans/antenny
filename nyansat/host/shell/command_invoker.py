@@ -93,7 +93,10 @@ class CommandInvoker(NyanPyboard):
         Arguments:
         name -- name of new config file.
         """
-        self.exec_("config.new(\"{}\")".format(name))
+        try:
+            self.exec_("config.new(\"{}\")".format(name))
+        except PyboardError as e:
+            raise ConfigUnknownError(str(e))
 
     def config_switch(self, name):
         """Switch to using a different config file.
