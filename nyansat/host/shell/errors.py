@@ -1,78 +1,102 @@
+import logging
 from mp.pyboard import PyboardError
 
-# TODO: Fix all this: These should have self.message attributes
+
+# TODO: Move error messages into the errors.py as a self.message attribute
+def exception_handler(func):
+
+    def wrapper(*args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except AntennyException as e:
+            logging.error(e)
+            print(e.msg)
+
+    return wrapper
 
 
-class NoAntKontrolError(Exception):
-    pass
+class AntennyException(Exception):
+    # Abstract Class
+    # TODO: some decorator needed here? Not sure how to properly do abstract
+    msg = ""
 
 
-class AntKontrolInitError(Exception):
-    pass
+class NoAntKontrolError(AntennyException):
+    msg = "Please run 'antkontrol start' to initialize the antenna."
 
 
-class NotRespondingError(Exception):
-    pass
+class AntKontrolInitError(AntennyException):
+    msg = "Error creating AntKontrol object. Please check your physical setup and configuration match up"
 
 
-class NotVisibleError(Exception):
-    pass
+class NotRespondingError(AntennyException):
+    msg = "The AntKontrol object is not responding. Restart it with 'antkontrol start'"
 
 
-class DeviceNotOpenError(Exception):
-    pass
+class NotVisibleError(AntennyException):
+    msg = "The satellite is not visible from your position"
+
+
+class DeviceNotOpenError(AntennyException):
+    msg = "Not connected to device. Use 'open' first."
 
 
 class SafeModeWarning(Warning):
-    pass
+    msg = "AntKontrol is in SAFE MODE. Attached motors will not move\n"\
+          "If you did not intend to be in SAFE MODE, check your configuration and run "\
+          "'antkontrol start'"
 
 
-class BNO055RegistersError(Exception):
-    pass
+class BNO055RegistersError(AntennyException):
+    msg = "Error: BNO055 not detected or error in writing calibration registers."
 
 
-class BNO055UploadError(Exception):
-    pass
+class BNO055UploadError(AntennyException):
+    msg = "The AntKontrol object is either not responding or your current configuration does not support IMU"\
+          "calibration\n" \
+          "You can try to restart AntKontrol by running 'antkontrol start'\n" \
+          "If you believe your configuration is incorrect, run 'configs' to check your configuration and " \
+          "'setup <CONFIG_FILE>' to create a new one\n"
 
 
-class I2CScanError(Exception):
-    pass
+class PinInputError(AntennyException):
+    msg = "Invalid type for pin number. Try again using only decimal numbers"
 
 
-class PinInputError(Exception):
-    pass
+class I2CNoAddressesError(AntennyException):
+    msg = "Did not find any I2C devices"
 
 
-class I2CNoAddressesError(Exception):
-    pass
+class ConfigStatusError(AntennyException):
+    msg = "Could not access existing configuration object or create one."
 
 
-class ConfigStatusError(Exception):
-    pass
+class NoSuchConfigError(AntennyException):
+    msg = "No such configuration parameter."
 
 
-class NoSuchConfigError(Exception):
-    pass
+class ConfigUnknownError(AntennyException):
+    msg = "Command faulted while trying to access or set configuration"
 
 
-class ConfigUnknownError(Exception):
-    pass
+class NoSuchConfigFileError(AntennyException):
+    msg = "No such config file"
 
 
-class NoSuchConfigFileError(Exception):
-    pass
+class NotTrackingError(AntennyException):
+    msg = "The antenna is not currently tracking any satellite"
 
 
-class NotTrackingError(Exception):
-    pass
+class AntennaAPIFactoryError(AntennyException):
+    msg = "Could not initalize Antenny API"
 
 
-class AntennaAPIFactoryError(Exception):
-    pass
+class ParameterError(AntennyException):
+    msg = "Incorrect parameter type"
 
 
-class ConfigImportError(Exception):
-    pass
+class CalibrationStatusError(AntennyException):
+    msg = "Accessing calibration status failed"
 
 
 if __name__ == '__main__':

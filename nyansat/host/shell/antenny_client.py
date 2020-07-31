@@ -11,7 +11,6 @@ from typing import List
 
 from nyansat.host.shell.terminal_printer import TerminalPrinter
 from nyansat.host.shell.command_invoker import CommandInvoker
-from nyansat.host.shell.nyan_explorer import NyanExplorer
 from nyansat.host.shell.errors import *
 
 from mp.pyboard import PyboardError
@@ -22,69 +21,6 @@ from nyansat.host.satellite_observer import SatelliteObserver, parse_tle_file
 
 
 import nyansat.host.satdata_client as SatelliteScraper
-
-
-# TODO: Move error messages into the errors.py as a self.message attribute
-def exception_handler(func):
-
-    def wrapper(*args, **kwargs):
-        try:
-            func(*args, **kwargs)
-        except NotRespondingError as e:
-            logging.error(e)
-            print("The AntKontrol object is not responding. Restart it with 'antkontrol start'")
-        except NoAntKontrolError as e:
-            print("Please run 'antkontrol start' to initialize the antenna.")
-            logging.error(e)
-        except DeviceNotOpenError as e:
-            print("Not connected to device. Use 'open' first.")
-            logging.error(e)
-        except AntKontrolInitError as e:
-            logging.error(e)
-            print("Error creating AntKontrol object. Please check your physical setup and configuration match up")
-        except SafeModeWarning as e:
-            logging.warning(e)
-            print("AntKontrol is in SAFE MODE. Attached motors will not move")
-            print("If you did not intend to be in SAFE MODE, check your configuration and run "
-                  "'antkontrol start'")
-        except NotVisibleError:
-            print("The satellite is not visible from your position")
-        except BNO055RegistersError as e:
-            logging.error(e)
-            print("Error: BNO055 not detected or error in writing calibration registers.")
-        except BNO055UploadError as e:
-            logging.error(e)
-            print("The AntKontrol object is either not responding or your current configuration does not support IMU "
-                  "calibration.")
-            print("You can try to restart AntKontrol by running 'antkontrol start'")
-            print("If you believe your configuration is incorrect, run 'configs' to check your configuration and "
-                  "'setup <CONFIG_FILE>' to create a new one\n")
-        except PinInputError as e:
-            logging.error(e)
-            print("Invalid type for pin number. Try again using only decimal numbers")
-        except I2CNoAddressesError as e:
-            logging.error(e)
-            print("Did not find any I2C devices")
-        except ConfigStatusError as e:
-            logging.error(e)
-            print("Could not access existing configuration object or create one.")
-        except NoSuchConfigError as e:
-            logging.error(e)
-            print("No such configuration parameter.")
-        except ConfigUnknownError as e:
-            logging.error(e)
-            print("Command faulted while trying to set configuration.")
-        except ValueError as e:
-            logging.error(e)
-            print("Incorrect parameter type.")
-        except NoSuchConfigFileError as e:
-            logging.error(e)
-            print("No such file")
-        except NotTrackingError as e:
-            logging.error(e)
-            print("The antenna is not currently tracking any satellite")
-
-    return wrapper
 
 
 class AntennyClient(object):
@@ -116,23 +52,27 @@ class AntennyClient(object):
             "use_telemetry": ("Use Telemetry: ", bool)
         }
 
+    @exception_handler
     def safemode_guard(self):
         """Warns user if AntKontrol is in SAFE MODE while using motor-class commands"""
         if self.invoker.is_safemode():
             raise SafeModeWarning
 
+    @exception_handler
     def guard_open(self):
         if self.fe or self.invoker is None:
             raise DeviceNotOpenError
         else:
             return True
 
+    @exception_handler
     def guard_init(self):
         if not self.invoker.is_antenna_initialized():
             raise NoAntKontrolError
         else:
             return True
 
+    @exception_handler
     def guard_config_status(self):
         if not self.invoker.config_status():
             raise ConfigStatusError

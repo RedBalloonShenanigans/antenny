@@ -21,7 +21,6 @@ from mp.conbase import ConError
 from mp.pyboard import PyboardError
 from mp.tokenizer import Tokenizer
 
-from nyansat.host.shell.nyan_explorer import NyanExplorerCaching, NyanExplorer, NotVisibleError
 from nyansat.host.shell.cli_arg_parser import CLIArgumentProperty, parse_cli_args
 from nyansat.host.shell.terminal_printer import TerminalPrinter
 from nyansat.host.shell.antenny_client import AntennyClient
