@@ -30,7 +30,8 @@ class Pca9685Controller(MotorController):
         self.period = 1000000 / freq
         self.min_duty = self._us2duty(min_us)
         self.max_duty = self._us2duty(max_us)
-        self._degrees = [degrees] * 16  # There are 16 possible PWM indices
+        self._default_degrees = degrees
+        self._degrees = dict()
         self.freq = freq
         self.pca9685 = pca9685.PCA9685(i2c, address)
         self.pca9685.freq(freq)
@@ -42,7 +43,7 @@ class Pca9685Controller(MotorController):
 
     def degrees(self, index: int) -> float:
         """Return the position in degrees of the servo with the given index."""
-        return self._degrees[index]
+        return self._degrees.get(index, self._default_degrees)
 
     def _set_degrees(self, index: int, value: int) -> None:
         """Set the degrees variable to. This function is to provide an
@@ -60,9 +61,9 @@ class Pca9685Controller(MotorController):
         """
         span = self.max_duty - self.min_duty
         if degrees is not None:
-            duty = self.min_duty + span * degrees / self._degrees[index]
+            duty = self.min_duty + span * degrees / self._degrees.get(index, self._default_degrees)
         elif radians is not None:
-            duty = self.min_duty + span * radians / math.radians(self._degrees[index])
+            duty = self.min_duty + span * radians / math.radians(self._degrees.get(index, self._default_degrees))
         elif us is not None:
             duty = self._us2duty(us)
         elif duty is not None:
@@ -76,7 +77,7 @@ class Pca9685Controller(MotorController):
         """Get the position of a servo in degrees."""
         span = self.max_duty - self.min_duty
         duty = self.pca9685.duty(index)
-        degrees = (duty - self.min_duty) * self._degrees[index] / span
+        degrees = (duty - self.min_duty) * self._degrees.get(index, self._default_degrees) / span
         return degrees
 
     def __move_one(self, timer):
@@ -100,7 +101,7 @@ class Pca9685Controller(MotorController):
             pass
         self.is_moving = True
         span = self.max_duty - self.min_duty
-        duty = self.min_duty + span * degrees / self._degrees[index]
+        duty = self.min_duty + span * degrees / self._degrees.get(index, self._default_degrees)
         start = self.pca9685.duty(index)
         end = min(self.max_duty, max(self.min_duty, int(duty)))
         step = -1 if start > end else 1
