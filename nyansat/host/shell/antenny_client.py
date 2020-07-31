@@ -153,10 +153,11 @@ class AntennyClient(object):
                 print("AntKontrol appears to be initialized properly")
 
     @exception_handler
-    def track(self):
+    def track(self, sat_name):
         self.guard_open()
         self.guard_init()
-        # TODO: Get back to this, this one has a bunch of logic inside NyanExplorer
+        # TODO: raise NotVisibleError
+        self.fe.wrap_track(sat_name)
         pass
 
     @exception_handler

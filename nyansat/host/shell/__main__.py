@@ -530,20 +530,8 @@ class NyanShell(mpfshell.MpFileShell):
         ]
         parsed_args = parse_cli_args(args, 'track', 1, arg_properties)
         sat_name, = parsed_args
-        try:
-            if self._is_open() and self.fe.is_antenna_initialized():
-                try:
-                    self.fe.wrap_track(sat_name)
-                except NotVisibleError:
-                    self.printer.print_error("The satellite is not visible from your position")
-            else:
-                self.printer.print_error("Please run 'antkontrol start' to initialize the antenna.")
-        except PyboardError as e:
-            self.printer.print_error_and_exception(
-                "The AntKontrol object is not responding. Restart it with 'antkontrol start'",
-                e
-            )
-
+        self.client.track(sat_name)
+        
     def do_cancel(self, args):
         """cancel
         Cancel tracking mode.
