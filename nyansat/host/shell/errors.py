@@ -9,8 +9,8 @@ def exception_handler(func):
         try:
             func(*args, **kwargs)
         except AntennyException as e:
-            logging.error(e)
-            print(e.msg)
+            print(e.msg + '\n')
+            print_board_error(e)
 
     return wrapper
 
@@ -24,6 +24,20 @@ def cli_handler(func):
             print(e)
 
     return wrapper
+
+
+def print_board_error(e: 'AntennyException'):
+    def parse_board_error(error: 'AntennyException'):
+        error_list = str(error).strip('()').split(", b'")
+        error_list[0] = error_list[0][1:]
+        ret = []
+        for err in error_list:
+            ret.append(bytes(err[0:-1], 'utf-8').decode('unicode-escape'))
+        return ret
+    try:
+        print(parse_board_error(e)[2])
+    except:
+        pass
 
 
 class AntennyException(Exception):
