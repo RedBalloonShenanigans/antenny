@@ -1,6 +1,8 @@
 # Arg Parser
 import shlex
 
+from nyansat.host.shell.errors import ParameterError, NumArgsError
+
 
 class CLIArgumentProperty(object):
     def __init__(
@@ -20,17 +22,20 @@ def parse_cli_args(
 ):
     split_args = shlex.split(args)
     if len(split_args) != num_expected_args:
-        raise RuntimeError('{} only takes {} args, got {}!'.format(
+        raise NumArgsError('{} only takes {} args, got {}!'.format(
                 function_name,
                 num_expected_args,
                 len(split_args)
         ))
     parsed_args = []
     for split_arg, argument_property in zip(split_args, argument_properties):
-        converted = argument_property.arg_type(split_arg)
+        try:
+            converted = argument_property.arg_type(split_arg)
+        except ValueError:
+            raise ParameterError
         if argument_property.choices is not None:
             if converted not in argument_property.choices:
-                raise ValueError(
+                raise ParameterError(
                         '{} not a choice, expected {}'.format(converted, argument_property.choices)
                 )
         parsed_args.append(converted)

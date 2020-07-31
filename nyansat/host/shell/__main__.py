@@ -25,6 +25,8 @@ from nyansat.host.shell.cli_arg_parser import CLIArgumentProperty, parse_cli_arg
 from nyansat.host.shell.terminal_printer import TerminalPrinter
 from nyansat.host.shell.antenny_client import AntennyClient
 
+from nyansat.host.shell.errors import cli_handler
+
 
 def arg_exception_handler(func):
     """
@@ -217,6 +219,7 @@ class NyanShell(mpfshell.MpFileShell):
     def do_test(self, args):
         print(args)
 
+    @cli_handler
     def do_setup(self, args):
         """setup <CONFIG_FILE>
         Interactive script to populate a config file.
@@ -233,6 +236,7 @@ class NyanShell(mpfshell.MpFileShell):
         name, = parsed_args
         self.client.setup(name)
 
+    @cli_handler
     def do_set(self, args):
         """set <CONFIG_PARAM> <NEW_VAL>
         Set a parameter in the configuration file to a new value."""
@@ -258,6 +262,7 @@ class NyanShell(mpfshell.MpFileShell):
         Print a list of all configuration parameters."""
         self.client.configs()
 
+    @cli_handler
     def do_switch(self, args):
         """switch <CONFIG_FILE>
         Switch to using a different config file."""
@@ -517,6 +522,7 @@ class NyanShell(mpfshell.MpFileShell):
         """
         self.client.upload_calibration()
 
+    @cli_handler
     def do_motortest(self, args):
         """motortest <EL | AZ> <ANGLE>
         Test the motors to plot their accuracy against the measured IMU values.
@@ -537,6 +543,7 @@ class NyanShell(mpfshell.MpFileShell):
         motor, pos = parsed_args
         self.client.motor_test(motor, pos)
 
+    @cli_handler
     def do_elevation(self, args):
         """elevation <ELEVATION>
         Set the elevation to the level given in degrees by the first argument.
@@ -551,6 +558,7 @@ class NyanShell(mpfshell.MpFileShell):
         el, = parsed_args
         self.client.elevation(el)
 
+    @cli_handler
     def do_azimuth(self, args):
         """azimuth <AZIMUTH>
         Set the azimuth to the level given in degrees by the first argument.
@@ -567,6 +575,7 @@ class NyanShell(mpfshell.MpFileShell):
         az, = parsed_args
         self.client.azimuth(az)
 
+    @cli_handler
     def do_antkontrol(self, args):
         """antkontrol <start | status>
         Create a new global AntKontrol instance or query the status of an existing one
@@ -583,6 +592,7 @@ class NyanShell(mpfshell.MpFileShell):
         mode, = parsed_args
         self.client.antkontrol(mode)
 
+    @cli_handler
     def do_track(self, args):
         """track <SATELLITE_NAME>
         Tracks a satellite across the sky. Satellite data is taken from Active-Space-Stations file from Celestrak."""
