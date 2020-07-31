@@ -20,7 +20,7 @@ class ConfigRepository:
         "last_loaded": "config.json",
         # Disable optional hardware features
         "use_gps": False,
-        "use_screen": False,
+        "use_screen": True,
         # Elevation/azimuth servo defaults
         "elevation_servo_index": 0,
         "azimuth_servo_index": 1,
