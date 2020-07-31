@@ -1,21 +1,8 @@
-
 import ast
-import asyncio
 import json
-import threading
 
-from time import sleep
-
-from mp.pyboard import PyboardError
 from nyansat.host.shell.nyan_pyboard import NyanPyboard
-
-from nyansat.host.satellite_observer import SatelliteObserver, parse_tle_file
 from nyansat.host.shell.errors import *
-
-import nyansat.host.satdata_client as SatelliteScraper
-
-from typing import List
-from dataclasses import dataclass
 
 
 class CommandInvoker(NyanPyboard):
@@ -36,6 +23,12 @@ class CommandInvoker(NyanPyboard):
             return True
         except PyboardError:
             return False
+
+    def is_tracking(self):
+        return self.tracking
+
+    def set_tracking(self, val: bool):
+        self.tracking = val
 
     def config_status(self):
         """Test if there is a valid config object on the board; if not, try to create one"""
@@ -61,7 +54,10 @@ class CommandInvoker(NyanPyboard):
         key -- name of config parameter.
         """
         command = "config.get(\"{}\")".format(key)
-        return self.eval_string_expr(command)
+        try:
+            return self.eval_string_expr(command)
+        except PyboardError as e:
+            raise NoSuchConfigError(str(e))
 
     def config_set(self, key, val):
         """Set an individual parameter in the config file.
@@ -70,10 +66,13 @@ class CommandInvoker(NyanPyboard):
         key -- name of config parameter. Tab complete to see choices.
         val -- value of paramter
         """
-        if isinstance(val, int) or isinstance(val, float):
-            self.exec_("config.set(\"%s\", %d)" % (key, val))
-        elif isinstance(val, str):
-            self.exec_("config.set(\"%s\", %s)" % (key, val))
+        try:
+            if isinstance(val, int) or isinstance(val, float):
+                self.exec_("config.set(\"%s\", %d)" % (key, val))
+            elif isinstance(val, str):
+                self.exec_("config.set(\"%s\", %s)" % (key, val))
+        except PyboardError as e:
+            raise NoSuchConfigError(str(e))
 
     def config_get_default(self, key):
         """Get the default value of a config parameter.
@@ -81,7 +80,10 @@ class CommandInvoker(NyanPyboard):
         Arguments:
         key -- name of config parameter.
         """
-        return self.eval_string_expr("config.get_default(\"{}\")".format(key))
+        try:
+            return self.eval_string_expr("config.get_default(\"{}\")".format(key))
+        except PyboardError as e:
+            raise NoSuchConfigError(str(e))
 
     def config_new(self, name):
         """Create a new config file on the ESP32.
@@ -97,7 +99,10 @@ class CommandInvoker(NyanPyboard):
         Arguments:
         name -- name of config file.
         """
-        self.exec_("config.switch(\"{}\")".format(name))
+        try:
+            self.exec_("config.switch(\"{}\")".format(name))
+        except PyboardError as e:
+            raise ConfigUnknownError(str(e))
 
     def i2c_scan(self, sda, scl):
         """
@@ -118,7 +123,10 @@ class CommandInvoker(NyanPyboard):
 
     def imu_calibration_status(self):
         """Get IMU calibration status."""
-        return json.loads(self.eval_string_expr("api.imu.get_calibration_status()"))
+        try:
+            return json.loads(self.eval_string_expr("api.imu.get_calibration_status()"))
+        except PyboardError as e:
+            raise CalibrationStatusError(str(e))
 
     def imu_save_calibration_profile(self):
         """Save the current IMU calibration as 'calibration.json'."""
@@ -135,7 +143,10 @@ class CommandInvoker(NyanPyboard):
         index -- index of motor on the PWM driver (defaults: 0 == elevation, 1 == azimuth).
         pos -- desired angle.
         """
-        return ast.literal_eval(self.eval_string_expr("api.motor_test({}, {})".format(index, pos)))
+        try:
+            return ast.literal_eval(self.eval_string_expr("api.motor_test({}, {})".format(index, pos)))
+        except PyboardError as e:
+            raise NotRespondingError(str(e))
 
     def set_elevation_degree(self, el_angle):
         """Set the elevation angle.
@@ -143,7 +154,10 @@ class CommandInvoker(NyanPyboard):
         Arguments:
         el_angle -- desired elevation angle.
         """
-        self.eval_string_expr("api.antenna.set_elevation({})".format(el_angle))
+        try:
+            self.eval_string_expr("api.antenna.set_elevation({})".format(el_angle))
+        except PyboardError as e:
+            raise NotRespondingError(str(e))
 
     def set_azimuth_degree(self, az_angle):
         """Set the azimuth angle.
@@ -151,25 +165,27 @@ class CommandInvoker(NyanPyboard):
         Arguments:
         az_angle -- desired azimuth angle.
         """
-        self.eval_string_expr("api.antenna.set_azimuth({})".format(az_angle))
+        try:
+            self.eval_string_expr("api.antenna.set_azimuth({})".format(az_angle))
+        except PyboardError as e:
+            raise NotRespondingError(str(e))
 
     def create_antkontrol(self):
         """Create an antkontrol object on the ESP32."""
         try:
             ret = self.exec_("import antenny")
             ret = self.exec_("api = antenny.esp32_antenna_api_factory()")
-        except PyboardError:
-            raise AntennaAPIFactoryError
+        except PyboardError as e:
+            raise AntennaAPIFactoryError(str(e))
         try:
             ret = self.exec_("del(config)")
             ret = self.exec_("config = api.config")
             # self.antenna_initialized = True
             return ret.decode()
-        except PyboardError:
+        except PyboardError as e:
             self.exec_("from config.config import ConfigRepository")
             self.exec_("config = ConfigRepository")
-            # This is ugly as SHIT. Needs to be fixed with PROPER error handling
-            raise ConfigUnknownError
+            raise ConfigUnknownError(str(e))
 
     def delete_antkontrol(self):
         """Delete the existing antkontrol object on the ESP32."""
@@ -177,8 +193,8 @@ class CommandInvoker(NyanPyboard):
             ret = self.exec_("del(api)")
             # self.antenna_initialized = False
             return ret.decode()
-        except PyboardError:
-            pass
+        except PyboardError as e:
+            raise NotRespondingError(str(e))
 
     def is_safemode(self):
         """Check if the API is in SAFE MODE"""
@@ -190,5 +206,5 @@ class CommandInvoker(NyanPyboard):
             else:
                 ret = True
             return ret
-        except PyboardError:
-            pass
+        except PyboardError as e:
+            raise NotRespondingError(str(e))

@@ -11,7 +11,6 @@ from typing import List
 
 from nyansat.host.shell.terminal_printer import TerminalPrinter
 from nyansat.host.shell.command_invoker import CommandInvoker
-from nyansat.host.shell.nyan_explorer import NyanExplorer
 from nyansat.host.shell.errors import *
 
 from mp.pyboard import PyboardError
@@ -22,69 +21,6 @@ from nyansat.host.satellite_observer import SatelliteObserver, parse_tle_file
 
 
 import nyansat.host.satdata_client as SatelliteScraper
-
-
-# TODO: Move error messages into the errors.py as a self.message attribute
-def exception_handler(func):
-
-    def wrapper(*args, **kwargs):
-        try:
-            func(*args, **kwargs)
-        except NotRespondingError as e:
-            logging.error(e)
-            print("The AntKontrol object is not responding. Restart it with 'antkontrol start'")
-        except NoAntKontrolError as e:
-            print("Please run 'antkontrol start' to initialize the antenna.")
-            logging.error(e)
-        except DeviceNotOpenError as e:
-            print("Not connected to device. Use 'open' first.")
-            logging.error(e)
-        except AntKontrolInitError as e:
-            logging.error(e)
-            print("Error creating AntKontrol object. Please check your physical setup and configuration match up")
-        except SafeModeWarning as e:
-            logging.warning(e)
-            print("AntKontrol is in SAFE MODE. Attached motors will not move")
-            print("If you did not intend to be in SAFE MODE, check your configuration and run "
-                  "'antkontrol start'")
-        except NotVisibleError:
-            print("The satellite is not visible from your position")
-        except BNO055RegistersError as e:
-            logging.error(e)
-            print("Error: BNO055 not detected or error in writing calibration registers.")
-        except BNO055UploadError as e:
-            logging.error(e)
-            print("The AntKontrol object is either not responding or your current configuration does not support IMU "
-                  "calibration.")
-            print("You can try to restart AntKontrol by running 'antkontrol start'")
-            print("If you believe your configuration is incorrect, run 'configs' to check your configuration and "
-                  "'setup <CONFIG_FILE>' to create a new one\n")
-        except PinInputError as e:
-            logging.error(e)
-            print("Invalid type for pin number. Try again using only decimal numbers")
-        except I2CNoAddressesError as e:
-            logging.error(e)
-            print("Did not find any I2C devices")
-        except ConfigStatusError as e:
-            logging.error(e)
-            print("Could not access existing configuration object or create one.")
-        except NoSuchConfigError as e:
-            logging.error(e)
-            print("No such configuration parameter.")
-        except ConfigUnknownError as e:
-            logging.error(e)
-            print("Command faulted while trying to set configuration.")
-        except ValueError as e:
-            logging.error(e)
-            print("Incorrect parameter type.")
-        except NoSuchFileError as e:
-            logging.error(e)
-            print("No such file")
-        except NotTrackingError as e:
-            logging.error(e)
-            print("The antenna is not currently tracking any satellite")
-
-    return wrapper
 
 
 class AntennyClient(object):
@@ -116,23 +52,27 @@ class AntennyClient(object):
             "use_telemetry": ("Use Telemetry: ", bool)
         }
 
+    @exception_handler
     def safemode_guard(self):
         """Warns user if AntKontrol is in SAFE MODE while using motor-class commands"""
         if self.invoker.is_safemode():
             raise SafeModeWarning
 
+    @exception_handler
     def guard_open(self):
         if self.fe or self.invoker is None:
             raise DeviceNotOpenError
         else:
             return True
 
+    @exception_handler
     def guard_init(self):
         if not self.invoker.is_antenna_initialized():
             raise NoAntKontrolError
         else:
             return True
 
+    @exception_handler
     def guard_config_status(self):
         if not self.invoker.config_status():
             raise ConfigStatusError
@@ -179,8 +119,7 @@ class AntennyClient(object):
         self.guard_open()
         self.guard_init()
         # TODO: raise NotVisibleError
-        self.wrap_track(sat_name)
-        pass
+        self._wrap_track(sat_name)
 
     @exception_handler
     def cancel(self):
@@ -188,7 +127,7 @@ class AntennyClient(object):
         self.guard_open()
         self.guard_init()
         if self.invoker.is_tracking():
-            self.invoker.cancel()
+            self._cancel()
         else:
             raise NotTrackingError
 
@@ -200,7 +139,7 @@ class AntennyClient(object):
         # TODO: raise BNO055UploadError in nyan_explorer
         status = self.invoker.imu_upload_calibration_profile()
         if not status:
-            raise BNO055RegistersError
+            raise BNO055UploadError
 
     @exception_handler
     def save_calibration(self):
@@ -309,24 +248,23 @@ class AntennyClient(object):
 
         files = self.fe.ls()
         if name not in files:
-            raise NoSuchFileError
+            raise NoSuchConfigFileError
         current = self.invoker.which_config()
         self.invoker.config_switch(name)
         print("Switched from \"{}\"".format(current) +
               " to \"{}\"".format(name))
 
-    def is_tracking(self):
-        return self.tracking
-
+    @exception_handler
     def _track_update(self, observer):
         """Update the antenna position every 2 seconds"""
         print(f"Tracking {observer.sat_name} ...")
-        while self.tracking:
+        while self.invoker.is_tracking():
             elevation, azimuth, distance = observer.get_current_stats()
             self.invoker.set_elevation_degree(elevation)
             self.invoker.set_azimuth_degree(azimuth)
             sleep(2)
 
+    @exception_handler
     async def _start_track(self, sat_name):
         """Track a satellite across the sky"""
         coords = (40.0, -73.0)
@@ -335,19 +273,20 @@ class AntennyClient(object):
         observer = SatelliteObserver.parse_tle(coords, sat_name, tle_data)
 
         if not observer.get_visible():
-            self.cancel()
+            self._cancel()
             raise NotVisibleError
         t = threading.Thread(target=self._track_update, args=(observer,))
         t.start()
 
+    @exception_handler
     def _wrap_track(self, sat_name):
         """Entry point for tracking mode"""
-        self.tracking = True
+        self.invoker.set_tracking(True)
         asyncio.run(self._start_track(sat_name))
 
     def _cancel(self):
         """Cancel tracking mode"""
-        self.tracking = False
+        self.invoker.set_tracking(False)
 
     # TODO: refactor this
     def bno_test(self, sda, scl):
