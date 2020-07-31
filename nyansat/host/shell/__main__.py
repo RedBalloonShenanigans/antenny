@@ -252,16 +252,15 @@ class NyanShell(mpfshell.MpFileShell):
     def do_set(self, args):
         """set <CONFIG_PARAM> <NEW_VAL>
         Set a parameter in the configuration file to a new value."""
-        if self._is_open():
-            arg_properties = [
-                CLIArgumentProperty(
-                    str,
-                    None
-                )
-            ]
-            parsed_args = parse_cli_args(args, 'set', 1, arg_properties)
-            key, new_val = parsed_args
-            self.client.set(key, new_val)
+        arg_properties = [
+            CLIArgumentProperty(
+                str,
+                None
+            )
+        ]
+        parsed_args = parse_cli_args(args, 'set', 1, arg_properties)
+        key, new_val = parsed_args
+        self.client.set(key, new_val)
 
     def complete_set(self, *args):
         """Tab completion for 'set' command."""
@@ -287,7 +286,6 @@ class NyanShell(mpfshell.MpFileShell):
         parsed_args = parse_cli_args(args, 'switch', 1, arg_properties)
         name, = parsed_args
         self.client.switch(name)
-
 
     def do_i2ctest(self, args):
         """i2ctest
