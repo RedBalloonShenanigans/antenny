@@ -141,10 +141,52 @@ class AntennyClient(object):
         if not status:
             raise BNO055RegistersError
 
-    # TODO: This one is huge, needs to be broken up
     @exception_handler
     def calibrate(self):
-        pass
+        self.guard_open()
+        print("Detecting calibration status ...")
+        data = self.invoker.imu_calibration_status()
+        data = (data['system'], data['gyroscope'], data['accelerometer'], data['magnetometer'])
+        if not data:
+            # TODO: should TerminalPrinter methods be static?
+            TerminalPrinter().print_error("Error connecting to BNO055.")
+            return
+
+        system_level, gyro_level, accel_level, magnet_level = data
+        system_calibrated = system_level > 0
+        gyro_calibrated = gyro_level > 0
+        accel_calibrated = accel_level > 0
+        magnet_calibrated = magnet_level > 0
+        components_calibrated = (system_calibrated, gyro_calibrated, accel_calibrated, magnet_calibrated)
+        TerminalPrinter()._display_initial_calibration_status(components_calibrated)
+
+        waiting_dot_count = 4
+        dot_counter = 0
+        sleep(1)
+        while not (magnet_calibrated and accel_calibrated and gyro_calibrated):
+            sleep(0.5)
+            old_calibration_status = (system_calibrated, gyro_calibrated, accel_calibrated, magnet_calibrated)
+            system_calibrated, gyro_calibrated, accel_calibrated, magnet_calibrated = TerminalPrinter()._display_loop_calibration_status(
+                data,
+                old_calibration_status,
+                waiting_dot_count,
+                dot_counter
+            )
+
+            # Re-fetch calibration data
+            data = self.invoker.imu_calibration_status()
+            data = (data['system'], data['gyroscope'], data['accelerometer'], data['magnetometer'])
+            if not data:
+                TerminalPrinter().print_error("Error connecting to BNO055.")
+                return
+
+            dot_counter = (dot_counter + 1) % waiting_dot_count
+
+        print(f"System calibration complete: {TerminalPrinter.YES_DISPLAY_STRING}")
+        print("Saving calibration data ...")
+        # self.do_save_calibration(None)
+        self.save_calibration()
+        print("Calibration data is now saved to config.")
 
     @exception_handler
     def i2ctest(self):
@@ -278,143 +320,43 @@ class AntennyClient(object):
         """Cancel tracking mode"""
         self.invoker.set_tracking(False)
 
-    # TODO: refactor this
-    def bno_test(self, sda, scl):
-        """
-        Create a BNO controller object for the given I2C sda/scl configuration. Uses the default
-        value of 40 for the BNO055 I2C address.
-        :param sda: Pin number for sda
-        :param scl: Pin number for scl
-        :return: A BnoTestDiagnostics object containing relevant T/F information about the setup
-        """
-        i2c_bus_scannable = False
-        i2c_addresses = []
-        bno_object_created = False
-        bno_object_calibrated = False
+    def bno_test(self):
+        self.guard_open()   # No need to guard for antenna initialization when doing diagnostics
 
-        # Test scanning I2C bus
+        print("Input the SDA pin and SCL of the BNO device to test")
         try:
-            addresses = self.i2c_scan(sda, scl)
-        except PyboardError:
-            return BnoTestDiagnostics(
-                i2c_bus_scannable,
-                i2c_addresses,
-                bno_object_created,
-                bno_object_calibrated
-            )
-        i2c_bus_scannable = True
-
-        # Test what's on the I2C bus and their addresses
-        try:
-            i2c_addresses = [int(n) for n in addresses.strip('] [').split(', ')]
-            if not i2c_addresses:
-                return BnoTestDiagnostics(
-                    i2c_bus_scannable,
-                    i2c_addresses,
-                    bno_object_created,
-                    bno_object_calibrated
-                )
+            sda = int(input("SDA Pin#: "))
+            scl = int(input("SCL Pin#: "))
         except ValueError:
-            return BnoTestDiagnostics(
-                i2c_bus_scannable,
-                i2c_addresses,
-                bno_object_created,
-                bno_object_calibrated
-            )
+            TerminalPrinter().print_error("Invalid type for pin number. Try again using only decimal numbers")
+            return
 
-        # Test creating BNO object
+        bno_test_diagnostics = self.invoker.bno_diagnostics(sda, scl)
+        print("---")
+        print("I2C bus usable?", bno_test_diagnostics.i2c_bus_scannable)
+        if len(bno_test_diagnostics.i2c_addresses) == 0:
+            print("I2C address detected? False")
+        else:
+            print("I2C address detected? True, addresses =", bno_test_diagnostics.i2c_addresses)
+        print("BNO connection established?", bno_test_diagnostics.bno_object_created)
+        print("BNO calibrated?", bno_test_diagnostics.bno_object_calibrated)
+
+    def pwm_test(self):
+        self.guard_open()   # No need to guard for antenna initialization when doing diagnostics
+
+        print("Input the SDA pin and SCL of the PWM driver to test")
         try:
-            self.exec_("from imu.imu_bno055 import Bno055ImuController")
-            self.exec_("bno = Bno055ImuController(i2c)")
-        except PyboardError:
-            return BnoTestDiagnostics(
-                i2c_bus_scannable,
-                i2c_addresses,
-                bno_object_created,
-                bno_object_calibrated
-            )
-        bno_object_created = True
-
-        # Test calibration status of BNO object
-        try:
-            calibration_status = json.loads(self.eval_string_expr("bno.get_calibration_status()"))
-            bno_object_calibrated = calibration_status['system'] > 0
-        except PyboardError:
-            bno_object_calibrated = False
-
-        return BnoTestDiagnostics(
-            i2c_bus_scannable,
-            i2c_addresses,
-            bno_object_created,
-            bno_object_calibrated
-        )
-
-    # TODO: refactor this
-    def pwm_test(self, sda, scl):
-        """
-        Create a PCA9685 controller object for the given I2C sda/scl configuration. Uses the default
-        value of 40 for the controller's address.
-        :param sda: Pin number for sda
-        :param scl: Pin number for scl
-        :return: A PwmTestDiagnostics object containing relevant T/F information about the setup
-        """
-        i2c_bus_scannable = False
-        i2c_addresses = []
-        pca_object_created = False
-
-        # Test scanning I2C bus
-        try:
-            addresses = self.i2c_scan(sda, scl)
-        except PyboardError:
-            return PwmTestDiagnostics(
-                i2c_bus_scannable,
-                i2c_addresses,
-                pca_object_created
-            )
-        i2c_bus_scannable = True
-
-        # Test what's on the I2C bus and their addresses
-        try:
-            i2c_addresses = [int(n) for n in addresses.strip('] [').split(', ')]
-            if not i2c_addresses:
-                return PwmTestDiagnostics(
-                    i2c_bus_scannable,
-                    i2c_addresses,
-                    pca_object_created
-                )
+            sda = int(input("SDA Pin#: "))
+            scl = int(input("SCL Pin#: "))
         except ValueError:
-            return PwmTestDiagnostics(
-                i2c_bus_scannable,
-                i2c_addresses,
-                pca_object_created
-            )
+            TerminalPrinter().print_error("Invalid type for pin number. Try again using only decimal numbers")
+            return
 
-        # Test creating BNO object
-        try:
-            self.exec_("from motor.motor_pca9685 import Pca9685Controller")
-            self.exec_("pca = Pca9685Controller(i2c)")
-            pca_object_created = True
-        except PyboardError:
-            pca_object_created = False
-
-        return PwmTestDiagnostics(
-            i2c_bus_scannable,
-            i2c_addresses,
-            pca_object_created
-        )
-
-
-@dataclass
-class BnoTestDiagnostics:
-    """Store diagnostic T/F values for BNO test. Used in the handling for 'bnotest' command."""
-    i2c_bus_scannable: bool
-    i2c_addresses: List[int]
-    bno_object_created: bool
-    bno_object_calibrated: bool
-
-@dataclass
-class PwmTestDiagnostics:
-    """Store diagnostic T/F values for PWM test. Used in the handling for 'pwmtest' command."""
-    i2c_bus_scannable: bool
-    i2c_addresses: List[int]
-    pca_object_created: bool
+        pwm_test_diagnostics = self.invoker.pwm_diagnostics(sda, scl)
+        print("---")
+        print("I2C bus usable?", pwm_test_diagnostics.i2c_bus_scannable)
+        if len(pwm_test_diagnostics.i2c_addresses) == 0:
+            print("I2C address detected? False")
+        else:
+            print("I2C address detected? True, addresses =", pwm_test_diagnostics.i2c_addresses)
+        print("PWM connection established?", pwm_test_diagnostics.pca_object_created)
