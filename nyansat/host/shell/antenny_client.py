@@ -303,11 +303,6 @@ class AntennyClient(object):
               " to \"{}\"".format(name))
 
     @exception_handler
-    def which_config(self):
-        self.guard_open()
-        self.invoker.which_config()
-
-    @exception_handler
     def _track_update(self, observer):
         """Update the antenna position every 2 seconds"""
         print(f"Tracking {observer.sat_name} ...")
