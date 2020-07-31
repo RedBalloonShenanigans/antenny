@@ -285,47 +285,15 @@ class NyanShell(mpfshell.MpFileShell):
             )
         ]
         parsed_args = parse_cli_args(args, 'switch', 1, arg_properties)
-        if self._is_open():
-            try:
-                if self.fe.config_status():
-                    name, = parsed_args
-                    files = self.fe.ls()
-                    if name not in files:
-                        self.printer.print_error("No such file")
-                        return
-                    current = self.fe.which_config()
-                    self.fe.config_switch(name)
-                    print("Switched from \"{}\"".format(current) +
-                          " to \"{}\"".format(name))
-                else:
-                    self.printer.print_error("Could not access existing configuration object or create one.")
+        name, = parsed_args
+        self.client.switch(name)
 
-            except PyboardError as e:
-                self.printer.print_error_and_exception("Command faulted while trying to access or set new configuration", e)
 
     def do_i2ctest(self, args):
         """i2ctest
         Scan an i2c bus for i2c device addresses
         """
-        try:
-            print("Input the SDA pin and SCL for the I2C bus to check")
-
-            try:
-                sda = int(input("SDA Pin#: "))
-                scl = int(input("SCL Pin#: "))
-            except ValueError:
-                self.printer.print_error("Invalid type for pin number. Try again using only decimal numbers")
-                return
-            addresses = self.fe.i2c_scan(sda, scl)
-            addresses_list = addresses.strip('] [').strip(', ')
-            if not addresses_list:
-                print("Did not find any devices")
-            else:
-                print("Found the following device addresses: {}".format(addresses_list))
-            print("If you had a running AntKontrol instance, be sure to restart it")
-            return
-        except PyboardError as e:
-            self.printer.print_error_and_exception("Unable to scan the I2C bus", e)
+        self.client.i2ctest()
 
     def complete_switch(self, *args):
         """Tab completion for switch command."""

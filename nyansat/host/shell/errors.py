@@ -59,7 +59,8 @@ class ConfigUnknownError(Exception):
     pass
 
 
-
+class NoSuchFileError(Exception):
+    pass
 
 
 if __name__ == '__main__':

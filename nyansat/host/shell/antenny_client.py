@@ -59,6 +59,9 @@ def exception_handler(func):
         except ValueError as e:
             logging.error(e)
             print("Incorrect parameter type.")
+        except NoSuchFileError as e:
+            logging.error(e)
+            print("No such file")
 
     return wrapper
 
@@ -269,3 +272,15 @@ class AntennyClient(object):
         for key in self.prompts.keys():
             print(key + ": " + self.fe.config_get(key))
 
+    @exception_handler
+    def switch(self, name):
+        self.guard_open()
+        self.guard_config_status()
+
+        files = self.fe.ls()
+        if name not in files:
+            raise NoSuchFileError
+        current = self.fe.which_config()
+        self.fe.config_switch(name)
+        print("Switched from \"{}\"".format(current) +
+              " to \"{}\"".format(name))
