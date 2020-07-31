@@ -151,10 +151,52 @@ class AntennyClient(object):
         if not status:
             raise BNO055RegistersError
 
-    # TODO: This one is huge, needs to be broken up
     @exception_handler
     def calibrate(self):
-        pass
+        self.guard_open()
+        print("Detecting calibration status ...")
+        data = self.invoker.imu_calibration_status()
+        data = (data['system'], data['gyroscope'], data['accelerometer'], data['magnetometer'])
+        if not data:
+            # TODO: should TerminalPrinter methods be static?
+            TerminalPrinter().print_error("Error connecting to BNO055.")
+            return
+
+        system_level, gyro_level, accel_level, magnet_level = data
+        system_calibrated = system_level > 0
+        gyro_calibrated = gyro_level > 0
+        accel_calibrated = accel_level > 0
+        magnet_calibrated = magnet_level > 0
+        components_calibrated = (system_calibrated, gyro_calibrated, accel_calibrated, magnet_calibrated)
+        TerminalPrinter()._display_initial_calibration_status(components_calibrated)
+
+        waiting_dot_count = 4
+        dot_counter = 0
+        sleep(1)
+        while not (magnet_calibrated and accel_calibrated and gyro_calibrated):
+            sleep(0.5)
+            old_calibration_status = (system_calibrated, gyro_calibrated, accel_calibrated, magnet_calibrated)
+            system_calibrated, gyro_calibrated, accel_calibrated, magnet_calibrated = TerminalPrinter()._display_loop_calibration_status(
+                data,
+                old_calibration_status,
+                waiting_dot_count,
+                dot_counter
+            )
+
+            # Re-fetch calibration data
+            data = self.invoker.imu_calibration_status()
+            data = (data['system'], data['gyroscope'], data['accelerometer'], data['magnetometer'])
+            if not data:
+                TerminalPrinter().print_error("Error connecting to BNO055.")
+                return
+
+            dot_counter = (dot_counter + 1) % waiting_dot_count
+
+        print(f"System calibration complete: {TerminalPrinter.YES_DISPLAY_STRING}")
+        print("Saving calibration data ...")
+        # self.do_save_calibration(None)
+        self.save_calibration()
+        print("Calibration data is now saved to config.")
 
     @exception_handler
     def i2ctest(self):
