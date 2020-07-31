@@ -77,7 +77,6 @@ class NyanShell(mpfshell.MpFileShell):
         self.reset = reset
 
         self.fe = None
-        self.invoker = None
         self.client = None
         # self.printer = TerminalPrinter()
 
@@ -295,7 +294,7 @@ class NyanShell(mpfshell.MpFileShell):
             self._error("Invalid type for pin number. Try again using only decimal numbers")
             return
 
-        bno_test_diagnostics = self.invoker.bno_test(sda, scl)
+        bno_test_diagnostics = self.client.bno_test(sda, scl)
         print("---")
         print("I2C bus usable?", bno_test_diagnostics.i2c_bus_scannable)
         if len(bno_test_diagnostics.i2c_addresses) == 0:
@@ -321,7 +320,7 @@ class NyanShell(mpfshell.MpFileShell):
             self._error("Invalid type for pin number. Try again using only decimal numbers")
             return
 
-        pwm_test_diagnostics = self.invoker.pwm_test(sda, scl)
+        pwm_test_diagnostics = self.client.pwm_test(sda, scl)
         print("---")
         print("I2C bus usable?", pwm_test_diagnostics.i2c_bus_scannable)
         if len(pwm_test_diagnostics.i2c_addresses) == 0:
@@ -333,10 +332,10 @@ class NyanShell(mpfshell.MpFileShell):
     def complete_switch(self, *args):
         """Tab completion for switch command."""
         try:
-            files = self.invoker.ls(add_dirs=False)
+            files = self.fe.ls(add_dirs=False)
         except Exception:
             files = []
-        current = self.invoker.which_config()
+        current = self.fe.which_config()
         return [f for f in files if f.startswith(args[0]) and f.endswith(".json")]
 
     def _calibration_wait_message(self, gyro_calibrated, accel_calibrated, magnet_calibrated, use_ellipsis=True):
@@ -452,9 +451,9 @@ class NyanShell(mpfshell.MpFileShell):
                 self.printer.print_error("Usage: calibrate does not take arguments.")
                 return
 
-            if self._is_open() and self.invoker.is_antenna_initialized():
+            if self._is_open() and self.client.is_antenna_initialized():
                 print("Detecting calibration status ...")
-                data = self.invoker.imu_calibration_status()
+                data = self.client.imu_calibration_status()
                 data = (data['system'], data['gyroscope'], data['accelerometer'], data['magnetometer'])
                 if not data:
                     self.printer.print_error("Error connecting to BNO055.")
@@ -482,7 +481,7 @@ class NyanShell(mpfshell.MpFileShell):
                     )
 
                     # Re-fetch calibration data
-                    data = self.invoker.imu_calibration_status()
+                    data = self.client.imu_calibration_status()
                     data = (data['system'], data['gyroscope'], data['accelerometer'], data['magnetometer'])
                     if not data:
                         self.printer.print_error("Error connecting to BNO055.")
