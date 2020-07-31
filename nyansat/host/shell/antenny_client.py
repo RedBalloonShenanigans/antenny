@@ -52,32 +52,22 @@ class AntennyClient(object):
             "use_telemetry": ("Use Telemetry: ", bool)
         }
 
-    @exception_handler
     def safemode_guard(self):
         """Warns user if AntKontrol is in SAFE MODE while using motor-class commands"""
         if self.invoker.is_safemode():
             raise SafeModeWarning
 
-    @exception_handler
     def guard_open(self):
-        if self.fe or self.invoker is None:
+        if self.fe is None or self.invoker is None:
             raise DeviceNotOpenError
-        else:
-            return True
 
-    @exception_handler
     def guard_init(self):
         if not self.invoker.is_antenna_initialized():
             raise NoAntKontrolError
-        else:
-            return True
 
-    @exception_handler
     def guard_config_status(self):
         if not self.invoker.config_status():
             raise ConfigStatusError
-        else:
-            return True
 
     @exception_handler
     def elevation(self, el):
