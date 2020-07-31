@@ -59,7 +59,7 @@ class ConfigUnknownError(Exception):
     pass
 
 
-class NoSuchFileError(Exception):
+class NoSuchConfigFileError(Exception):
     pass
 
 

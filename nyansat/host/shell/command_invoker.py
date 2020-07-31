@@ -37,6 +37,12 @@ class CommandInvoker(NyanPyboard):
         except PyboardError:
             return False
 
+    def is_tracking(self):
+        return self.tracking
+
+    def set_tracking(self, val: bool):
+        self.tracking = val
+
     def config_status(self):
         """Test if there is a valid config object on the board; if not, try to create one"""
         try:
@@ -61,7 +67,10 @@ class CommandInvoker(NyanPyboard):
         key -- name of config parameter.
         """
         command = "config.get(\"{}\")".format(key)
-        return self.eval_string_expr(command)
+        try:
+            return self.eval_string_expr(command)
+        except PyboardError:
+            raise NoSuchConfigError
 
     def config_set(self, key, val):
         """Set an individual parameter in the config file.
@@ -70,10 +79,13 @@ class CommandInvoker(NyanPyboard):
         key -- name of config parameter. Tab complete to see choices.
         val -- value of paramter
         """
-        if isinstance(val, int) or isinstance(val, float):
-            self.exec_("config.set(\"%s\", %d)" % (key, val))
-        elif isinstance(val, str):
-            self.exec_("config.set(\"%s\", %s)" % (key, val))
+        try:
+            if isinstance(val, int) or isinstance(val, float):
+                self.exec_("config.set(\"%s\", %d)" % (key, val))
+            elif isinstance(val, str):
+                self.exec_("config.set(\"%s\", %s)" % (key, val))
+        except PyboardError:
+            raise NoSuchConfigError
 
     def config_get_default(self, key):
         """Get the default value of a config parameter.
@@ -81,7 +93,10 @@ class CommandInvoker(NyanPyboard):
         Arguments:
         key -- name of config parameter.
         """
-        return self.eval_string_expr("config.get_default(\"{}\")".format(key))
+        try:
+            return self.eval_string_expr("config.get_default(\"{}\")".format(key))
+        except PyboardError:
+            raise NoSuchConfigError
 
     def config_new(self, name):
         """Create a new config file on the ESP32.
@@ -97,7 +112,10 @@ class CommandInvoker(NyanPyboard):
         Arguments:
         name -- name of config file.
         """
-        self.exec_("config.switch(\"{}\")".format(name))
+        try:
+            self.exec_("config.switch(\"{}\")".format(name))
+        except PyboardError:
+            raise ConfigUnknownError
 
     def i2c_scan(self, sda, scl):
         """
@@ -118,7 +136,10 @@ class CommandInvoker(NyanPyboard):
 
     def imu_calibration_status(self):
         """Get IMU calibration status."""
-        return json.loads(self.eval_string_expr("api.imu.get_calibration_status()"))
+        try:
+            return json.loads(self.eval_string_expr("api.imu.get_calibration_status()"))
+        except PyboardError:
+            raise
 
     def imu_save_calibration_profile(self):
         """Save the current IMU calibration as 'calibration.json'."""
@@ -135,7 +156,10 @@ class CommandInvoker(NyanPyboard):
         index -- index of motor on the PWM driver (defaults: 0 == elevation, 1 == azimuth).
         pos -- desired angle.
         """
-        return ast.literal_eval(self.eval_string_expr("api.motor_test({}, {})".format(index, pos)))
+        try:
+            return ast.literal_eval(self.eval_string_expr("api.motor_test({}, {})".format(index, pos)))
+        except PyboardError:
+            raise NotRespondingError
 
     def set_elevation_degree(self, el_angle):
         """Set the elevation angle.
@@ -143,7 +167,10 @@ class CommandInvoker(NyanPyboard):
         Arguments:
         el_angle -- desired elevation angle.
         """
-        self.eval_string_expr("api.antenna.set_elevation({})".format(el_angle))
+        try:
+            self.eval_string_expr("api.antenna.set_elevation({})".format(el_angle))
+        except PyboardError:
+            raise NotRespondingError
 
     def set_azimuth_degree(self, az_angle):
         """Set the azimuth angle.
@@ -151,7 +178,10 @@ class CommandInvoker(NyanPyboard):
         Arguments:
         az_angle -- desired azimuth angle.
         """
-        self.eval_string_expr("api.antenna.set_azimuth({})".format(az_angle))
+        try:
+            self.eval_string_expr("api.antenna.set_azimuth({})".format(az_angle))
+        except PyboardError:
+            raise NotRespondingError
 
     def create_antkontrol(self):
         """Create an antkontrol object on the ESP32."""
@@ -168,7 +198,6 @@ class CommandInvoker(NyanPyboard):
         except PyboardError:
             self.exec_("from config.config import ConfigRepository")
             self.exec_("config = ConfigRepository")
-            # This is ugly as SHIT. Needs to be fixed with PROPER error handling
             raise ConfigUnknownError
 
     def delete_antkontrol(self):
@@ -178,7 +207,7 @@ class CommandInvoker(NyanPyboard):
             # self.antenna_initialized = False
             return ret.decode()
         except PyboardError:
-            pass
+            raise NotRespondingError
 
     def is_safemode(self):
         """Check if the API is in SAFE MODE"""
@@ -191,4 +220,4 @@ class CommandInvoker(NyanPyboard):
                 ret = True
             return ret
         except PyboardError:
-            pass
+            raise NotRespondingError

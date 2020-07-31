@@ -77,7 +77,7 @@ def exception_handler(func):
         except ValueError as e:
             logging.error(e)
             print("Incorrect parameter type.")
-        except NoSuchFileError as e:
+        except NoSuchConfigFileError as e:
             logging.error(e)
             print("No such file")
         except NotTrackingError as e:
@@ -179,8 +179,7 @@ class AntennyClient(object):
         self.guard_open()
         self.guard_init()
         # TODO: raise NotVisibleError
-        self.wrap_track(sat_name)
-        pass
+        self._wrap_track(sat_name)
 
     @exception_handler
     def cancel(self):
@@ -188,7 +187,7 @@ class AntennyClient(object):
         self.guard_open()
         self.guard_init()
         if self.invoker.is_tracking():
-            self.invoker.cancel()
+            self._cancel()
         else:
             raise NotTrackingError
 
@@ -200,7 +199,7 @@ class AntennyClient(object):
         # TODO: raise BNO055UploadError in nyan_explorer
         status = self.invoker.imu_upload_calibration_profile()
         if not status:
-            raise BNO055RegistersError
+            raise BNO055UploadError
 
     @exception_handler
     def save_calibration(self):
@@ -309,24 +308,23 @@ class AntennyClient(object):
 
         files = self.fe.ls()
         if name not in files:
-            raise NoSuchFileError
+            raise NoSuchConfigFileError
         current = self.invoker.which_config()
         self.invoker.config_switch(name)
         print("Switched from \"{}\"".format(current) +
               " to \"{}\"".format(name))
 
-    def is_tracking(self):
-        return self.tracking
-
+    @exception_handler
     def _track_update(self, observer):
         """Update the antenna position every 2 seconds"""
         print(f"Tracking {observer.sat_name} ...")
-        while self.tracking:
+        while self.invoker.is_tracking():
             elevation, azimuth, distance = observer.get_current_stats()
             self.invoker.set_elevation_degree(elevation)
             self.invoker.set_azimuth_degree(azimuth)
             sleep(2)
 
+    @exception_handler
     async def _start_track(self, sat_name):
         """Track a satellite across the sky"""
         coords = (40.0, -73.0)
@@ -335,19 +333,20 @@ class AntennyClient(object):
         observer = SatelliteObserver.parse_tle(coords, sat_name, tle_data)
 
         if not observer.get_visible():
-            self.cancel()
+            self._cancel()
             raise NotVisibleError
         t = threading.Thread(target=self._track_update, args=(observer,))
         t.start()
 
+    @exception_handler
     def _wrap_track(self, sat_name):
         """Entry point for tracking mode"""
-        self.tracking = True
+        self.invoker.set_tracking(True)
         asyncio.run(self._start_track(sat_name))
 
     def _cancel(self):
         """Cancel tracking mode"""
-        self.tracking = False
+        self.invoker.set_tracking(False)
 
     # TODO: refactor this
     def bno_test(self, sda, scl):
