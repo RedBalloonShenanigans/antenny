@@ -12,7 +12,6 @@ class Pca9685Controller(MotorController):
 
     # combo to run both 4 servos and 4 motors
     _DC_MOTORS = ((8, 9, 10), (13, 12, 11), (2, 3, 4), (7, 6, 5))
-    SERVOS = [0, 1, 14, 15]
 
     def __init__(
         self,
@@ -31,7 +30,7 @@ class Pca9685Controller(MotorController):
         self.period = 1000000 / freq
         self.min_duty = self._us2duty(min_us)
         self.max_duty = self._us2duty(max_us)
-        self._degrees = [degrees, degrees]
+        self._degrees = [degrees] * 16  # There are 16 possible PWM indices
         self.freq = freq
         self.pca9685 = pca9685.PCA9685(i2c, address)
         self.pca9685.freq(freq)
@@ -59,8 +58,6 @@ class Pca9685Controller(MotorController):
         """Set the servo with the given index to move to a specified position,
         given by either degrees, radians, us, or duty.
         """
-        assert index in self.SERVOS
-
         span = self.max_duty - self.min_duty
         if degrees is not None:
             duty = self.min_duty + span * degrees / self._degrees[index]
@@ -77,8 +74,6 @@ class Pca9685Controller(MotorController):
 
     def get_position(self, index):
         """Get the position of a servo in degrees."""
-        assert index in self.SERVOS
-
         span = self.max_duty - self.min_duty
         duty = self.pca9685.duty(index)
         degrees = (duty - self.min_duty) * self._degrees[index] / span
@@ -104,7 +99,6 @@ class Pca9685Controller(MotorController):
         while self.is_moving:
             pass
         self.is_moving = True
-        assert index in self.SERVOS
         span = self.max_duty - self.min_duty
         duty = self.min_duty + span * degrees / self._degrees[index]
         start = self.pca9685.duty(index)
