@@ -111,7 +111,7 @@ class ConfigRepository:
                         try:
                             logging.error("Cyclic config files! Using default: "
                                           + default_config)
-                        except NameError:
+                        except (NameError, AttributeError):
                             pass
                         self._config_filename = default_config
                         self.reload()
