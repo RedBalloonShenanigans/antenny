@@ -15,11 +15,26 @@ def exception_handler(func):
     return wrapper
 
 
+def cli_handler(func):
+
+    def wrapper(*args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except CLIException as e:
+            print(e)
+
+    return wrapper
+
 class AntennyException(Exception):
     # Abstract Class
     # TODO: some decorator needed here? Not sure how to properly do abstract
     msg = ""
 
+
+class CLIException(Exception):
+    # Abstract Class
+    # TODO: some decorator needed here? Not sure how to properly do abstract
+    msg = ""
 
 class NoAntKontrolError(AntennyException):
     msg = "Please run 'antkontrol start' to initialize the antenna."
@@ -91,8 +106,12 @@ class AntennaAPIFactoryError(AntennyException):
     msg = "Could not initalize Antenny API"
 
 
-class ParameterError(AntennyException):
+class ParameterError(AntennyException, CLIException):
     msg = "Incorrect parameter type"
+
+
+class NumArgsError(CLIException):
+    pass
 
 
 class CalibrationStatusError(AntennyException):
