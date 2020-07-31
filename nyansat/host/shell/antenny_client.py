@@ -108,19 +108,23 @@ class AntennyClient(object):
         else:
             return True
 
-    def check_open_and_init(self):
-        self.guard_open()
-        self.guard_init()
+    def guard_config_status(self):
+        if not self.fe.config_status():
+            raise ConfigStatusError
+        else:
+            return True
 
     @exception_handler
     def elevation(self, el):
-        self.check_open_and_init()
+        self.guard_open()
+        self.guard_init()
         self.safemode_guard()
         self.fe.set_elevation_degree(el)
 
     @exception_handler
     def azimuth(self, az):
-        self.check_open_and_init()
+        self.guard_open()
+        self.guard_init()
         self.safemode_guard()
         self.fe.set_elevation_degree(az)
 
@@ -220,58 +224,48 @@ class AntennyClient(object):
     @exception_handler
     def setup(self, name):
         self.guard_open()
-        if self.fe.config_status():
-            current = self.fe.which_config()
-            print("Welcome to Antenny!")
-            print("Please enter the following information about your hardware\n")
+        current = self.fe.which_config()
+        print("Welcome to Antenny!")
+        print("Please enter the following information about your hardware\n")
 
-            for k, info in self.prompts.items():
-                prompt_text, typ = info
-                try:
-                    new_val = typ(input(prompt_text))
-                except ValueError:
-                    new_val = self.fe.config_get_default(k)
-                    print("Invalid type, setting to default value \"{}\".\nUse \"set\" to "
-                          "change the parameter".format(new_val))
+        for k, info in self.prompts.items():
+            prompt_text, typ = info
+            try:
+                new_val = typ(input(prompt_text))
+            except ValueError:
+                new_val = self.fe.config_get_default(k)
+                print("Invalid type, setting to default value \"{}\".\nUse \"set\" to "
+                      "change the parameter".format(new_val))
 
-                self.fe.config_set(k, new_val)
+            self.fe.config_set(k, new_val)
 
-            # TODO: figure this out, do we need this (make caching by default?)
-            # if self.caching:
-                # self.fe.cache = {}
+        # TODO: figure this out, do we need this (make caching by default?)
+        # if self.caching:
+            # self.fe.cache = {}
 
-            print("\nConfiguration set for \"{}\"!\n".format(name) +
-                  "You can use \"set\" to change individual parameters\n"
-                  "or \"edit\" to change the config file "
-                  "directly")
-        else:
-            raise ConfigStatusError
+        print("\nConfiguration set for \"{}\"!\n".format(name) +
+              "You can use \"set\" to change individual parameters\n"
+              "or \"edit\" to change the config file "
+              "directly")
 
     @exception_handler
     def set(self, key, new_val):
         self.guard_open()
-        if self.fe.config_status():
 
-            # TODO: raise appropriate NoSuchConfig error in nyan_explorer
-            old_val = self.fe.config_get(key)
-            _, typ = self.prompts[key]
-            new_val = typ(new_val)
+        # TODO: raise appropriate NoSuchConfig error in nyan_explorer
+        old_val = self.fe.config_get(key)
+        _, typ = self.prompts[key]
+        new_val = typ(new_val)
 
-            self.fe.config_set(key, new_val)
-            print("Changed " + "\"" + key + "\" from " + str(old_val) + " --> " + str(new_val))
-        else:
-            raise ConfigStatusError
+        self.fe.config_set(key, new_val)
+        print("Changed " + "\"" + key + "\" from " + str(old_val) + " --> " + str(new_val))
 
     @exception_handler
     def configs(self):
         # TODO: Something with ConfigUnknownError
         self.guard_open()
-        if self.fe.config_status():
-            print("-Config parameters-\n" +
-                  "Using \"{}\"".format(self.fe.which_config()))
-            for key in self.prompts.keys():
-                print(key + ": " + self.fe.config_get(key))
-        else:
-            raise ConfigStatusError
-
+        print("-Config parameters-\n" +
+              "Using \"{}\"".format(self.fe.which_config()))
+        for key in self.prompts.keys():
+            print(key + ": " + self.fe.config_get(key))
 
