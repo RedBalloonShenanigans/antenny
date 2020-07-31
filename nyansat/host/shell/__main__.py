@@ -15,6 +15,7 @@ from websocket import WebSocketConnectionClosedException
 import colorama
 import serial
 from mp import mpfshell
+from mp.mpfexp import MpFileExplorer, MpFileExplorerCaching
 from mp.mpfshell import MpFileShell
 from mp.conbase import ConError
 from mp.pyboard import PyboardError
@@ -77,18 +78,16 @@ class NyanShell(mpfshell.MpFileShell):
 
         self.fe = None
         self.invoker = None
-        # TODO: replace all self.fe with self.invoker (all self.fe here should only have to do with antenny-specific
-        # TODO: stuff, so that's what the command invoker class is for. No need to hijack FileExplorer.)
+        self.client = None
+        # self.printer = TerminalPrinter()
+
+
         self.repl = None
         self.tokenizer = Tokenizer()
-
-        self.printer = TerminalPrinter()
-        self.client = AntennyClient(self.fe, self.printer)
         self._intro()
         self._set_prompt_path()
 
         self.emptyline = lambda: None
-
 
     def _intro(self):
         """Text that appears when shell is first launched."""
@@ -114,6 +113,14 @@ class NyanShell(mpfshell.MpFileShell):
     def _parse_file_names(self, args):
         return super()._MpFileShell__parse_file_names(args)
 
+    def _connect(self, port):
+        """
+        Creates FileExplorers. Also creates a AntennyClient (which creates an invoker) using
+        FileExplorer's self.con object.
+        """
+        super()._MpFileShell__connect(port)
+        self.client = AntennyClient(self.fe)
+
     def _set_prompt_path(self):
         """Prompt that appears at the beginning of every line in the shell."""
         if self.fe is not None:
@@ -137,34 +144,6 @@ class NyanShell(mpfshell.MpFileShell):
             print(error_list[2])
         except:
             pass
-
-    def _connect(self, port):
-        """Attempt to connect to the ESP32.
-
-        Arguments:
-        port -- (see do_open). Specify how to connect to the device.
-        """
-        try:
-            self._disconnect()
-
-            if self.reset:
-                print("Hard resetting device ...")
-            if self.caching:
-                self.fe = NyanExplorerCaching(port, self.reset)
-            else:
-                self.fe = NyanExplorer(port, self.reset)
-            print("Connected to %s" % self.fe.sysname)
-            self._set_prompt_path()
-        except PyboardError as e:
-            logging.error(e)
-            self.printer.print_error(str(e))
-        except ConError as e:
-            logging.error(e)
-            self.printer.print_error("Failed to open: %s" % port)
-        except AttributeError as e:
-            logging.error(e)
-            self.printer.print_error("Failed to open: %s" % port)
-        return False
 
     def do_open(self, args):
         """open <TARGET>
@@ -300,6 +279,7 @@ class NyanShell(mpfshell.MpFileShell):
         """
         self.client.i2ctest()
 
+    # TODO: refactor
     def do_bnotest(self, args):
         """bnotest
         Return some diagnostic data that may be helpful in connecting a BNO055 device.
@@ -315,7 +295,7 @@ class NyanShell(mpfshell.MpFileShell):
             self._error("Invalid type for pin number. Try again using only decimal numbers")
             return
 
-        bno_test_diagnostics = self.fe.bno_test(sda, scl)
+        bno_test_diagnostics = self.invoker.bno_test(sda, scl)
         print("---")
         print("I2C bus usable?", bno_test_diagnostics.i2c_bus_scannable)
         if len(bno_test_diagnostics.i2c_addresses) == 0:
@@ -325,6 +305,7 @@ class NyanShell(mpfshell.MpFileShell):
         print("BNO connection established?", bno_test_diagnostics.bno_object_created)
         print("BNO calibrated?", bno_test_diagnostics.bno_object_calibrated)
 
+    # TODO: refactor
     def do_pwmtest(self, args):
         """pwmtest
         Return some diagnostic data that may be helpful in connecting a PCA9685 device.
@@ -340,7 +321,7 @@ class NyanShell(mpfshell.MpFileShell):
             self._error("Invalid type for pin number. Try again using only decimal numbers")
             return
 
-        pwm_test_diagnostics = self.fe.pwm_test(sda, scl)
+        pwm_test_diagnostics = self.invoker.pwm_test(sda, scl)
         print("---")
         print("I2C bus usable?", pwm_test_diagnostics.i2c_bus_scannable)
         if len(pwm_test_diagnostics.i2c_addresses) == 0:
@@ -352,10 +333,10 @@ class NyanShell(mpfshell.MpFileShell):
     def complete_switch(self, *args):
         """Tab completion for switch command."""
         try:
-            files = self.fe.ls(add_dirs=False)
+            files = self.invoker.ls(add_dirs=False)
         except Exception:
             files = []
-        current = self.fe.which_config()
+        current = self.invoker.which_config()
         return [f for f in files if f.startswith(args[0]) and f.endswith(".json")]
 
     def _calibration_wait_message(self, gyro_calibrated, accel_calibrated, magnet_calibrated, use_ellipsis=True):
@@ -457,6 +438,7 @@ class NyanShell(mpfshell.MpFileShell):
 
         return (system_calibrated, gyro_calibrated, accel_calibrated, magnet_calibrated)
 
+    # TODO: still refactor
     def do_calibrate(self, args):
         """calibrate
         Detect IMU calibration status and provide instructions on how to
@@ -470,9 +452,9 @@ class NyanShell(mpfshell.MpFileShell):
                 self.printer.print_error("Usage: calibrate does not take arguments.")
                 return
 
-            if self._is_open() and self.fe.is_antenna_initialized():
+            if self._is_open() and self.invoker.is_antenna_initialized():
                 print("Detecting calibration status ...")
-                data = self.fe.imu_calibration_status()
+                data = self.invoker.imu_calibration_status()
                 data = (data['system'], data['gyroscope'], data['accelerometer'], data['magnetometer'])
                 if not data:
                     self.printer.print_error("Error connecting to BNO055.")
@@ -500,7 +482,7 @@ class NyanShell(mpfshell.MpFileShell):
                     )
 
                     # Re-fetch calibration data
-                    data = self.fe.imu_calibration_status()
+                    data = self.invoker.imu_calibration_status()
                     data = (data['system'], data['gyroscope'], data['accelerometer'], data['magnetometer'])
                     if not data:
                         self.printer.print_error("Error connecting to BNO055.")

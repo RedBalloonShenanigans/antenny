@@ -14,11 +14,17 @@ from nyansat.host.shell.errors import *
 
 import nyansat.host.satdata_client as SatelliteScraper
 
+from typing import List
+from dataclasses import dataclass
+
 
 class CommandInvoker(NyanPyboard):
     """
     Replacement for nyan_explorer. Antenny-specific functionality only.
     """
+    def __init__(self, con):
+        super().__init__(con)
+        self.tracking = False
 
     EL_SERVO_INDEX = "elevation_servo_index"
     AZ_SERVO_INDEX = "azimuth_servo_index"
@@ -186,37 +192,3 @@ class CommandInvoker(NyanPyboard):
             return ret
         except PyboardError:
             pass
-
-    def is_tracking(self):
-        return self.tracking
-
-    def _track_update(self, observer):
-        """Update the antenna position every 2 seconds"""
-        print(f"Tracking {observer.sat_name} ...")
-        while self.tracking:
-            elevation, azimuth, distance = observer.get_current_stats()
-            self.set_elevation_degree(elevation)
-            self.set_azimuth_degree(azimuth)
-            sleep(2)
-
-    async def track(self, sat_name):
-        """Track a satellite across the sky"""
-        coords = (40.0, -73.0)
-        tle_data_encoded = await SatelliteScraper.load_tle()
-        tle_data = parse_tle_file(tle_data_encoded)
-        observer = SatelliteObserver.parse_tle(coords, sat_name, tle_data)
-
-        if not observer.get_visible():
-            self.cancel()
-            raise NotVisibleError
-        t = threading.Thread(target=self._track_update, args=(observer,))
-        t.start()
-
-    def wrap_track(self, sat_name):
-        """Entry point for tracking mode"""
-        self.tracking = True
-        asyncio.run(self.track(sat_name))
-
-    def cancel(self):
-        """Cancel tracking mode"""
-        self.tracking = False

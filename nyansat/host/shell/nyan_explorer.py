@@ -295,6 +295,9 @@ class NyanExplorer(MpFileExplorer, NyanPyboard):
         try:
             ret = self.exec_("del(api)")
             self.antenna_initialized = False
+
+            def __init__(self):
+                super().__init__()
             return ret.decode()
         except PyboardError:
             pass
