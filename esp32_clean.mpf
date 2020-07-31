@@ -21,6 +21,7 @@ rm micropyGPS.py
 rm /gps/__init__.py
 rm /gps/gps.py
 rm /gps/gps_basic.py
+rm /gps/mock_gps_controller.py
 rm gps
 
 rm /imu/__init__.py

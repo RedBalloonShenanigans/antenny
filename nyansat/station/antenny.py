@@ -1,6 +1,8 @@
 import logging
 
 from config.config import ConfigRepository
+from gps.gps_basic import BasicGPSController
+from gps.mock_gps_controller import MockGPSController
 from imu.imu import ImuController
 
 from imu.mock_imu import MockImuController
@@ -9,6 +11,7 @@ from motor.motor import MotorController
 from screen.mock_screen import MockScreenController
 from screen.screen import ScreenController
 from antenny_threading import Queue
+from sender.sender_udp import UDPTelemetrySender
 from sender.mock_sender import MockTelemetrySender
 
 _DEFAULT_MOTOR_POSITION = 90.
@@ -203,7 +206,6 @@ def mock_antenna_api_factory(
     if use_telemetry and not config.get("use_telemetry"):
         config.set("use_telemetry", True)
     telemetry_sender = None
-    # if config.get("use_telemetry"):
     if use_telemetry:
         telemetry_sender = MockTelemetrySender('127.0.0.1', 1337)
     api = AntennyAPI(
@@ -329,9 +331,23 @@ def esp32_antenna_api_factory():
         LOG.warning(
             "Screen disabled, please set use_screen=True in the settings and run `antkontrol`"
         )
+    gps = None
+    if config.get("use_gps"):
+        gps = BasicGPSController()
+    else:
+        LOG.warning(
+                "GPS disabled, please set use_gps=True in the settings and run `antkontrol`."
+        )
+        gps = MockGPSController()
     telemetry_sender = None
     if config.get("use_telemetry"):
-        telemetry_sender = MockTelemetrySender('127.0.0.1', 1337)
+        if not config.get("use_imu"):
+            LOG.warning("Telemetry enabled, but IMU disabled in config! Please enable the IMU ("
+                        "using the IMU mock)")
+        if not config.get("use_gps"):
+            LOG.warning("Telemetry enabled, but GPS disabled in config! Please enable the GPS ("
+                        "using the GPS mock)")
+        telemetry_sender = UDPTelemetrySender(31337, gps, imu)
     else:
         LOG.warning(
             "Telemetry disabled, please set use_screen=True in the settings and run `antkontrol`")

@@ -1,14 +1,14 @@
 from rbs_tui_dom.dom import DOMWindow, DOMStyle, Display
 from rbs_tui_dom.entity import EntityEventType
 
-from nyansat.host.client import NyanSatClient
+from nyansat.host.client import NyanSatTelemetryClient
 
 
 class RootView:
     def __init__(
             self,
             window: DOMWindow,
-            client: NyanSatClient
+            client: NyanSatTelemetryClient,
     ):
         self._client = client
         self._dom_window = window
