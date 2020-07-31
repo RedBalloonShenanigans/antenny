@@ -260,28 +260,8 @@ class NyanShell(mpfshell.MpFileShell):
                 )
             ]
             parsed_args = parse_cli_args(args, 'set', 1, arg_properties)
-            try:
-                if self.fe.config_status():
-                    key, new_val = parsed_args
-                    try:
-                        old_val = self.fe.config_get(key)
-                    except:
-                        self.printer.print_error("No such configuration parameter")
-                        return
-
-                    _, typ = self.client.prompts[key]
-                    try:
-                        new_val = typ(new_val)
-                    except ValueError as e:
-                        self.printer.print_error(str(e))
-                        return
-
-                    self.fe.config_set(key, new_val)
-                    print("Changed " + "\"" + key + "\" from " + str(old_val) + " --> " + str(new_val))
-                else:
-                    self.printer.print_error("Could not access existing configuration object or create one.")
-            except PyboardError as e:
-                self.printer.print_error_and_exception("Command faulted while trying to set configuration", e)
+            key, new_val = parsed_args
+            self.client.set(key, new_val)
 
     def complete_set(self, *args):
         """Tab completion for 'set' command."""
@@ -293,18 +273,7 @@ class NyanShell(mpfshell.MpFileShell):
     def do_configs(self, args):
         """configs
         Print a list of all configuration parameters."""
-        if self._is_open():
-            try:
-                if self.fe.config_status():
-                    print("-Config parameters-\n" +
-                          "Using \"{}\"".format(self.fe.which_config())
-                          )
-                    for key in self.prompts.keys():
-                        print(key + ": " + self.fe.config_get(key))
-                else:
-                    self.printer.print_error("Could not access existing configuration object or create one.")
-            except PyboardError as e:
-                self.printer.print_error_and_exception("Command faulted while trying to access configuration", e)
+        self.client.configs()
 
     def do_switch(self, args):
         """switch <CONFIG_FILE>
@@ -316,47 +285,15 @@ class NyanShell(mpfshell.MpFileShell):
             )
         ]
         parsed_args = parse_cli_args(args, 'switch', 1, arg_properties)
-        if self._is_open():
-            try:
-                if self.fe.config_status():
-                    name, = parsed_args
-                    files = self.fe.ls()
-                    if name not in files:
-                        self.printer.print_error("No such file")
-                        return
-                    current = self.fe.which_config()
-                    self.fe.config_switch(name)
-                    print("Switched from \"{}\"".format(current) +
-                          " to \"{}\"".format(name))
-                else:
-                    self.printer.print_error("Could not access existing configuration object or create one.")
+        name, = parsed_args
+        self.client.switch(name)
 
-            except PyboardError as e:
-                self.printer.print_error_and_exception("Command faulted while trying to access or set new configuration", e)
 
     def do_i2ctest(self, args):
         """i2ctest
         Scan an i2c bus for i2c device addresses
         """
-        try:
-            print("Input the SDA pin and SCL for the I2C bus to check")
-
-            try:
-                sda = int(input("SDA Pin#: "))
-                scl = int(input("SCL Pin#: "))
-            except ValueError:
-                self.printer.print_error("Invalid type for pin number. Try again using only decimal numbers")
-                return
-            addresses = self.fe.i2c_scan(sda, scl)
-            addresses_list = addresses.strip('] [').strip(', ')
-            if not addresses_list:
-                print("Did not find any devices")
-            else:
-                print("Found the following device addresses: {}".format(addresses_list))
-            print("If you had a running AntKontrol instance, be sure to restart it")
-            return
-        except PyboardError as e:
-            self.printer.print_error_and_exception("Unable to scan the I2C bus", e)
+        self.client.i2ctest()
 
     def complete_switch(self, *args):
         """Tab completion for switch command."""
@@ -510,47 +447,13 @@ class NyanShell(mpfshell.MpFileShell):
         """save_calibration
         Save current IMU calibration data to the current configuration.
         """
-        if self._is_open():
-            try:
-                if self.fe.is_antenna_initialized():
-                    status = self.fe.imu_save_calibration_profile()
-
-                    if not status:
-                        self.printer.print_error("Error: BNO055 not detected or error in reading calibration registers.")
-                else:
-                    self.printer.print_error("Please run 'antkontrol start' to initialize the antenna.")
-            except PyboardError as e:
-                self.printer.print_error_and_exception(
-                    "The AntKontrol object is either not responding or your current configuration does not support IMU "
-                    "calibration.",
-                    e
-                )
-                print("You can try to restart AntKontrol by running 'antkontrol start'")
-                print("If you believe your configuration is incorrect, run 'configs' to check your configuration and "
-                      "'setup <CONFIG_FILE>' to create a new one\n")
+        self.client.save_calibration()
 
     def do_upload_calibration(self, args):
         """upload_calibration
         Upload the currently stored calibration data to the connected IMU.
         """
-        if self._is_open():
-            try:
-                if self.fe.is_antenna_initialized():
-                    status = self.fe.imu_upload_calibration_profile()
-
-                    if not status:
-                        self.printer.print_error("Error: BNO055 not detected or error in writing calibration registers.")
-                else:
-                    self.printer.print_error("Please run 'antkontrol start' to initialize the antenna.")
-            except PyboardError as e:
-                self.printer.print_error_and_exception(
-                    "The AntKontrol object is either not responding or your current configuration does not support IMU "
-                    "calibration.",
-                    e
-                )
-                print("You can try to restart AntKontrol by running 'antkontrol start'")
-                print("If you believe your configuration is incorrect, run 'configs' to check your configuration and "
-                      "'setup <CONFIG_FILE>' to create a new one\n")
+        self.client.upload_calibration()
 
     def do_motortest(self, args):
         """motortest <EL | AZ> <ANGLE>
