@@ -78,7 +78,7 @@ class NyanShell(mpfshell.MpFileShell):
         self.reset = reset
 
         self.fe = None
-        self.client = AntennyClient()
+        self.client = AntennyClient(self.caching)
         # self.printer = TerminalPrinter()
 
         self.repl = None
@@ -331,7 +331,7 @@ class NyanShell(mpfshell.MpFileShell):
             files = self.fe.ls(add_dirs=False)
         except Exception:
             files = []
-        current = self.fe.which_config()
+        current = self.client.which_config()
         return [f for f in files if f.startswith(args[0]) and f.endswith(".json")]
 
     def _calibration_wait_message(self, gyro_calibrated, accel_calibrated, magnet_calibrated, use_ellipsis=True):
