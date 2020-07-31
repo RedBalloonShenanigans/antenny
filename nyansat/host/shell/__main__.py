@@ -9,7 +9,6 @@ import sys
 import tempfile
 import subprocess
 import time
-import shutil
 from websocket import WebSocketConnectionClosedException
 
 import colorama
@@ -45,14 +44,6 @@ def arg_exception_handler(func):
 
 class NyanShell(mpfshell.MpFileShell):
     """Extension of MPFShell that adds NyanSat-specific features"""
-
-    YES_DISPLAY_STRING = colorama.Fore.GREEN + "YES" + colorama.Fore.RESET
-    NO_DISPLAY_STRING = colorama.Fore.RED + "NO" + colorama.Fore.RESET
-    GYRO_CALIBRATION_MESSAGE = "To calibrate the gyroscope, let the sensor rest on a level surface for a few seconds."
-    ACCEL_CALIBRATION_MESSAGE = "To calibrate the accelerometer, slowly move the sensor into >=6 distinct " \
-                                "orientations,\nsome perpendicular to the xyz axes. "
-    MAGNET_CALIBRATION_MESSAGE = "To calibrate the magnetometer, move the sensor in figure-8 shapes through the air a " \
-                                 "few times. "
 
     def __init__(self, color=False, caching=False, reset=False):
         """Creates Cmd-based shell object.
@@ -274,56 +265,33 @@ class NyanShell(mpfshell.MpFileShell):
         """
         self.client.i2ctest()
 
-    # TODO: refactor
     def do_bnotest(self, args):
         """bnotest
         Return some diagnostic data that may be helpful in connecting a BNO055 device.
         """
-        if not self._is_open():
-            return
+        arg_properties = []
+        _ = parse_cli_args(args, 'bnotest', 0, arg_properties)
+        self.client.bno_test()
 
-        print("Input the SDA pin and SCL of the BNO device to test")
-        try:
-            sda = int(input("SDA Pin#: "))
-            scl = int(input("SCL Pin#: "))
-        except ValueError:
-            self._error("Invalid type for pin number. Try again using only decimal numbers")
-            return
-
-        bno_test_diagnostics = self.client.bno_test(sda, scl)
-        print("---")
-        print("I2C bus usable?", bno_test_diagnostics.i2c_bus_scannable)
-        if len(bno_test_diagnostics.i2c_addresses) == 0:
-            print("I2C address detected? False")
-        else:
-            print("I2C address detected? True, addresses =", bno_test_diagnostics.i2c_addresses)
-        print("BNO connection established?", bno_test_diagnostics.bno_object_created)
-        print("BNO calibrated?", bno_test_diagnostics.bno_object_calibrated)
-
-    # TODO: refactor
     def do_pwmtest(self, args):
         """pwmtest
         Return some diagnostic data that may be helpful in connecting a PCA9685 device.
         """
-        if not self._is_open():
-            return
+        arg_properties = []
+        _ = parse_cli_args(args, 'pwmtest', 0, arg_properties)
+        self.client.pwm_test()
 
-        print("Input the SDA pin and SCL of the PWM driver to test")
-        try:
-            sda = int(input("SDA Pin#: "))
-            scl = int(input("SCL Pin#: "))
-        except ValueError:
-            self._error("Invalid type for pin number. Try again using only decimal numbers")
-            return
-
-        pwm_test_diagnostics = self.client.pwm_test(sda, scl)
-        print("---")
-        print("I2C bus usable?", pwm_test_diagnostics.i2c_bus_scannable)
-        if len(pwm_test_diagnostics.i2c_addresses) == 0:
-            print("I2C address detected? False")
-        else:
-            print("I2C address detected? True, addresses =", pwm_test_diagnostics.i2c_addresses)
-        print("PWM connection established?", pwm_test_diagnostics.pca_object_created)
+    def do_calibrate(self, args):
+        """calibrate
+        Detect IMU calibration status and provide instructions on how to
+        calibrate if necessary. If calibration is necessary, wait for the user
+        to calibrate the device and cease waiting once all sensors are
+        calibrated. Regardless of whether calibration is necessary or not, save
+        the calibration profile to the config at the end.
+        """
+        arg_properties = []
+        parsed_args = parse_cli_args(args, 'calibrate', 0, arg_properties)
+        self.client.calibrate()
 
     def complete_switch(self, *args):
         """Tab completion for switch command."""
@@ -350,157 +318,6 @@ class NyanShell(mpfshell.MpFileShell):
                     " to be calibrated" + ("..." if use_ellipsis else ""))
         else:
             return "all components calibrated!"
-
-    def _display_initial_calibration_status(
-        self,
-        calibration_status
-    ):
-        """
-        Display the initial calibration message, with status and calibration instructions.
-
-        calibration_status: A tuple of booleans representing previous calibration T/F
-                            status for the system, gyroscope, accelerometer, and magnetometer
-        """
-        system_calibrated, gyro_calibrated, accel_calibrated, magnet_calibrated = calibration_status
-        print("System calibrated?", f"{self.YES_DISPLAY_STRING}" if system_calibrated else self.NO_DISPLAY_STRING)
-        print("\n")
-        if gyro_calibrated:
-            print(" - Gyroscope is calibrated.")
-        else:
-            print(f" - {self.GYRO_CALIBRATION_MESSAGE}")
-
-        if accel_calibrated:
-            print(" - Accelerometer is calibrated.")
-        else:
-            print(f" - {self.ACCEL_CALIBRATION_MESSAGE}")
-
-        if magnet_calibrated:
-            print(" - Magnetometer is calibrated.")
-        else:
-            print(f" - {self.MAGNET_CALIBRATION_MESSAGE}")
-        print("\n")
-
-    def _display_loop_calibration_status(
-        self,
-        calibration_data,
-        old_calibration_status,
-        waiting_dot_count,
-        dot_counter
-    ):
-        """
-        Display calibration status, to be updated periodically.
-
-        calibration_data: A tuple of integers representing calibration status for the
-                          system, gyroscope, accelerometer, and magnetometer
-        old_calibration_status: A tuple of booleans representing previous calibration T/F
-                                status for the system, gyroscope, accelerometer, and magnetometer
-        waiting_dot_count: The number of ellipsis dots to cycle through
-        dot_counter: The index of the current ellipsis dot, in range [0, waiting_dot_count)
-        """
-
-        system_level, gyro_level, accel_level, magnet_level = calibration_data
-        system_calibrated, gyro_calibrated, accel_calibrated, magnet_calibrated = old_calibration_status
-
-        print(" \n" * 8, end='')
-        self._display_initial_calibration_status(old_calibration_status)
-        print(" ")
-        
-        gyro_calibrated = gyro_calibrated or gyro_level > 0
-        accel_calibrated = accel_calibrated or accel_level > 0
-        magnet_calibrated = magnet_calibrated or magnet_level > 0
-        system_calibrated = system_calibrated or system_level > 0
-
-        # Print the calibration status panel: this is the section that automatically refereshes.
-        waiting_dots = ('.' * dot_counter) + '/' + ('.' * (waiting_dot_count - dot_counter - 1))
-        print("┌ CALIBRATION STATUS")
-        print("│")
-        print("│ * Gyroscope calibrated?",
-                f"{self.YES_DISPLAY_STRING} (level {gyro_level}/3)" if gyro_calibrated else self.NO_DISPLAY_STRING)
-        print("│ * Accelerometer calibrated?",
-                f"{self.YES_DISPLAY_STRING} (level {accel_level}/3)" if accel_calibrated else self.NO_DISPLAY_STRING)
-        print("│ * Magnetometer calibrated?",
-                f"{self.YES_DISPLAY_STRING} (level {magnet_level}/3)" if magnet_calibrated else self.NO_DISPLAY_STRING)
-        print("│")
-        wait_message = self.printer.calibration_wait_message(gyro_calibrated, accel_calibrated, magnet_calibrated,
-                                                        use_ellipsis=False)
-        wait_message += (" " + waiting_dots if wait_message else "")
-
-        # Write the wait message with an appropriate amount of trailing whitespace in order
-        # to clear the line from previous longer writes
-        terminal_width, _ = shutil.get_terminal_size()
-        spacing_length = max(min(terminal_width - 3 - len(wait_message), 20), 0)
-        print(f"└ {wait_message}", " " * spacing_length)
-
-        return (system_calibrated, gyro_calibrated, accel_calibrated, magnet_calibrated)
-
-    # TODO: still refactor
-    def do_calibrate(self, args):
-        """calibrate
-        Detect IMU calibration status and provide instructions on how to
-        calibrate if necessary. If calibration is necessary, wait for the user
-        to calibrate the device and cease waiting once all sensors are
-        calibrated. Regardless of whether calibration is necessary or not, save
-        the calibration profile to the config at the end.
-        """
-        try:
-            if args:
-                self.printer.print_error("Usage: calibrate does not take arguments.")
-                return
-
-            if self._is_open() and self.client.is_antenna_initialized():
-                print("Detecting calibration status ...")
-                data = self.client.imu_calibration_status()
-                data = (data['system'], data['gyroscope'], data['accelerometer'], data['magnetometer'])
-                if not data:
-                    self.printer.print_error("Error connecting to BNO055.")
-                    return
-
-                system_level, gyro_level, accel_level, magnet_level = data
-                system_calibrated = system_level > 0
-                gyro_calibrated = gyro_level > 0
-                accel_calibrated = accel_level > 0
-                magnet_calibrated = magnet_level > 0
-                components_calibrated = (system_calibrated, gyro_calibrated, accel_calibrated, magnet_calibrated)
-                self._display_initial_calibration_status(components_calibrated)
-
-                waiting_dot_count = 4
-                dot_counter = 0
-                time.sleep(1)
-                while not (magnet_calibrated and accel_calibrated and gyro_calibrated):
-                    time.sleep(0.5)
-                    old_calibration_status = (system_calibrated, gyro_calibrated, accel_calibrated, magnet_calibrated)
-                    system_calibrated, gyro_calibrated, accel_calibrated, magnet_calibrated = self._display_loop_calibration_status(
-                        data,
-                        old_calibration_status,
-                        waiting_dot_count,
-                        dot_counter
-                    )
-
-                    # Re-fetch calibration data
-                    data = self.client.imu_calibration_status()
-                    data = (data['system'], data['gyroscope'], data['accelerometer'], data['magnetometer'])
-                    if not data:
-                        self.printer.print_error("Error connecting to BNO055.")
-                        return
-
-                    dot_counter = (dot_counter + 1) % waiting_dot_count
-
-                print(f"System calibration complete: {self.YES_DISPLAY_STRING}")
-                print("Saving calibration data ...")
-                self.do_save_calibration(None)
-                print("Calibration data is now saved to config.")
-            else:
-                self.printer.print_error("Please run 'antkontrol start' to initialize the antenna.")
-
-        except PyboardError as e:
-            self.printer.print_error_and_exception(
-                "The AntKontrol object is either not responding or your current configuration does not support IMU "
-                "calibration.",
-                e
-            )
-            print("You can try to restart AntKontrol by running 'antkontrol start'")
-            print("If you believe your configuration is incorrect, run 'configs' to check your configuration and "
-                  "'setup <CONFIG_FILE>' to create a new one\n")
 
     def do_save_calibration(self, args):
         """save_calibration
