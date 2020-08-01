@@ -202,6 +202,7 @@ class AntennyClient(object):
 
     @exception_handler
     def i2ctest(self):
+        self.guard_open()
         print("Input the SDA pin and SCL for the I2C bus to check")
 
         try:
