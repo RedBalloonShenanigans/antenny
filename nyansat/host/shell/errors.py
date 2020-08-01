@@ -71,14 +71,15 @@ class DeviceNotOpenError(AntennyException):
     msg = "Not connected to device. Use 'open' first."
 
 
-class SafeModeWarning(Warning):
+class SafeModeWarning(AntennyException):
     msg = "AntKontrol is in SAFE MODE. Attached motors will not move\n"\
           "If you did not intend to be in SAFE MODE, check your configuration and run "\
           "'antkontrol start'"
 
 
 class BNO055RegistersError(AntennyException):
-    msg = "Error: BNO055 not detected or error in writing calibration registers."
+    msg = "Error: BNO055 not detected or error in writing calibration registers.\n" \
+          "You can try to check your configuration file to see if IMU is enabled"
 
 
 class BNO055UploadError(AntennyException):

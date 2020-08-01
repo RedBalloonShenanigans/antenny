@@ -153,6 +153,18 @@ class CommandInvoker(NyanPyboard):
         except PyboardError as e:
             raise NotRespondingError(str(e))
 
+    def start_motion(self, az_angle, el_angle):
+        """
+        Sets the initial azimuth and elevation to the provided values and enables motion
+        :param az_angle: float
+        :param el_angle: float
+        :return:
+        """
+        try:
+            self.eval_string_expr("api.antenna.start_motion({}, {})".format(az_angle, el_angle))
+        except PyboardError as e:
+            raise NotRespondingError(str(e))
+
     def set_elevation_degree(self, el_angle):
         """Set the elevation angle.
 
