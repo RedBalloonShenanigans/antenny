@@ -120,8 +120,8 @@ class AntennyClient(object):
     def track(self, sat_name):
         self.guard_open()
         self.guard_init()
-        # TODO: raise NotVisibleError
-        self._wrap_track(sat_name)
+        self.invoker.set_tracking(True)
+        asyncio.run(self._start_track(sat_name))
 
     @exception_handler
     def cancel(self):
@@ -319,7 +319,6 @@ class AntennyClient(object):
             self.invoker.set_azimuth_degree(azimuth)
             sleep(2)
 
-    @exception_handler
     async def _start_track(self, sat_name):
         """Track a satellite across the sky"""
         coords = (40.0, -73.0)
@@ -332,12 +331,6 @@ class AntennyClient(object):
             raise NotVisibleError
         t = threading.Thread(target=self._track_update, args=(observer,))
         t.start()
-
-    @exception_handler
-    def _wrap_track(self, sat_name):
-        """Entry point for tracking mode"""
-        self.invoker.set_tracking(True)
-        asyncio.run(self._start_track(sat_name))
 
     def _cancel(self):
         """Cancel tracking mode"""

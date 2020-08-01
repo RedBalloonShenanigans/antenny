@@ -437,7 +437,7 @@ class NyanShell(mpfshell.MpFileShell):
         """cancel
         Cancel tracking mode.
         """
-        self.client.track()
+        self.client.cancel()
 
 
 def main():
