@@ -18,10 +18,7 @@ _check_serial_param:
 	@[ "${SERIAL}" ] || ( echo "SERIAL flag is not set\nSet SERIAL to your ESP32's port"; exit 1 )
 
 nyansat: _check_serial_param setup
-	python3 wifi_config.py
-	mpfshell -o ser:$(SERIAL) -s esp32_install.mpf
-	rm webrepl_cfg.py
-	rm wifi_config.json
+	python3 -m nyansat.station.installer $(SERIAL)
 
 all: nyanshell nyansat
 
