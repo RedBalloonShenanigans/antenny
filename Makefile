@@ -18,7 +18,7 @@ _check_serial_param:
 	@[ "${SERIAL}" ] || ( echo "SERIAL flag is not set\nSet SERIAL to your ESP32's port"; exit 1 )
 
 nyansat: _check_serial_param setup
-	python3 -m naynsat.station.installer $(SERIAL)
+	python3 -m nyansat.station.installer $(SERIAL)
 
 all: nyanshell nyansat
 
