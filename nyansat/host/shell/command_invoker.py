@@ -188,9 +188,11 @@ class CommandInvoker(NyanPyboard):
             # self.antenna_initialized = True
             return ret.decode()
         except PyboardError as e:
-            self.exec_("from config.config import ConfigRepository")
-            self.exec_("config = ConfigRepository")
-            raise ConfigUnknownError(str(e))
+            try:
+                self.exec_("from config.config import ConfigRepository")
+                self.exec_("config = ConfigRepository")
+            except PyboardError as e:
+                raise AntennyImportError(str(e))
 
     def delete_antkontrol(self):
         """Delete the existing antkontrol object on the ESP32."""
