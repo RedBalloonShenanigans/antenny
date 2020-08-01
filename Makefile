@@ -20,6 +20,9 @@ _check_serial_param:
 nyansat: _check_serial_param setup
 	python3 -m nyansat.station.installer $(SERIAL)
 
+reinstall: _check_serial_param
+	mpfshell -o ser:$(SERIAL) -s esp32_reinstall.mpf
+
 all: nyanshell nyansat
 
 .PHONY: setup nyanshell nyansat _check_serial_param all

@@ -1,0 +1,72 @@
+mrm .*\.py
+
+cd config
+mrm .*\.py
+cd ..
+rm config
+
+cd gps
+mrm .*\.py
+cd ..
+rm gps
+
+cd imu
+mrm .*\.py
+cd ..
+rm imu
+
+cd motor
+mrm .*\.py
+cd ..
+rm motor
+
+cd screen
+mrm .*\.py
+cd ..
+rm screen
+
+cd sender
+mrm .*\.py
+cd ..
+rm sender
+
+put nyansat/station/main.py main.py
+put nyansat/station/boot.py boot.py
+put nyansat/station/antenny.py antenny.py
+put nyansat/station/__init__.py __init__.py
+
+md config
+put nyansat/station/config/__init__.py /config/__init__.py
+put nyansat/station/config/config.py /config/config.py
+
+md gps
+put nyansat/station/gps/__init__.py /gps/__init__.py
+put nyansat/station/gps/gps.py /gps/gps.py
+put nyansat/station/gps/gps_basic.py /gps/gps_basic.py
+
+md imu
+put nyansat/station/imu/__init__.py /imu/__init__.py
+put nyansat/station/imu/imu.py /imu/imu.py
+put nyansat/station/imu/imu_bno055.py /imu/imu_bno055.py
+
+md motor
+put nyansat/station/motor/__init__.py /motor/__init__.py
+put nyansat/station/motor/motor.py /motor/motor.py
+put nyansat/station/motor/motor_pca9685.py /motor/motor_pca9685.py
+
+md screen
+put nyansat/station/screen/__init__.py /screen/__init__.py
+put nyansat/station/screen/screen.py /screen/screen.py
+put nyansat/station/screen/screen_ssd1306.py /screen/screen_ssd1306.py
+
+md sender
+put nyansat/station/sender/__init__.py /sender/__init__.py
+put nyansat/station/sender/sender.py /sender/sender.py
+put nyansat/station/sender/sender_udp.py /sender/sender_udp.py
+
+put webrepl_cfg.py
+
+exec import boot
+exec boot.do_connect()
+exec import sys
+exec sys.exit()
