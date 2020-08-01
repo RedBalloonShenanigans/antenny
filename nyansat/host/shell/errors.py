@@ -79,7 +79,8 @@ class SafeModeWarning(AntennyException):
 
 
 class BNO055RegistersError(AntennyException):
-    msg = "Error: BNO055 not detected or error in writing calibration registers."
+    msg = "Error: BNO055 not detected or error in writing calibration registers.\n" \
+          "You can try to check your configuration file to see if IMU is enabled"
 
 
 class BNO055UploadError(AntennyException):

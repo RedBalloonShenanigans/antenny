@@ -352,6 +352,25 @@ class NyanShell(mpfshell.MpFileShell):
         self.client.motor_test(motor, pos)
 
     @cli_handler
+    def do_startmotion(self, args):
+        """startmotion <INITIAL AZIMUTH> <INITIAL ELEVATION>
+        Sets the azimuth and elevation to the provided values and enables motion.
+        """
+        arg_properties = [
+            CLIArgumentProperty(
+                float,
+                None
+            ),
+            CLIArgumentProperty(
+                float,
+                None
+            )
+        ]
+        parsed_args = parse_cli_args(args, 'startmotion', 2, arg_properties)
+        az, el = parsed_args
+        self.client.startmotion(az, el)
+
+    @cli_handler
     def do_elevation(self, args):
         """elevation <ELEVATION>
         Set the elevation to the level given in degrees by the first argument.

@@ -75,6 +75,13 @@ class AntennyClient(object):
             raise ConfigStatusError
 
     @exception_handler
+    def startmotion(self, az, el):
+        self.guard_open()
+        self.guard_init()
+        self.safemode_guard()
+        self.invoker.start_motion(az, el)
+
+    @exception_handler
     def elevation(self, el):
         self.guard_open()
         self.guard_init()
