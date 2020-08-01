@@ -51,6 +51,7 @@ class CLIException(Exception):
     # TODO: some decorator needed here? Not sure how to properly do abstract
     msg = ""
 
+
 class NoAntKontrolError(AntennyException):
     msg = "Please run 'antkontrol start' to initialize the antenna."
 
@@ -120,6 +121,10 @@ class NotTrackingError(AntennyException):
 
 class AntennaAPIFactoryError(AntennyException):
     msg = "Could not initalize Antenny API"
+
+
+class AntennyImportError(AntennyException):
+    msg = "Could not import a module"
 
 
 class ParameterError(AntennyException, CLIException):
