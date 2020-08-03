@@ -53,9 +53,10 @@ class AntennyClient(object):
             "use_telemetry": ("Use Telemetry: ", bool)
         }
 
-    def initialize(self, fe : MpFileExplorer):
-        self.fe = fe
-        self.invoker = CommandInvoker(fe.con)
+    def initialize(self, fe: MpFileExplorer):
+        if fe:
+            self.fe = fe
+            self.invoker = CommandInvoker(fe.con)
 
     def safemode_guard(self):
         """Warns user if AntKontrol is in SAFE MODE while using motor-class commands"""
