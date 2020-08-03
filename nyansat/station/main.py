@@ -7,18 +7,9 @@ import machine
 # Account for the fact that libraries like logging and asyncio need to be installed, after a
 #   successful connection on reboot.
 failed_imports = False
+
 try:
     import logging
-except ImportError:
-    import upip
-    upip.install('logging')
-
-try:
-    logging.basicConfig(level=logging.DEBUG)
-except:
-    failed_imports = True
-
-try:
     import antenny
     from antenny_threading import Queue
     from config.config import ConfigRepository
