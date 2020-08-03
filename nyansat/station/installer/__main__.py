@@ -23,8 +23,7 @@ UP_ONE_DIRECTORY = '..'
 STATION_CODE_RELATIVE_PATH = 'nyansat/station'
 
 PACKAGES_TO_INSTALL = [
-    "logging",
-    "asyncio"
+    "logging"
 ]
 LIBRARY_FILES = [
     'lib/BNO055/bno055.py',
@@ -262,7 +261,7 @@ class AntennyInstaller(object):
             packages_installed = self._install_packages(PACKAGES_TO_INSTALL)
             if not packages_installed:
                 LOG.warning("Some packages weren't installed. To fix this, please run "
-                            "`import upip; upip.install('logging'); upip.install('asyncio')` from "
+                            "`import upip; upip.install('logging')` from "
                             "the REPL after you have successfully connected to WiFi.")
 
 
