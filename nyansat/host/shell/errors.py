@@ -137,7 +137,8 @@ class NumArgsError(CLIException):
 
 
 class CalibrationStatusError(AntennyException):
-    msg = "Accessing calibration status failed"
+    msg = "Accessing calibration status failed; verify 'use_imu=True' in config\nIf you are using a BNO055, " \
+          "you can check if your device is responsive using the 'bnotest' command "
 
 
 if __name__ == '__main__':

@@ -31,26 +31,26 @@ class AntennyClient(object):
         self.invoker = None
         self.tracking = None
         self.prompts = {
-            "gps_uart_tx": ("GPS UART TX pin#: ", int),
-            "gps_uart_rx": ("GPS UART RX pin#: ", int),
-            "use_gps": ("Use GPS (True or False): ", bool),
-            "i2c_servo_scl": ("Servo SCL pin#: ", int),
-            "i2c_servo_sda": ("Servo SDA pin#: ", int),
-            "i2c_servo_address": ("Servo address (in decimal): ", int),
-            "i2c_bno_scl": ("BNO055 SCL pin#: ", int),
-            "i2c_bno_sda": ("BNO055 SDA pin#: ", int),
-            "i2c_bno_address": ("BNO055 address (in decimal): ", int),
-            "use_imu": ("Use IMU (True or False): ", bool),
-            "i2c_screen_scl": ("Screen SCL pin#: ", int),
-            "i2c_screen_sda": ("Screen SDA pin#: ", int),
-            "i2c_screen_address": ("Screen address (in decimal): ", int),
-            "use_screen": ("Use Screen (True or False): ", bool),
-            "elevation_servo_index": ("Servo default elevation index: ", float),
-            "azimuth_servo_index": ("Servo default azimuth index: ", float),
-            "elevation_max_rate": ("Servo elevation max rate: ", float),
-            "azimuth_max_rate": ("Servo azimuth max rate: ", float),
-            "use_webrepl": ("Use WebREPL: ", bool),
-            "use_telemetry": ("Use Telemetry: ", bool)
+            "gps_uart_tx": ("GPS UART TX pin#", int),
+            "gps_uart_rx": ("GPS UART RX pin#", int),
+            "use_gps": ("Use GPS (True or False)", bool),
+            "i2c_servo_scl": ("Servo SCL pin#", int),
+            "i2c_servo_sda": ("Servo SDA pin#", int),
+            "i2c_servo_address": ("Servo address (in decimal)", int),
+            "i2c_bno_scl": ("BNO055 SCL pin#", int),
+            "i2c_bno_sda": ("BNO055 SDA pin#", int),
+            "i2c_bno_address": ("BNO055 address (in decimal)", int),
+            "use_imu": ("Use IMU (True or False)", bool),
+            "i2c_screen_scl": ("Screen SCL pin#", int),
+            "i2c_screen_sda": ("Screen SDA pin#", int),
+            "i2c_screen_address": ("Screen address (in decimal)", int),
+            "use_screen": ("Use Screen (True or False)", bool),
+            "elevation_servo_index": ("Servo default elevation index", float),
+            "azimuth_servo_index": ("Servo default azimuth index", float),
+            "elevation_max_rate": ("Servo elevation max rate", float),
+            "azimuth_max_rate": ("Servo azimuth max rate", float),
+            "use_webrepl": ("Use WebREPL", bool),
+            "use_telemetry": ("Use Telemetry", bool)
         }
 
     def initialize(self, fe: MpFileExplorer):
@@ -248,7 +248,9 @@ class AntennyClient(object):
         print("Please enter the following information about your hardware\n")
 
         for k, info in self.prompts.items():
-            prompt_text, typ = info
+            prompt_text_bare, typ = info
+            default_val = self.invoker.config_get_default(k)
+            prompt_text = prompt_text_bare + " (Default value is {}): ".format(default_val)
             try:
                 if typ == bool:
                     literal_input = input(prompt_text)
