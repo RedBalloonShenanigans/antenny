@@ -9,6 +9,16 @@ import machine
 failed_imports = False
 try:
     import logging
+except ImportError:
+    import upip
+    upip.install('logging')
+
+try:
+    logging.basicConfig(level=logging.DEBUG)
+except:
+    failed_imports = True
+
+try:
     import antenny
     from antenny_threading import Queue
     from config.config import ConfigRepository
@@ -33,7 +43,6 @@ def initialize_i2c_bus():
 
 
 if not failed_imports:
-    logging.basicConfig(level=logging.DEBUG)
     initialize_i2c_bus()
     # leave this global so the entire system has access to the AntKontrol instance
     api = antenny.esp32_antenna_api_factory()
