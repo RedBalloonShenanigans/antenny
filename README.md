@@ -60,6 +60,8 @@ One of the main reasons why AntKontrol would enter SAFE MODE is an incorrect con
 
 By default, several features are disabled for the initial setup; this is to reduce debugging complexity. As you get familiar with the shell and hardware, you can choose to enable them using the `configs` and `set` commands to query and modify your configuration respectively.
 
+After you are comfortable with your setup and everything appears to be initialized, you can start your base station by running the command `startmotion <azimuth> <elevation>`, where `<azimuth>` and `<elevation>` correspond to the initial position you would like your base station to be. To tweak either the elevation or azimuth, type `azimuth/elevation <your desired value>` into the nyanshell commandline.
+
 ## Features
 
 ### Easy Pin Setup and Profile Management
