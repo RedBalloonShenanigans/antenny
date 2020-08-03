@@ -23,6 +23,7 @@ def cli_handler(func):
         except CLIException as e:
             print(e)
 
+    wrapper.__doc__ = func.__doc__
     return wrapper
 
 
