@@ -1,6 +1,7 @@
 # Client middle layer
 import ast
 import asyncio
+import getpass
 import json
 import logging
 import threading
@@ -338,6 +339,22 @@ class AntennyClient(object):
         """Cancel tracking mode"""
         self.invoker.set_tracking(False)
 
+    @exception_handler
+    def wifi_setup(self):
+        self.guard_open()
+        wifi_config_path = 'wifi_config.json'
+        try:
+            wifi_config = {
+                'ssid': input("WiFi SSID: "),
+                'key': getpass.getpass("WiFi password: "),
+            }
+            with open(wifi_config_path, 'w') as f:
+                json.dump(wifi_config, f)
+            self.fe.put(wifi_config_path)
+            print("SSID/Password successfully changed")
+        except KeyboardInterrupt:
+            print("WiFi setup canceled, using previous settings")
+
     def bno_test(self):
         self.guard_open()   # No need to guard for antenna initialization when doing diagnostics
 
@@ -378,3 +395,4 @@ class AntennyClient(object):
         else:
             print("I2C address detected? True, addresses =", pwm_test_diagnostics.i2c_addresses)
         print("PWM connection established?", pwm_test_diagnostics.pca_object_created)
+
