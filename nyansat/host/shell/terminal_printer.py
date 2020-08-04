@@ -5,6 +5,15 @@ import shutil
 
 import colorama
 
+
+def print_color(color, string):
+    print('\n' + color + string + colorama.Fore.RESET + '\n')
+
+
+def print_error(string):
+    print_color(colorama.Fore.RED, string)
+
+
 class TerminalPrinter(object):
 
     YES_DISPLAY_STRING = colorama.Fore.GREEN + "YES" + colorama.Fore.RESET
@@ -15,9 +24,28 @@ class TerminalPrinter(object):
     MAGNET_CALIBRATION_MESSAGE = "To calibrate the magnetometer, move the sensor in figure-8 shapes through the air a " \
                                  "few times. "
 
+    def intro(self):
+        """Text that appears when shell is first launched."""
+        intro = (
+            '\n' +
+            colorama.Fore.GREEN +
+            "** Welcome to NyanSat File Shell **\n" +
+            colorama.Fore.RESET +
+            '\n'
+
+        )
+        intro += "-- Running on Python %d.%d using PySerial %s --\n" % (
+            sys.version_info[0],
+            sys.version_info[1],
+            serial.VERSION,
+        )
+        return intro
+
+    def a(self):
+        pass
+
     def print_error(self, string):
-        # TODO: add colors
-        print("\n" + string + "\n")
+        print_color(colorama.Fore.RED, string)
 
     def calibration_wait_message(self, gyro_calibrated, accel_calibrated, magnet_calibrated, use_ellipsis=True):
         """

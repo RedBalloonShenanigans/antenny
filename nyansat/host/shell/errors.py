@@ -1,4 +1,5 @@
 import logging
+from nyansat.host.shell.terminal_printer import print_error
 from mp.pyboard import PyboardError
 
 
@@ -10,7 +11,7 @@ def exception_handler(func):
         try:
             func(*args, **kwargs)
         except AntennyException as e:
-            print(e.msg + '\n')
+            print_error(e.msg + '\n')
             print_board_error(e)
 
     return wrapper

@@ -27,21 +27,6 @@ from nyansat.host.shell.antenny_client import AntennyClient
 from nyansat.host.shell.errors import cli_handler
 
 
-def arg_exception_handler(func):
-    """
-    Decorator for catching improper arguments to the do_something commands.
-    """
-    def wrapper(*args, **kwargs):
-        try:
-            func(*args, **kwargs)
-        except ValueError as e:
-            logging.error(e)
-        except RuntimeError as e:
-            logging.error(e)
-
-    return wrapper
-
-
 class NyanShell(mpfshell.MpFileShell):
     """Extension of MPFShell that adds NyanSat-specific features"""
 
@@ -80,25 +65,13 @@ class NyanShell(mpfshell.MpFileShell):
         self.emptyline = lambda: None
 
     def _intro(self):
-        """Text that appears when shell is first launched."""
-        self.intro = (
-            "\n** Welcome to NyanSat File Shell **\n"
-        )
-        self.intro += "-- Running on Python %d.%d using PySerial %s --\n" % (
-            sys.version_info[0],
-            sys.version_info[1],
-            serial.VERSION,
-        )
+        self.intro = self.printer.print_intro()
 
-    def _is_open(self):
-        """Check if a connection has been established with an ESP32."""
-        return super()._MpFileShell__is_open()
+
+
 
     def _disconnect(self):
         return super()._MpFileShell__disconnect()
-
-    def _error(self, err):
-        return super()._MpFileShell__error(err)
 
     def _parse_file_names(self, args):
         return super()._MpFileShell__parse_file_names(args)
@@ -119,22 +92,6 @@ class NyanShell(mpfshell.MpFileShell):
             pwd = "/"
             self.prompt = "nyanshell [" + pwd + "]> "
 
-    def parse_error(self, e):
-        error_list = str(e).strip('()').split(", b'")
-        error_list[0] = error_list[0][1:]
-        ret = []
-        for err in error_list:
-            ret.append(bytes(err[0:-1], 'utf-8').decode('unicode-escape'))
-        return ret
-
-    def print_error_and_exception(self, error, exception):
-        self.printer.print_error(error)
-        error_list = self.parse_error(exception)
-        try:
-            print(error_list[2])
-        except:
-            pass
-
     def do_open(self, args):
         """open <TARGET>
         Open connection to device with given target. TARGET might be:
@@ -142,16 +99,19 @@ class NyanShell(mpfshell.MpFileShell):
         - a telnet host, e.g        tn:192.168.1.1 or tn:192.168.1.1,login,passwd
         - a websocket host, e.g.    ws:192.168.1.1 or ws:192.168.1.1,passwd
         """
-
-        if not len(args):
-            self.printer.print_error("Missing argument: <PORT>")
-            return False
-
+        arg_properties = [
+            CLIArgumentProperty(
+                str,
+                None
+            )
+        ]
+        parsed_args = parse_cli_args(args, 'open', 1, arg_properties)
+        port, = parsed_args
         if (
-                not args.startswith("ser:/dev/")
-                and not args.startswith("ser:COM")
-                and not args.startswith("tn:")
-                and not args.startswith("ws:")
+                not port.startswith("ser:/dev/")
+                and not port.startswith("ser:COM")
+                and not port.startswith("tn:")
+                and not port.startswith("ws:")
         ):
 
             if platform.system() == "Windows":
@@ -235,10 +195,7 @@ class NyanShell(mpfshell.MpFileShell):
 
     def complete_set(self, *args):
         """Tab completion for 'set' command."""
-        if self._is_open():
-            return [key for key in self.client.prompts.keys() if key.startswith(args[0])]
-        else:
-            return []
+        return [key for key in self.client.prompts.keys() if key.startswith(args[0])]
 
     def do_configs(self, args):
         """configs
