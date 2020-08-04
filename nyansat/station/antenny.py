@@ -1,4 +1,5 @@
 import logging
+import machine
 
 from config.config import ConfigRepository
 from gps.gps_basic import BasicGPSController
@@ -58,6 +59,7 @@ class AntennaController:
         self.azimuth = azimuth
         self.elevation = elevation
         self._motion_started = False
+        self.pin_interrupt = True
 
     def start_motion(self, azimuth: int, elevation: int):
         """
@@ -93,6 +95,18 @@ class AntennaController:
         if not self._motion_started:
             raise RuntimeError("Please start motion before querying the elevation position")
         return self.elevation.get_motor_position()
+
+    def pin23_motion_test(self, p):
+        print("pin23 callback")
+        p.irq(trigger=0, handler=self.pin23_motion_test)
+        print("got past irq 0")
+        if self.pin_interrupt:
+            self.pin_interrupt = False
+            self.elevation.set_motor_position(30)
+            print("elevation set to 30")
+            p.irq(trigger=machine.Pin.IRQ_FALLING, handler=self.pin23_motion_test)
+            print("reactivated irq, exiting")
+            self.pin_interrupt = True
 
 
 class AntennyAPI:
@@ -359,5 +373,8 @@ def esp32_antenna_api_factory():
         telemetry_sender,
         safe_mode,
     )
+    pin23 = machine.Pin(23, machine.Pin.IN, machine.Pin.PULL_UP)
+    pin23.irq(trigger=machine.Pin.IRQ_FALLING, handler=api.antenna.pin23_motion_test)
+
     api.start()
     return api

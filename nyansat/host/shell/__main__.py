@@ -47,8 +47,6 @@ class NyanShell(mpfshell.MpFileShell):
         """
         super()._MpFileShell__connect(port)
         self._set_prompt_path()
-        print("here")
-        print(self.printer.prompt('/'))
         self.client.initialize(self.fe)
 
     def _set_prompt_path(self):
