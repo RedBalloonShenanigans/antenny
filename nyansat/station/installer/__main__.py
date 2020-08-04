@@ -13,7 +13,6 @@ from mp.mpfexp import MpFileExplorer, RemoteIOError
 from mp.pyboard import PyboardError
 from typing import List
 
-
 PASSWORD_KEY = 'key'
 SSID_KEY = 'ssid'
 WIFI_CONFIG_PATH = 'wifi_config.json'
@@ -23,8 +22,7 @@ UP_ONE_DIRECTORY = '..'
 STATION_CODE_RELATIVE_PATH = 'nyansat/station'
 
 PACKAGES_TO_INSTALL = [
-    "logging",
-    "asyncio"
+    "logging"
 ]
 LIBRARY_FILES = [
     'lib/BNO055/bno055.py',
@@ -172,7 +170,7 @@ class AntennyInstaller(object):
                         f"Do you want to proceed with these wifi credentials - "
                         f"{ssid}:{printed_password} (Y/n)?"
                 )
-                use_cached = use_cached == '' or use_cached == 'y'
+                use_cached = use_cached == '' or use_cached == 'y' or use_cached == 'Y'
                 if use_cached:
                     self._file_explorer.put(WIFI_CONFIG_PATH)
                     return True
@@ -243,13 +241,24 @@ class AntennyInstaller(object):
                     continue
             for package in packages:
                 LOG.info(f"Installing {package}")
-                self._file_explorer.exec_raw(f"upip.install('{package}')", timeout=30)
+                try:
+                    t1 = time.time()
+                    self._file_explorer.exec_raw(f"upip.install('{package}')", timeout=30)
+                    elapsed = time.time() - t1
+                    if elapsed < .5:
+                        LOG.warning("Package installed too quickly, retrying")
+                        self._file_explorer.exec_raw(f"upip.install('{package}')", timeout=30)
+                except Exception as e:
+                    print("Issue with insalling: {}".format(e))
         except:
             LOG.warning("Unable to install packages, please double check internet connectivity!")
             return False
         return True
 
-    def install(self):
+    def install(
+            self,
+            package_install_retry: int = 3,
+    ):
         """
         Perform the antenny installation.
         """
@@ -259,11 +268,20 @@ class AntennyInstaller(object):
         has_wifi = self._query_user_for_wifi_credentials()
         has_web_repl = self._query_user_for_webrepl_creation()
         if has_wifi:
-            packages_installed = self._install_packages(PACKAGES_TO_INSTALL)
-            if not packages_installed:
-                LOG.warning("Some packages weren't installed. To fix this, please run "
-                            "`import upip; upip.install('logging'); upip.install('asyncio')` from "
-                            "the REPL after you have successfully connected to WiFi.")
+            num_retries = 0
+            packages_installed = False
+            while not packages_installed:
+                try:
+                    packages_installed = self._install_packages(PACKAGES_TO_INSTALL)
+                except:
+                    pass
+                num_retries += 1
+                if num_retries > package_install_retry:
+                    raise RuntimeError(
+                        "Some packages weren't installed. To fix this, please run `import upip; "
+                        "upip.install('logging')` from the REPL after you have successfully "
+                        "connected to WiFi."
+                    )
 
 
 if __name__ == '__main__':

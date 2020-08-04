@@ -13,7 +13,7 @@ The RBS Antenny board is designed using Altium Designer and Assembled by in-hous
 
 ## Antenny board hardware setup guide and schematic
 
-- [setup guide](https://github.com/RedBalloonShenanigans/antenny/tree/master/hardware/Antenny_board_hardware_setup_guide.pdf)
+- [setup guide and import updates](https://github.com/RedBalloonShenanigans/antenny/tree/master/hardware/Antenny_board_hardware_setup_guide.pdf)
 
 - [Antenny V1 Board Schematic](https://github.com/RedBalloonShenanigans/antenny/tree/master/hardware/Antenny_V1_Schematic.pdf)
 

@@ -9,17 +9,23 @@ setup:
 nyanshell: setup
 	python3 setup.py install
 
-clean:
+_check_serial_param:
+	@[ "${SERIAL}" ] || ( echo "SERIAL flag is not set\nSet SERIAL to your ESP32's port"; exit 1 )
+
+clean: _check_serial_param
 	echo "\n" > empty_file.py
 	mpfshell -o ser:$(SERIAL) -s esp32_clean.mpf
 	rm empty_file.py
 
-_check_serial_param:
-	@[ "${SERIAL}" ] || ( echo "SERIAL flag is not set\nSet SERIAL to your ESP32's port"; exit 1 )
+reinstall: _check_serial_param
+	mpfshell -o ser:$(SERIAL) -s esp32_reinstall.mpf
 
 nyansat: _check_serial_param setup
 	python3 -m nyansat.station.installer $(SERIAL)
 
+reinstall: _check_serial_param
+	mpfshell -o ser:$(SERIAL) -s esp32_reinstall.mpf
+
 all: nyanshell nyansat
 
-.PHONY: setup nyanshell nyansat _check_serial_param all
+.PHONY: setup nyanshell clean reinstall nyansat _check_serial_param all

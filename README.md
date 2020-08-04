@@ -38,9 +38,20 @@ open <your ESP32's serial port>
 
 ### Connecting Via WebREPL
 
+WebREPL is not enabled by default. To enable it, connect via serial port first and run the `setup` command to enable it. Afterwards, you can connect via WebREPL using the following command:
+
 ```
 open ws:<your ESP32's IP address>,<your webrepl password>
 ```
+
+### Clean Install
+
+If you are developing on the board, you may end up in a situation where you would like to start from a clean slate. The steps to do so are simple:
+
+1. Erase your ESP32 using `esptool.py`
+2. Reflash the Micropython firmware using `esptool.py`
+3. To get a fresh install of your shell, type `make nyanshell`
+4. To install NyanSat software onto your ESP32, run `make nyansat SERIAL=<your serial port>`
 
 ### Exploring the Shell
 
@@ -56,9 +67,13 @@ AntKontrol attempts to integrate different hardware into one interface. It is us
 
 ![Querying AntKontrol's Status](doc_images/safe_mode.png)
 
-One of the main reasons why AntKontrol would enter SAFE MODE is an incorrect configuration. Depending on your setup, you may have a different pin layout, device addresses, or hardware than what NyanSat is expecting. Accordingly, you can use the `setup` and `i2ctest` commands to resolve the first two issues. For different hardware, the `repl` command provides you with a full Python interpreter, which you can use to implement your own exciting hardware. 
+One of the main reasons why AntKontrol would enter SAFE MODE is an incorrect configuration. Depending on your setup, you may have a different pin layout, device addresses, or hardware than what NyanSat is expecting. Accordingly, you can use the `setup`, `i2ctest`, `pwmtest`, and `bnotest` commands to resolve the first two issues. For different hardware, the `repl` command provides you with a full Python interpreter, which you can use to implement your own exciting hardware. **Note:** If you wish to use the `repl` command, start nyanshell with the command `python3 -m nyansat.host.shell`; this command removes all decorative and telemetry elements, proviving a focused environment for debugging.
 
 By default, several features are disabled for the initial setup; this is to reduce debugging complexity. As you get familiar with the shell and hardware, you can choose to enable them using the `configs` and `set` commands to query and modify your configuration respectively.
+
+### Moving Your Motors
+
+After you are comfortable with your setup and everything appears to be initialized, you can start your base station by running the command `startmotion <azimuth> <elevation>`, where `<azimuth>` and `<elevation>` correspond to the initial position you would like your base station to be. To tweak either the elevation or azimuth, type `azimuth/elevation <your desired value>` into the nyanshell commandline.
 
 ## Features
 
