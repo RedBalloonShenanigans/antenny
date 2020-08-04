@@ -16,23 +16,8 @@ class TerminalPrinter(object):
                                  "few times. "
 
     def print_error(self, string):
+        # TODO: add colors
         print("\n" + string + "\n")
-
-    def parse_error(self, e):
-        error_list = str(e).strip('()').split(", b'")
-        error_list[0] = error_list[0][1:]
-        ret = []
-        for err in error_list:
-            ret.append(bytes(err[0:-1], 'utf-8').decode('unicode-escape'))
-        return ret
-
-    def print_error_and_exception(self, error, exception):
-        self.print_error(error)
-        error_list = self.parse_error(exception)
-        try:
-            print(error_list[2])
-        except:
-            pass
 
     def calibration_wait_message(self, gyro_calibrated, accel_calibrated, magnet_calibrated, use_ellipsis=True):
         """

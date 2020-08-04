@@ -70,7 +70,7 @@ class NyanShell(mpfshell.MpFileShell):
 
         self.fe = None
         self.client = AntennyClient(self.caching)
-        # self.printer = TerminalPrinter()
+        self.printer = TerminalPrinter()
 
         self.repl = None
         self.tokenizer = Tokenizer()
