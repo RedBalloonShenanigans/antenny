@@ -1,45 +1,18 @@
 import argparse
-import cmd
-import glob
 import io
 import logging
-import os
 import platform
 import sys
-import tempfile
-import subprocess
-import time
 from websocket import WebSocketConnectionClosedException
 
-import colorama
 import serial
 from mp import mpfshell
-from mp.mpfexp import MpFileExplorer, MpFileExplorerCaching
-from mp.mpfshell import MpFileShell
-from mp.conbase import ConError
-from mp.pyboard import PyboardError
-from mp.tokenizer import Tokenizer
 
 from nyansat.host.shell.cli_arg_parser import CLIArgumentProperty, parse_cli_args
 from nyansat.host.shell.terminal_printer import TerminalPrinter
 from nyansat.host.shell.antenny_client import AntennyClient
 
 from nyansat.host.shell.errors import cli_handler
-
-
-def arg_exception_handler(func):
-    """
-    Decorator for catching improper arguments to the do_something commands.
-    """
-    def wrapper(*args, **kwargs):
-        try:
-            func(*args, **kwargs)
-        except ValueError as e:
-            logging.error(e)
-        except RuntimeError as e:
-            logging.error(e)
-
-    return wrapper
 
 
 class NyanShell(mpfshell.MpFileShell):
@@ -53,55 +26,19 @@ class NyanShell(mpfshell.MpFileShell):
         caching -- support caching the results of functions like 'ls'
         reset -- hard reset device via DTR. (serial connection only)
         """
-        if color:
-            colorama.init()
-            cmd.Cmd.__init__(self, stdout=colorama.initialise.wrapped_stdout)
-        else:
-            cmd.Cmd.__init__(self)
+        super().__init__(color, caching, reset)
 
-        self.emptyline = lambda: None
-
-        if platform.system() == "Windows":
-            self.use_rawinput = False
-
-        self.color = color
-        self.caching = caching
-        self.reset = reset
-
-        self.fe = None
         self.client = AntennyClient(self.caching)
-        # self.printer = TerminalPrinter()
-
-        self.repl = None
-        self.tokenizer = Tokenizer()
+        self.printer = TerminalPrinter()
         self._intro()
         self._set_prompt_path()
-
         self.emptyline = lambda: None
 
     def _intro(self):
-        """Text that appears when shell is first launched."""
-        self.intro = (
-            "\n** Welcome to NyanSat File Shell **\n"
-        )
-        self.intro += "-- Running on Python %d.%d using PySerial %s --\n" % (
-            sys.version_info[0],
-            sys.version_info[1],
-            serial.VERSION,
-        )
-
-    def _is_open(self):
-        """Check if a connection has been established with an ESP32."""
-        return super()._MpFileShell__is_open()
+        self.intro = self.printer.intro()
 
     def _disconnect(self):
         return super()._MpFileShell__disconnect()
-
-    def _error(self, err):
-        return super()._MpFileShell__error(err)
-
-    def _parse_file_names(self, args):
-        return super()._MpFileShell__parse_file_names(args)
 
     def _connect(self, port):
         """
@@ -109,6 +46,7 @@ class NyanShell(mpfshell.MpFileShell):
         FileExplorer's self.con object.
         """
         super()._MpFileShell__connect(port)
+        self._set_prompt_path()
         self.client.initialize(self.fe)
 
     def _set_prompt_path(self):
@@ -117,23 +55,7 @@ class NyanShell(mpfshell.MpFileShell):
             pwd = self.fe.pwd()
         else:
             pwd = "/"
-            self.prompt = "nyanshell [" + pwd + "]> "
-
-    def parse_error(self, e):
-        error_list = str(e).strip('()').split(", b'")
-        error_list[0] = error_list[0][1:]
-        ret = []
-        for err in error_list:
-            ret.append(bytes(err[0:-1], 'utf-8').decode('unicode-escape'))
-        return ret
-
-    def print_error_and_exception(self, error, exception):
-        self.printer.print_error(error)
-        error_list = self.parse_error(exception)
-        try:
-            print(error_list[2])
-        except:
-            pass
+        self.prompt = self.printer.prompt(pwd)
 
     def do_open(self, args):
         """open <TARGET>
@@ -142,16 +64,19 @@ class NyanShell(mpfshell.MpFileShell):
         - a telnet host, e.g        tn:192.168.1.1 or tn:192.168.1.1,login,passwd
         - a websocket host, e.g.    ws:192.168.1.1 or ws:192.168.1.1,passwd
         """
-
-        if not len(args):
-            self.printer.print_error("Missing argument: <PORT>")
-            return False
-
+        arg_properties = [
+            CLIArgumentProperty(
+                str,
+                None
+            )
+        ]
+        parsed_args = parse_cli_args(args, 'open', 1, arg_properties)
+        port, = parsed_args
         if (
-                not args.startswith("ser:/dev/")
-                and not args.startswith("ser:COM")
-                and not args.startswith("tn:")
-                and not args.startswith("ws:")
+                not port.startswith("ser:/dev/")
+                and not port.startswith("ser:COM")
+                and not port.startswith("tn:")
+                and not port.startswith("ws:")
         ):
 
             if platform.system() == "Windows":
@@ -162,41 +87,12 @@ class NyanShell(mpfshell.MpFileShell):
         return self._connect(args)
 
     def do_repl(self, args):
+        self.__doc__ = super().do_repl.__doc__
         try:
             super().do_repl(args)
         except WebSocketConnectionClosedException as e:
             self.printer.print_error("Connection lost to repl")
             self._disconnect()
-
-    def do_edit(self, args):
-        """edit <REMOTE_FILE>
-        Copies file over, opens it in your editor, copies back when done.
-        """
-        if not len(args):
-            self.printer.print_error("Missing argument: <REMOTE_FILE>")
-
-        elif self._is_open():
-            rfile_name, = self._parse_file_names(args)
-            local_name = "__board_" + rfile_name
-            try:
-                self.fe.get(rfile_name, local_name)
-            except IOError as e:
-                if "No such file" in str(e):
-                    # make new file locally, then copy
-                    pass
-                else:
-                    self.printer.print_error(str(e))
-                    return
-
-            if platform.system() == 'Windows':
-                EDITOR = os.environ.get('EDITOR', 'notepad')
-                subprocess.call([EDITOR, local_name], shell=True)
-            else:
-                EDITOR = os.environ.get('EDITOR', 'vim')
-                subprocess.call([EDITOR, local_name])
-            self.fe.put(local_name, rfile_name)
-
-    complete_edit = MpFileShell.complete_get
 
     @cli_handler
     def do_setup(self, args):
@@ -235,10 +131,7 @@ class NyanShell(mpfshell.MpFileShell):
 
     def complete_set(self, *args):
         """Tab completion for 'set' command."""
-        if self._is_open():
-            return [key for key in self.client.prompts.keys() if key.startswith(args[0])]
-        else:
-            return []
+        return [key for key in self.client.prompts.keys() if key.startswith(args[0])]
 
     def do_configs(self, args):
         """configs

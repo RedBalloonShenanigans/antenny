@@ -1,21 +1,26 @@
 import logging
+from nyansat.host.shell.terminal_printer import print_error
 from mp.pyboard import PyboardError
 
 
-# TODO: Move error messages into the errors.py as a self.message attribute
 def exception_handler(func):
-
+    """
+    Decorator for printing various errors from the ESP32 (see errors.py)
+    """
     def wrapper(*args, **kwargs):
         try:
             func(*args, **kwargs)
         except AntennyException as e:
-            print(e.msg + '\n')
+            print_error(e.msg + '\n')
             print_board_error(e)
 
     return wrapper
 
 
 def cli_handler(func):
+    """
+    Decorator for handling argument parsing errors (see cli_arg_parser.py)
+    """
 
     def wrapper(*args, **kwargs):
         try:
@@ -28,6 +33,9 @@ def cli_handler(func):
 
 
 def print_board_error(e: 'AntennyException'):
+    """
+    Print the error string returned from the ESP32
+    """
     def parse_board_error(error: 'AntennyException'):
         error_list = str(error).strip('()').split(", b'")
         error_list[0] = error_list[0][1:]

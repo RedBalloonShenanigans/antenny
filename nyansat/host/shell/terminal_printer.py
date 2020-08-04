@@ -1,9 +1,17 @@
-# Priting
 import sys
 import serial
 import shutil
 
 import colorama
+
+
+def print_color(color, string):
+    print('\n' + color + string + colorama.Fore.RESET + '\n')
+
+
+def print_error(string):
+    print_color(colorama.Fore.RED, string)
+
 
 class TerminalPrinter(object):
 
@@ -15,24 +23,38 @@ class TerminalPrinter(object):
     MAGNET_CALIBRATION_MESSAGE = "To calibrate the magnetometer, move the sensor in figure-8 shapes through the air a " \
                                  "few times. "
 
+    def intro(self):
+        """Text that appears when shell is first launched."""
+        intro = (
+            '\n' +
+            colorama.Fore.GREEN +
+            "** Welcome to NyanSat File Shell **\n" +
+            colorama.Fore.RESET +
+            '\n'
+
+        )
+        intro += "-- Running on Python %d.%d using PySerial %s --\n" % (
+            sys.version_info[0],
+            sys.version_info[1],
+            serial.VERSION,
+        )
+        return intro
+
+    def prompt(self, pwd):
+        """Terminal prompt text"""
+        prompt = (
+            colorama.Fore.BLUE +
+            "nyanshell [" +
+            colorama.Fore.YELLOW +
+            pwd +
+            colorama.Fore.BLUE +
+            "]> " +
+            colorama.Fore.RESET
+        )
+        return prompt
+
     def print_error(self, string):
-        print("\n" + string + "\n")
-
-    def parse_error(self, e):
-        error_list = str(e).strip('()').split(", b'")
-        error_list[0] = error_list[0][1:]
-        ret = []
-        for err in error_list:
-            ret.append(bytes(err[0:-1], 'utf-8').decode('unicode-escape'))
-        return ret
-
-    def print_error_and_exception(self, error, exception):
-        self.print_error(error)
-        error_list = self.parse_error(exception)
-        try:
-            print(error_list[2])
-        except:
-            pass
+        print_color(colorama.Fore.RED, string)
 
     def calibration_wait_message(self, gyro_calibrated, accel_calibrated, magnet_calibrated, use_ellipsis=True):
         """
