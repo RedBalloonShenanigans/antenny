@@ -125,8 +125,8 @@ class AntennyClient(object):
         self.guard_open()
         self.guard_init()
         self.invoker.set_tracking(True)
-        latitude = self.invoker.config_get("latitude")
-        longitude = self.invoker.config_get("longitude")
+        latitude = float(self.invoker.config_get("latitude"))
+        longitude = float(self.invoker.config_get("longitude"))
         asyncio.run(self._start_track(sat_name, (latitude, longitude)))
 
     @exception_handler
