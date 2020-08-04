@@ -1,4 +1,3 @@
-# Priting
 import sys
 import serial
 import shutil
@@ -41,8 +40,18 @@ class TerminalPrinter(object):
         )
         return intro
 
-    def a(self):
-        pass
+    def prompt(self, pwd):
+        """Terminal prompt text"""
+        prompt = (
+            colorama.Fore.BLUE +
+            "nyanshell [" +
+            colorama.Fore.YELLOW +
+            pwd +
+            colorama.Fore.BLUE +
+            "]> " +
+            colorama.Fore.RESET
+        )
+        return prompt
 
     def print_error(self, string):
         print_color(colorama.Fore.RED, string)

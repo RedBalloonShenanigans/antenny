@@ -1,24 +1,12 @@
 import argparse
-import cmd
-import glob
 import io
 import logging
-import os
 import platform
 import sys
-import tempfile
-import subprocess
-import time
 from websocket import WebSocketConnectionClosedException
 
-import colorama
 import serial
 from mp import mpfshell
-from mp.mpfexp import MpFileExplorer, MpFileExplorerCaching
-from mp.mpfshell import MpFileShell
-from mp.conbase import ConError
-from mp.pyboard import PyboardError
-from mp.tokenizer import Tokenizer
 
 from nyansat.host.shell.cli_arg_parser import CLIArgumentProperty, parse_cli_args
 from nyansat.host.shell.terminal_printer import TerminalPrinter
@@ -38,34 +26,16 @@ class NyanShell(mpfshell.MpFileShell):
         caching -- support caching the results of functions like 'ls'
         reset -- hard reset device via DTR. (serial connection only)
         """
-        if color:
-            colorama.init()
-            cmd.Cmd.__init__(self, stdout=colorama.initialise.wrapped_stdout)
-        else:
-            cmd.Cmd.__init__(self)
+        super().__init__(color, caching, reset)
 
-        self.emptyline = lambda: None
-
-        if platform.system() == "Windows":
-            self.use_rawinput = False
-
-        self.color = color
-        self.caching = caching
-        self.reset = reset
-
-        self.fe = None
         self.client = AntennyClient(self.caching)
         self.printer = TerminalPrinter()
-
-        self.repl = None
-        self.tokenizer = Tokenizer()
         self._intro()
         self._set_prompt_path()
-
         self.emptyline = lambda: None
 
     def _intro(self):
-        self.intro = self.printer.print_intro()
+        self.intro = self.printer.intro()
 
     def _disconnect(self):
         return super()._MpFileShell__disconnect()
@@ -76,6 +46,9 @@ class NyanShell(mpfshell.MpFileShell):
         FileExplorer's self.con object.
         """
         super()._MpFileShell__connect(port)
+        self._set_prompt_path()
+        print("here")
+        print(self.printer.prompt('/'))
         self.client.initialize(self.fe)
 
     def _set_prompt_path(self):
@@ -84,7 +57,7 @@ class NyanShell(mpfshell.MpFileShell):
             pwd = self.fe.pwd()
         else:
             pwd = "/"
-            self.prompt = "nyanshell [" + pwd + "]> "
+        self.prompt = self.printer.prompt(pwd)
 
     def do_open(self, args):
         """open <TARGET>
@@ -116,6 +89,7 @@ class NyanShell(mpfshell.MpFileShell):
         return self._connect(args)
 
     def do_repl(self, args):
+        self.__doc__ = super().do_repl.__doc__
         try:
             super().do_repl(args)
         except WebSocketConnectionClosedException as e:
