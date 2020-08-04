@@ -136,7 +136,7 @@ class Bno055ImuController(ImuController):
             magnet_level,
         )
 
-    def _get_calibration_profile(self) -> Dict[str, int]:
+    def _get_calibration_profile(self):
         # In order to read or write to the calibration registers, we have to
         # switch into the BNO's config mode, read/write, then switch out
         previous_mode = self.bno.mode(CONFIG_MODE)
@@ -170,7 +170,7 @@ class Bno055ImuController(ImuController):
             calibration_profile = ujson.load(f)
         self._set_calibration_profile(calibration_profile)
 
-    def _set_calibration_profile(self, registers: Dict[str, int]) -> None:
+    def _set_calibration_profile(self, registers) -> None:
         old_mode = self.bno.mode(CONFIG_MODE)
         for register_name, register_address in self.CALIBRATION_REGISTERS:
             self.bno._write(register_address, registers[register_name])
