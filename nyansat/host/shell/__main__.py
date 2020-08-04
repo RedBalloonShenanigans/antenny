@@ -439,6 +439,12 @@ class NyanShell(mpfshell.MpFileShell):
         """
         self.client.cancel()
 
+    def do_wifi(self, args):
+        """wifi
+        Run the WiFi setup script.
+        """
+        self.client.wifi_setup()
+
 
 def main():
     """Entry point into the shell.
