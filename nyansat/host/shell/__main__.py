@@ -67,14 +67,8 @@ class NyanShell(mpfshell.MpFileShell):
     def _intro(self):
         self.intro = self.printer.print_intro()
 
-
-
-
     def _disconnect(self):
         return super()._MpFileShell__disconnect()
-
-    def _parse_file_names(self, args):
-        return super()._MpFileShell__parse_file_names(args)
 
     def _connect(self, port):
         """
@@ -127,36 +121,6 @@ class NyanShell(mpfshell.MpFileShell):
         except WebSocketConnectionClosedException as e:
             self.printer.print_error("Connection lost to repl")
             self._disconnect()
-
-    def do_edit(self, args):
-        """edit <REMOTE_FILE>
-        Copies file over, opens it in your editor, copies back when done.
-        """
-        if not len(args):
-            self.printer.print_error("Missing argument: <REMOTE_FILE>")
-
-        elif self._is_open():
-            rfile_name, = self._parse_file_names(args)
-            local_name = "__board_" + rfile_name
-            try:
-                self.fe.get(rfile_name, local_name)
-            except IOError as e:
-                if "No such file" in str(e):
-                    # make new file locally, then copy
-                    pass
-                else:
-                    self.printer.print_error(str(e))
-                    return
-
-            if platform.system() == 'Windows':
-                EDITOR = os.environ.get('EDITOR', 'notepad')
-                subprocess.call([EDITOR, local_name], shell=True)
-            else:
-                EDITOR = os.environ.get('EDITOR', 'vim')
-                subprocess.call([EDITOR, local_name])
-            self.fe.put(local_name, rfile_name)
-
-    complete_edit = MpFileShell.complete_get
 
     @cli_handler
     def do_setup(self, args):
