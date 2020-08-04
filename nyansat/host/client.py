@@ -83,10 +83,10 @@ class NyanSatTelemetryClient(object):
         self.is_connected: UpdatablePropertyValue[bool] = \
             UpdatablePropertyValue(self.is_connected_observable, False)
 
-    def _initialize_mcast_socket(self, listen_port):
+    def _initialize_mcast_socket(self, listen_port: int):
         self._mcast_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._mcast_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._mcast_socket.bind((MCAST_GRP, MCAST_PORT))
+        self._mcast_socket.bind((MCAST_GRP, listen_port))
         mreq = struct.pack("4sl", socket.inet_aton(MCAST_GRP), socket.INADDR_ANY)
         self._mcast_socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
         self._mcast_socket.settimeout(_DEFAULT_TIMEOUT)
