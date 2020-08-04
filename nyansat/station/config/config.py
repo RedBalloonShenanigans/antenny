@@ -46,6 +46,9 @@ class ConfigRepository:
         "i2c_screen_scl": 25,
         "i2c_screen_sda": 26,
         "i2c_screen_address": 0,
+        # Position coordinates
+        "latitude": 40.0,
+        "longitude": -73.0,
         # IMU calibration - cf. section 3.6.4 "Sensor calibration data" in
         # Bosch BNO055 datasheet. Default values are all zero
         "acc_offset_x_lsb": 0,
