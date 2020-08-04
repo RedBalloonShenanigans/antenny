@@ -3,6 +3,7 @@ Antenny main entry point, runs after boot.py.
 """
 import time
 import machine
+import webrepl
 
 # Account for the fact that libraries like logging and asyncio need to be installed, after a
 #   successful connection on reboot.
@@ -14,7 +15,8 @@ try:
     from antenny_threading import Queue
     from config.config import ConfigRepository
     from multi_client.follower import AntennyFollowerNode, MCAST_PORT, UDPFollowerClient
-except ImportError:
+except ImportError as e:
+    print(e)
     failed_imports = True
 
 
@@ -38,6 +40,8 @@ if not failed_imports:
     # leave this global so the entire system has access to the AntKontrol instance
     api = antenny.esp32_antenna_api_factory()
     config = api.config
+    if config.get('use_webrepl'):
+        webrepl.start()
 else:
     print("WARNING: necessary imports failed, please reboot the device after installing the "
           "necessary dependencies")

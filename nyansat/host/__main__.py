@@ -2,6 +2,7 @@ import asyncio
 import logging
 
 import argparse
+from typing import Optional
 
 from rbs_tui_dom.dom import DOMWindow
 from rbs_tui_dom.dom.layout import DOMStackLayout
