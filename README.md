@@ -4,7 +4,7 @@ Make your own base station to communicate with satellites!
 
 ## Setting Up
 
-These set up procedures expect that your base station is fully assembled and your ESP32 is flashed with Micropython firmware. If not, check the NyanSat website for detailed steps on how to assemble your hardware, plus some tips on avoiding common pitfalls.
+These set up procedures expect that your base station is fully assembled and your ESP32 is flashed with Micropython firmware. If not, check the [NyanSat website](https://nyan-sat.com) for detailed steps on how to assemble your hardware, plus some tips on avoiding common pitfalls.
 
 ### Set up your host environment
 
