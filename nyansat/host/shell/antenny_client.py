@@ -54,7 +54,8 @@ class AntennyClient(object):
             "elevation_max_rate": ("Servo elevation max rate", float),
             "azimuth_max_rate": ("Servo azimuth max rate", float),
             "use_webrepl": ("Use WebREPL", bool),
-            "use_telemetry": ("Use Telemetry", bool)
+            "use_telemetry": ("Use Telemetry", bool),
+            "enable_demo": ("Enable movement demo (short pin#15 to ground)", bool)
         }
 
     def initialize(self, fe: MpFileExplorer):
