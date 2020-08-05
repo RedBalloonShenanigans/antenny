@@ -29,7 +29,7 @@ class ConfigRepository:
         "use_telemetry": False,
         "use_imu": False,
         "use_webrepl": False,
-        "enable_demo": False,
+        "enable_demo": True,
         # Elevation/azimuth servo defaults
         "elevation_servo_index": 0,
         "azimuth_servo_index": 1,

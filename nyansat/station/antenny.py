@@ -99,7 +99,7 @@ class AntennaController:
 
     def pin_motion_test(self, p):
         p.irq(trigger=0, handler=self.pin_motion_test)
-        interrupt_pin = machine.Pin(4, machine.Pin.OUT, machine.Pin.PULL_DOWN)
+        interrupt_pin = machine.Pin(15, machine.Pin.IN, machine.Pin.PULL_DOWN)
         LOG.info("Pin 4 has been pulled down")
         LOG.info("Entering Motor Demo State")
         LOG.info("To exit this state, reboot the device")
@@ -389,7 +389,7 @@ def esp32_antenna_api_factory():
         safe_mode,
     )
     if config.get("enable_demo"):
-        interrupt_pin = machine.Pin(4, machine.Pin.IN, machine.Pin.PULL_UP)
+        interrupt_pin = machine.Pin(15, machine.Pin.IN, machine.Pin.PULL_UP)
         interrupt_pin.irq(trigger=machine.Pin.IRQ_FALLING, handler=api.antenna.pin_motion_test)
 
     api.start()
