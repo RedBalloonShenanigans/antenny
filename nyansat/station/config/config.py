@@ -34,6 +34,8 @@ class ConfigRepository:
         "azimuth_servo_index": 1,
         "elevation_max_rate": 0.1,
         "azimuth_max_rate": 0.1,
+        # Antenny board layout
+        "antenny_board_version": -1,
         # Pins
         "gps_uart_tx": 33,
         "gps_uart_rx": 27,
