@@ -96,17 +96,24 @@ class AntennaController:
             raise RuntimeError("Please start motion before querying the elevation position")
         return self.elevation.get_motor_position()
 
-    def pin23_motion_test(self, p):
-        print("pin23 callback")
-        p.irq(trigger=0, handler=self.pin23_motion_test)
-        print("got past irq 0")
-        if self.pin_interrupt:
-            self.pin_interrupt = False
-            self.elevation.set_motor_position(30)
-            print("elevation set to 30")
-            p.irq(trigger=machine.Pin.IRQ_FALLING, handler=self.pin23_motion_test)
-            print("reactivated irq, exiting")
-            self.pin_interrupt = True
+    def pin_motion_test(self, p):
+        LOG.info("Pin 4 has been pulled down")
+        LOG.info("Entering Motor Demo State")
+        LOG.info("To exit this state, reboot the device")
+        p.irq(trigger=0, handler=self.pin_motion_test)
+        interrupt_pin = machine.Pin(4, machine.Pin.IN, machine.Pin.PULL_DOWN)
+        self.start_motion(45, 45)
+        import time
+        time.sleep(15)
+        while True:
+            self.set_elevation(20)
+            time.sleep(1)
+            self.set_azimuth(20)
+            time.sleep(15)
+            self.set_elevation(70)
+            time.sleep(1)
+            self.set_azimuth(70)
+            time.sleep(15)
 
 
 class AntennyAPI:
@@ -350,7 +357,7 @@ def esp32_antenna_api_factory():
         gps = BasicGPSController()
     else:
         LOG.warning(
-                "GPS disabled, please set use_gps=True in the settings and run `antkontrol`."
+            "GPS disabled, please set use_gps=True in the settings and run `antkontrol`."
         )
         gps = MockGPSController()
     telemetry_sender = None
@@ -373,8 +380,8 @@ def esp32_antenna_api_factory():
         telemetry_sender,
         safe_mode,
     )
-    pin23 = machine.Pin(23, machine.Pin.IN, machine.Pin.PULL_UP)
-    pin23.irq(trigger=machine.Pin.IRQ_FALLING, handler=api.antenna.pin23_motion_test)
+    interrupt_pin = machine.Pin(4, machine.Pin.IN, machine.Pin.PULL_UP)
+    interrupt_pin.irq(trigger=machine.Pin.IRQ_FALLING, handler=api.antenna.pin_motion_test)
 
     api.start()
     return api
