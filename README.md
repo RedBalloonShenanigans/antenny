@@ -36,6 +36,8 @@ The device is not connected automatically. You have several options to connect t
 open <your ESP32's serial port>
 ```
 
+**Note:** If you're on a UNIX or Linux based system, your serial port is likely at `/dev/tty.<port>`. You can leave out `/dev/` for this step.
+
 ### Connecting Via WebREPL
 
 WebREPL is not enabled by default. To enable it, connect via serial port first and run the `setup` command to enable it. Afterwards, you can connect via WebREPL using the following command:
