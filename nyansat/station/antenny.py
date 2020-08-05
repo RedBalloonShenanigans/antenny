@@ -1,5 +1,6 @@
 import logging
 import machine
+import _thread
 
 from config.config import ConfigRepository
 from gps.gps_basic import BasicGPSController
@@ -97,23 +98,40 @@ class AntennaController:
         return self.elevation.get_motor_position()
 
     def pin_motion_test(self, p):
+        LOG.info("entering callback")
+        # import time
+        # time.sleep(0.2)
+        p.irq(trigger=0, handler=self.pin_motion_test)
+        interrupt_pin = machine.Pin(4, machine.Pin.OUT, machine.Pin.PULL_DOWN)
+        # time.sleep(0.2)
         LOG.info("Pin 4 has been pulled down")
         LOG.info("Entering Motor Demo State")
         LOG.info("To exit this state, reboot the device")
-        p.irq(trigger=0, handler=self.pin_motion_test)
-        interrupt_pin = machine.Pin(4, machine.Pin.IN, machine.Pin.PULL_DOWN)
-        self.start_motion(45, 45)
+        # state = machine.disable_irq()
+        # p.irq(trigger=0, handler=self.pin_motion_test)
+        # interrupt_pin = machine.Pin(4, machine.Pin.OUT, machine.Pin.PULL_DOWN)
+        _thread.start_new_thread(self.move_thread, ())
+        # machine.enable_irq(state)
+
+    def move_thread(self):
         import time
-        time.sleep(15)
+        LOG.info("Entering move thread, starting while loop")
+        self.elevation.set_motor_position(45)
+        LOG.info("got past first elevation set")
+        time.sleep(5)
+        self.azimuth.set_motor_position(45)
+        LOG.info("got past second eleavtion set")
+        time.sleep(10)
         while True:
-            self.set_elevation(20)
+            self.elevation.set_motor_position(20)
             time.sleep(1)
-            self.set_azimuth(20)
+            self.azimuth.set_motor_position(20)
             time.sleep(15)
-            self.set_elevation(70)
+            self.elevation.set_motor_position(70)
             time.sleep(1)
-            self.set_azimuth(70)
+            self.azimuth.set_motor_position(70)
             time.sleep(15)
+
 
 
 class AntennyAPI:
