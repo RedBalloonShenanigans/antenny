@@ -75,7 +75,7 @@ By default, several features are disabled for the initial setup; this is to redu
 
 ### Moving Your Motors
 
-After you are comfortable with your setup and everything appears to be initialized, you can start your base station by running the command `startmotion <azimuth> <elevation>`, where `<azimuth>` and `<elevation>` correspond to the initial position you would like your base station to be. To tweak either the azimuth or elevation, type `azimuth/elevation <your desired value>` into the nyanshell commandline.
+After you are comfortable with your setup and everything appears to be initialized, you can start your base station by running the command `startmotion <azimuth> <elevation>`, where `<azimuth>` and `<elevation>` correspond to the initial position you would like your base station to be. **Note:** Please only run this command once after starting `antkontrol`. To tweak either the azimuth or elevation, type `azimuth/elevation <your desired value>` into the nyanshell commandline. A reasonable value would be any float from 10-90.
 
 ## Features
 
