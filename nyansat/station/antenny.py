@@ -98,29 +98,19 @@ class AntennaController:
         return self.elevation.get_motor_position()
 
     def pin_motion_test(self, p):
-        LOG.info("entering callback")
-        # import time
-        # time.sleep(0.2)
         p.irq(trigger=0, handler=self.pin_motion_test)
         interrupt_pin = machine.Pin(4, machine.Pin.OUT, machine.Pin.PULL_DOWN)
-        # time.sleep(0.2)
         LOG.info("Pin 4 has been pulled down")
         LOG.info("Entering Motor Demo State")
         LOG.info("To exit this state, reboot the device")
-        # state = machine.disable_irq()
-        # p.irq(trigger=0, handler=self.pin_motion_test)
-        # interrupt_pin = machine.Pin(4, machine.Pin.OUT, machine.Pin.PULL_DOWN)
         _thread.start_new_thread(self.move_thread, ())
-        # machine.enable_irq(state)
 
     def move_thread(self):
         import time
         LOG.info("Entering move thread, starting while loop")
         self.elevation.set_motor_position(45)
-        LOG.info("got past first elevation set")
         time.sleep(5)
         self.azimuth.set_motor_position(45)
-        LOG.info("got past second eleavtion set")
         time.sleep(10)
         while True:
             self.elevation.set_motor_position(20)
@@ -398,8 +388,9 @@ def esp32_antenna_api_factory():
         telemetry_sender,
         safe_mode,
     )
-    interrupt_pin = machine.Pin(4, machine.Pin.IN, machine.Pin.PULL_UP)
-    interrupt_pin.irq(trigger=machine.Pin.IRQ_FALLING, handler=api.antenna.pin_motion_test)
+    if config.get("enable_demo"):
+        interrupt_pin = machine.Pin(4, machine.Pin.IN, machine.Pin.PULL_UP)
+        interrupt_pin.irq(trigger=machine.Pin.IRQ_FALLING, handler=api.antenna.pin_motion_test)
 
     api.start()
     return api
