@@ -97,7 +97,7 @@ class AntennyClient(object):
         self.guard_open()
         self.guard_init()
         self.safemode_guard()
-        self.invoker.set_elevation_degree(az)
+        self.invoker.set_azimuth_degree(az)
 
     @exception_handler
     def antkontrol(self, mode):
