@@ -34,6 +34,8 @@ class ConfigRepository:
         "azimuth_servo_index": 1,
         "elevation_max_rate": 0.1,
         "azimuth_max_rate": 0.1,
+        # Antenny board layout
+        "antenny_board_version": -1,
         # Pins
         "gps_uart_tx": 33,
         "gps_uart_rx": 27,
@@ -46,6 +48,9 @@ class ConfigRepository:
         "i2c_screen_scl": 25,
         "i2c_screen_sda": 26,
         "i2c_screen_address": 0,
+        # Position coordinates
+        "latitude": 40.0,
+        "longitude": -73.0,
         # IMU calibration - cf. section 3.6.4 "Sensor calibration data" in
         # Bosch BNO055 datasheet. Default values are all zero
         "acc_offset_x_lsb": 0,

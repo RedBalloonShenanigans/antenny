@@ -20,33 +20,36 @@ except ImportError as e:
     failed_imports = True
 
 
-def initialize_i2c_bus():
-    pin = machine.Pin(4, machine.Pin.OUT)
-    pin.value(0)
-    pin = machine.Pin(14, machine.Pin.OUT)
-    pin.value(0)
-    pin = machine.Pin(15, machine.Pin.OUT)
-    pin.value(0)
-    pin = machine.Pin(16, machine.Pin.OUT)
-    pin.value(0)
-    pin = machine.Pin(17, machine.Pin.OUT)
-    pin.value(0)
-    pin = machine.Pin(19, machine.Pin.OUT)
-    pin.value(0)
+def initialize_i2c_bus(config_version: int):
+    """
+    Configure I2C pin layout according to the manual.
+    """
+    if config_version == 1:
+        pins = [4, 14, 15, 16, 17, 19]
+    elif config_version == 2:
+        pins = [23, 25, 26, 27, 2, 4]
+    else:
+        print(
+                "WARNING: antenny board revision == -1, if you have an antenny v1 or v2 board, "
+                "please config.set('antenny_board_version', {1, 2})")
+        pins = []
+    for pin_idx in pins:
+        pin = machine.Pin(pin_idx, machine.Pin.OUT)
+        pin.value(0)
 
 
+config = ConfigRepository()
 if not failed_imports:
-    initialize_i2c_bus()
+    initialize_i2c_bus(config.get('antenny_board_version'))
     # leave this global so the entire system has access to the AntKontrol instance
     api = antenny.esp32_antenna_api_factory()
-    config = api.config
-    if config.get('use_webrepl'):
-        webrepl.start()
 else:
     print("WARNING: necessary imports failed, please reboot the device after installing the "
           "necessary dependencies")
     api = None
-    config = ConfigRepository()
+
+if config.get('use_webrepl'):
+    webrepl.start()
 
 
 def join_leader(my_id: int):

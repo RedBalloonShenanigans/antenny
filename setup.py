@@ -19,6 +19,7 @@ setup(
         "websocket_client",
         "python-Levenshtein",
         "mpfshell",
+        "dataclasses",
     ],
     keywords=["micropython", ],
     classifiers=[],
