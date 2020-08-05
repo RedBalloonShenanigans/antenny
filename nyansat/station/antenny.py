@@ -96,14 +96,15 @@ class AntennaController:
             raise RuntimeError("Please start motion before querying the elevation position")
         return self.elevation.get_motor_position()
 
-    def pin23_motion_test(self, p):
-        LOG.info("Pin 23 has been pulled down")
+    def pin_motion_test(self, p):
+        LOG.info("Pin 4 has been pulled down")
         LOG.info("Entering Motor Demo State")
         LOG.info("To exit this state, reboot the device")
-        p.irq(trigger=0, handler=self.pin23_motion_test)
-        pin23 = machine.Pin(23, machine.Pin.IN, machine.Pin.PULL_DOWN)
+        p.irq(trigger=0, handler=self.pin_motion_test)
+        interrupt_pin = machine.Pin(4, machine.Pin.IN, machine.Pin.PULL_DOWN)
         self.start_motion(45, 45)
         import time
+        time.sleep(15)
         while True:
             self.set_elevation(20)
             time.sleep(1)
@@ -379,8 +380,8 @@ def esp32_antenna_api_factory():
         telemetry_sender,
         safe_mode,
     )
-    pin23 = machine.Pin(23, machine.Pin.IN, machine.Pin.PULL_UP)
-    pin23.irq(trigger=machine.Pin.IRQ_FALLING, handler=api.antenna.pin23_motion_test)
+    interrupt_pin = machine.Pin(4, machine.Pin.IN, machine.Pin.PULL_UP)
+    interrupt_pin.irq(trigger=machine.Pin.IRQ_FALLING, handler=api.antenna.pin_motion_test)
 
     api.start()
     return api
