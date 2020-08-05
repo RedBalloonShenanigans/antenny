@@ -32,6 +32,7 @@ class AntennyClient(object):
         self.invoker = None
         self.tracking = None
         self.prompts = {
+            "antenny_board_version": ("Antenny Board Version (integer, -1 for DIY)", int),
             "gps_uart_tx": ("GPS UART TX pin#", int),
             "gps_uart_rx": ("GPS UART RX pin#", int),
             "use_gps": ("Use GPS (True or False)", bool),
