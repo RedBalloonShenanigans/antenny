@@ -72,7 +72,7 @@ class SatelliteObserver(object):
         current time
         :return: (altitude, azimuth, distance)
         """
-        return self.get_stats(time.mktime(time.gmtime()))
+        return self.get_stats(time.time())
 
     def get_visible(self) -> bool:
         """
