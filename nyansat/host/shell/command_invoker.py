@@ -174,7 +174,7 @@ class CommandInvoker(NyanPyboard):
         try:
             self.eval_string_expr("api.antenna.set_elevation({})".format(el_angle))
         except PyboardError as e:
-            raise NotRespondingError(str(e))
+            raise StartMotionError(str(e))
 
     def set_azimuth_degree(self, az_angle):
         """Set the azimuth angle.
@@ -185,7 +185,7 @@ class CommandInvoker(NyanPyboard):
         try:
             self.eval_string_expr("api.antenna.set_azimuth({})".format(az_angle))
         except PyboardError as e:
-            raise NotRespondingError(str(e))
+            raise StartMotionError(str(e))
 
     def create_antkontrol(self):
         """Create an antkontrol object on the ESP32."""
