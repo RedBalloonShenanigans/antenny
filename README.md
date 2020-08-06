@@ -101,7 +101,7 @@ While servo motors can take a position as input and try to reach it, the motor w
 
 ## Gotchas
 
-As with any project, you may come across a few snags in the road—we certainly did! Here’s a few that we encountered and how we solved them. As a general rule, when you try to debug:
+As with any project, you may come across a few snags in the road— we certainly did! Here’s a few that we encountered and how we solved them. As a general rule, when you try to debug:
 Use the command `python3 -m nyansat.host.shell` to interact with your device; this exposes *only* the shell to you
 Reset the device by pressing the `BOOT`/`ENABLE` button on your ESP32, or pressing `Control + D` when using the `repl` interface
 
@@ -120,10 +120,10 @@ This will install the `logging` module again. You can verify that it is installe
 
 SAFE MODE is a last resort for your NyanSat when it cannot properly initialize your motor driver. In this mode, it initializes a software mock motor system so you can at least play around with the interface. This is useful for debugging and developing features, but can be a pain when you’re trying to use the base station! Your NyanSat might be in SAFE MODE for several reasons:
 
-**Your physical pin configuration may not match up with what NyanSat is using:** To verify this, run `configs` to list out the parameters your NyanSat is using. If you see a mismatch for your motor driver’s I2C pinout, you can change the configuration parameter using the `set` command. Take a look at the section for “Devices are not detected” for a more thorough discussion.
-**Your motors’ I2C address may not match up with what NyanSat is using:** To verify this, run `configs` to list out the parameters your NyanSat is using. Then, use `i2ctest` or `pwmtest` to verify which address your motor driver is using; if you see multiple addresses, the first one is usually correct. If you see a mismatch, you can change the configuration parameter by using the `set` command.
-**Your motor driver is not at PCA9685:** To verify this, run `pwmtest`. If `PWM connection established?` is `False`, but the other values are `True`, you *may* have a different motor driver. Fear not! `AntKontrol`’s API is designed to be extended, so you can create a new motor implementation for your unique motor driver! If you choose to do so, make sure to submit a Pull Request on the main [Antenny Project Repo](https://github.com/RedBalloonShenanigans/antenny)
-**Your motor driver is broken!** To verify this, first make sure the cause isn’t any of the ones listed above. If `i2ctest` or `pwmtest` don’t return any address and you are sure your wiring is correct, you might have a defective motor driver :( Unfortunately, you need to replace your motor driver to move your base station.
+1. **Your physical pin configuration may not match up with what NyanSat is using:** To verify this, run `configs` to list out the parameters your NyanSat is using. If you see a mismatch for your motor driver’s I2C pinout, you can change the configuration parameter using the `set` command. Take a look at the section for “Devices are not detected” for a more thorough discussion.
+2. **Your motors’ I2C address may not match up with what NyanSat is using:** To verify this, run `configs` to list out the parameters your NyanSat is using. Then, use `i2ctest` or `pwmtest` to verify which address your motor driver is using; if you see multiple addresses, the first one is usually correct. If you see a mismatch, you can change the configuration parameter by using the `set` command.
+3. **Your motor driver is not at PCA9685:** To verify this, run `pwmtest`. If `PWM connection established?` is `False`, but the other values are `True`, you *may* have a different motor driver. Fear not! `AntKontrol`’s API is designed to be extended, so you can create a new motor implementation for your unique motor driver! If you choose to do so, make sure to submit a Pull Request on the main [Antenny Project Repo](https://github.com/RedBalloonShenanigans/antenny)
+4. **Your motor driver is broken!** To verify this, first make sure the cause isn’t any of the ones listed above. If `i2ctest` or `pwmtest` don’t return any address and you are sure your wiring is correct, you might have a defective motor driver :( Unfortunately, you need to replace your motor driver to move your base station.
 
 ### Devices are not detected
 
@@ -131,19 +131,19 @@ Assuming your devices are not defective, this could happen if your software or p
 
 It is also possible that your physical pin configurations are not correct. Here are some possible pin misconfigurations:
 
-SDA & SCL are switched
-Logical GND pins are not all shared (connected to the same place)
-Logical Power supply is not outputting the minimum voltage (3.3-5V usually)
-Logical Power supply is shared with Motor Power supply (VERY bad practice)
+- SDA & SCL are switched
+- Logical GND pins are not all shared (connected to the same place)
+- Logical Power supply is not outputting the minimum voltage (3.3-5V usually)
+- Logical Power supply is shared with Motor Power supply (VERY bad practice)
 
 Try to go through your physical configuration and ensure you’re using the best practices to connect everything:
 
-If you have exposed pads that directly contact metal, cover it with an insulator
-Make sure your soldering job actually makes a connection
-Ensure distinct power rails for logic and motors
-Be organized with your wiring
-Leave some slack in your wiring so there’s not significant stress on the connections
-Secure connections that can potentially come loose
+- If you have exposed pads that directly contact metal, cover it with an insulator
+- Make sure your soldering job actually makes a connection
+- Ensure distinct power rails for logic and motors
+- Be organized with your wiring
+- Leave some slack in your wiring so there’s not significant stress on the connections
+- Secure connections that can potentially come loose
 
 ### I2C Addresses seem to change
 
