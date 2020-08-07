@@ -32,6 +32,7 @@ class AntennyClient(object):
         self.invoker = None
         self.tracking = None
         self.prompts = {
+            "antenny_board_version": ("Antenny Board Version (integer, -1 for DIY)", int),
             "gps_uart_tx": ("GPS UART TX pin#", int),
             "gps_uart_rx": ("GPS UART RX pin#", int),
             "use_gps": ("Use GPS (True or False)", bool),
@@ -361,6 +362,7 @@ class AntennyClient(object):
         except KeyboardInterrupt:
             print("WiFi setup canceled, using previous settings")
 
+    @exception_handler
     def bno_test(self):
         self.guard_open()   # No need to guard for antenna initialization when doing diagnostics
 
@@ -382,6 +384,7 @@ class AntennyClient(object):
         print("BNO connection established?", bno_test_diagnostics.bno_object_created)
         print("BNO calibrated?", bno_test_diagnostics.bno_object_calibrated)
 
+    @exception_handler
     def pwm_test(self):
         self.guard_open()   # No need to guard for antenna initialization when doing diagnostics
 
