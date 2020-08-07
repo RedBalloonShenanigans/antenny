@@ -171,7 +171,6 @@ class AntennyClient(object):
         data = self.invoker.imu_calibration_status()
         data = (data['system'], data['gyroscope'], data['accelerometer'], data['magnetometer'])
         if not data:
-            # TODO: should TerminalPrinter methods be static?
             TerminalPrinter.print_error("Error connecting to BNO055.")
             return
 
