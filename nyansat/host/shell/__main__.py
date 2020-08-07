@@ -29,13 +29,12 @@ class NyanShell(mpfshell.MpFileShell):
         super().__init__(color, caching, reset)
 
         self.client = AntennyClient(self.caching)
-        self.printer = TerminalPrinter()
         self._intro()
         self._set_prompt_path()
         self.emptyline = lambda: None
 
     def _intro(self):
-        self.intro = self.printer.intro()
+        self.intro = TerminalPrinter.intro()
 
     def _disconnect(self):
         return super()._MpFileShell__disconnect()
@@ -55,7 +54,7 @@ class NyanShell(mpfshell.MpFileShell):
             pwd = self.fe.pwd()
         else:
             pwd = "/"
-        self.prompt = self.printer.prompt(pwd)
+        self.prompt = TerminalPrinter.prompt(pwd)
 
     def do_open(self, args):
         """open <TARGET>
@@ -91,7 +90,7 @@ class NyanShell(mpfshell.MpFileShell):
         try:
             super().do_repl(args)
         except WebSocketConnectionClosedException as e:
-            self.printer.print_error("Connection lost to repl")
+            TerminalPrinter.print_error("Connection lost to repl")
             self._disconnect()
 
     @cli_handler

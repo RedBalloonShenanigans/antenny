@@ -126,6 +126,9 @@ class AntennyClient(object):
     def track(self, sat_name):
         self.guard_open()
         self.guard_init()
+        imu_enabled = self.invoker.config_get("use_imu")
+        if imu_enabled == 'False':
+            TerminalPrinter.print_track_warning()
         self.invoker.set_tracking(True)
         latitude = float(self.invoker.config_get("latitude"))
         longitude = float(self.invoker.config_get("longitude"))
@@ -168,8 +171,7 @@ class AntennyClient(object):
         data = self.invoker.imu_calibration_status()
         data = (data['system'], data['gyroscope'], data['accelerometer'], data['magnetometer'])
         if not data:
-            # TODO: should TerminalPrinter methods be static?
-            TerminalPrinter().print_error("Error connecting to BNO055.")
+            TerminalPrinter.print_error("Error connecting to BNO055.")
             return
 
         system_level, gyro_level, accel_level, magnet_level = data
@@ -178,7 +180,7 @@ class AntennyClient(object):
         accel_calibrated = accel_level > 0
         magnet_calibrated = magnet_level > 0
         components_calibrated = (system_calibrated, gyro_calibrated, accel_calibrated, magnet_calibrated)
-        TerminalPrinter()._display_initial_calibration_status(components_calibrated)
+        TerminalPrinter.display_initial_calibration_status(components_calibrated)
 
         waiting_dot_count = 4
         dot_counter = 0
@@ -186,7 +188,7 @@ class AntennyClient(object):
         while not (magnet_calibrated and accel_calibrated and gyro_calibrated):
             sleep(0.5)
             old_calibration_status = (system_calibrated, gyro_calibrated, accel_calibrated, magnet_calibrated)
-            system_calibrated, gyro_calibrated, accel_calibrated, magnet_calibrated = TerminalPrinter()._display_loop_calibration_status(
+            system_calibrated, gyro_calibrated, accel_calibrated, magnet_calibrated = TerminalPrinter.display_loop_calibration_status(
                 data,
                 old_calibration_status,
                 waiting_dot_count,
@@ -197,7 +199,7 @@ class AntennyClient(object):
             data = self.invoker.imu_calibration_status()
             data = (data['system'], data['gyroscope'], data['accelerometer'], data['magnetometer'])
             if not data:
-                TerminalPrinter().print_error("Error connecting to BNO055.")
+                TerminalPrinter.print_error("Error connecting to BNO055.")
                 return
 
             dot_counter = (dot_counter + 1) % waiting_dot_count
@@ -371,7 +373,7 @@ class AntennyClient(object):
             sda = int(input("SDA Pin#: "))
             scl = int(input("SCL Pin#: "))
         except ValueError:
-            TerminalPrinter().print_error("Invalid type for pin number. Try again using only decimal numbers")
+            TerminalPrinter.print_error("Invalid type for pin number. Try again using only decimal numbers")
             return
 
         bno_test_diagnostics = self.invoker.bno_diagnostics(sda, scl)
@@ -393,7 +395,7 @@ class AntennyClient(object):
             sda = int(input("SDA Pin#: "))
             scl = int(input("SCL Pin#: "))
         except ValueError:
-            TerminalPrinter().print_error("Invalid type for pin number. Try again using only decimal numbers")
+            TerminalPrinter.print_error("Invalid type for pin number. Try again using only decimal numbers")
             return
 
         pwm_test_diagnostics = self.invoker.pwm_diagnostics(sda, scl)
@@ -404,4 +406,3 @@ class AntennyClient(object):
         else:
             print("I2C address detected? True, addresses =", pwm_test_diagnostics.i2c_addresses)
         print("PWM connection established?", pwm_test_diagnostics.pca_object_created)
-

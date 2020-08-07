@@ -5,14 +5,6 @@ import shutil
 import colorama
 
 
-def print_color(color, string):
-    print('\n' + color + string + colorama.Fore.RESET + '\n')
-
-
-def print_error(string):
-    print_color(colorama.Fore.RED, string)
-
-
 class TerminalPrinter(object):
 
     YES_DISPLAY_STRING = colorama.Fore.GREEN + "YES" + colorama.Fore.RESET
@@ -23,7 +15,8 @@ class TerminalPrinter(object):
     MAGNET_CALIBRATION_MESSAGE = "To calibrate the magnetometer, move the sensor in figure-8 shapes through the air a " \
                                  "few times. "
 
-    def intro(self):
+    @staticmethod
+    def intro():
         """Text that appears when shell is first launched."""
         intro = (
             '\n' +
@@ -40,7 +33,8 @@ class TerminalPrinter(object):
         )
         return intro
 
-    def prompt(self, pwd):
+    @staticmethod
+    def prompt(pwd):
         """Terminal prompt text"""
         prompt = (
             colorama.Fore.BLUE +
@@ -53,10 +47,8 @@ class TerminalPrinter(object):
         )
         return prompt
 
-    def print_error(self, string):
-        print_color(colorama.Fore.RED, string)
-
-    def calibration_wait_message(self, gyro_calibrated, accel_calibrated, magnet_calibrated, use_ellipsis=True):
+    @staticmethod
+    def calibration_wait_message(gyro_calibrated, accel_calibrated, magnet_calibrated, use_ellipsis=True):
         """
         generate a human-readable message that indicates which components remain
         to be calibrated, e.g. if all the arguments are true, then it should
@@ -73,8 +65,8 @@ class TerminalPrinter(object):
         else:
             return "all components calibrated!"
 
-    def _display_initial_calibration_status(
-        self,
+    @staticmethod
+    def display_initial_calibration_status(
         calibration_status
     ):
         """
@@ -84,26 +76,27 @@ class TerminalPrinter(object):
                             status for the system, gyroscope, accelerometer, and magnetometer
         """
         system_calibrated, gyro_calibrated, accel_calibrated, magnet_calibrated = calibration_status
-        print("System calibrated?", f"{self.YES_DISPLAY_STRING}" if system_calibrated else self.NO_DISPLAY_STRING)
+        print("System calibrated?", f"{TerminalPrinter.YES_DISPLAY_STRING}"
+              if system_calibrated else TerminalPrinter.NO_DISPLAY_STRING)
         print("\n")
         if gyro_calibrated:
             print(" - Gyroscope is calibrated.")
         else:
-            print(f" - {self.GYRO_CALIBRATION_MESSAGE}")
+            print(f" - {TerminalPrinter.GYRO_CALIBRATION_MESSAGE}")
 
         if accel_calibrated:
             print(" - Accelerometer is calibrated.")
         else:
-            print(f" - {self.ACCEL_CALIBRATION_MESSAGE}")
+            print(f" - {TerminalPrinter.ACCEL_CALIBRATION_MESSAGE}")
 
         if magnet_calibrated:
             print(" - Magnetometer is calibrated.")
         else:
-            print(f" - {self.MAGNET_CALIBRATION_MESSAGE}")
+            print(f" - {TerminalPrinter.MAGNET_CALIBRATION_MESSAGE}")
         print("\n")
 
-    def _display_loop_calibration_status(
-        self,
+    @staticmethod
+    def display_loop_calibration_status(
         calibration_data,
         old_calibration_status,
         waiting_dot_count,
@@ -124,7 +117,7 @@ class TerminalPrinter(object):
         system_calibrated, gyro_calibrated, accel_calibrated, magnet_calibrated = old_calibration_status
 
         print(" \n" * 8, end='')
-        self._display_initial_calibration_status(old_calibration_status)
+        TerminalPrinter.display_initial_calibration_status(old_calibration_status)
         print(" ")
 
         gyro_calibrated = gyro_calibrated or gyro_level > 0
@@ -136,14 +129,15 @@ class TerminalPrinter(object):
         waiting_dots = ('.' * dot_counter) + '/' + ('.' * (waiting_dot_count - dot_counter - 1))
         print("┌ CALIBRATION STATUS")
         print("│")
-        print("│ * Gyroscope calibrated?",
-                f"{self.YES_DISPLAY_STRING} (level {gyro_level}/3)" if gyro_calibrated else self.NO_DISPLAY_STRING)
-        print("│ * Accelerometer calibrated?",
-                f"{self.YES_DISPLAY_STRING} (level {accel_level}/3)" if accel_calibrated else self.NO_DISPLAY_STRING)
-        print("│ * Magnetometer calibrated?",
-                f"{self.YES_DISPLAY_STRING} (level {magnet_level}/3)" if magnet_calibrated else self.NO_DISPLAY_STRING)
+        print("│ * Gyroscope calibrated?", f"{TerminalPrinter.YES_DISPLAY_STRING} (level {gyro_level}/3)"
+              if gyro_calibrated else TerminalPrinter.NO_DISPLAY_STRING)
+        print("│ * Accelerometer calibrated?", f"{TerminalPrinter.YES_DISPLAY_STRING} (level {accel_level}/3)"
+              if accel_calibrated else TerminalPrinter.NO_DISPLAY_STRING)
+        print("│ * Magnetometer calibrated?", f"{TerminalPrinter.YES_DISPLAY_STRING} (level {magnet_level}/3)"
+              if magnet_calibrated else TerminalPrinter.NO_DISPLAY_STRING)
         print("│")
-        wait_message = self.calibration_wait_message(gyro_calibrated, accel_calibrated, magnet_calibrated, use_ellipsis=False)
+        wait_message = TerminalPrinter.calibration_wait_message(gyro_calibrated,
+                                                                accel_calibrated, magnet_calibrated, use_ellipsis=False)
         wait_message += (" " + waiting_dots if wait_message else "")
 
         # Write the wait message with an appropriate amount of trailing whitespace in order
@@ -154,5 +148,22 @@ class TerminalPrinter(object):
 
         return (system_calibrated, gyro_calibrated, accel_calibrated, magnet_calibrated)
 
+    @staticmethod
+    def print_color(color, string):
+        print('\n' + color + string + colorama.Fore.RESET + '\n')
 
-    pass
+    @staticmethod
+    def print_error(string):
+        TerminalPrinter.print_color(colorama.Fore.RED, string)
+
+    @staticmethod
+    def print_warning(string):
+        TerminalPrinter.print_color(colorama.Fore.YELLOW, string)
+
+    @staticmethod
+    def print_track_warning():
+        msg = "WARNING: Your IMU is not enabled. For the tracking functionality to work, the station needs to \n"\
+              "be oriented properly. Please run 'startmotion 0 90' and use your phone to orient the station to \n"\
+              "point north. If you haven't already oriented it, use 'cancel' to exit tracking mode and properly \n"\
+              "position your base station."
+        TerminalPrinter.print_warning(msg)
