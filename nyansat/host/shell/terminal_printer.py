@@ -13,6 +13,10 @@ def print_error(string):
     print_color(colorama.Fore.RED, string)
 
 
+def print_warning(string):
+    print_color(colorama.Fore.YELLOW, string)
+
+
 class TerminalPrinter(object):
 
     YES_DISPLAY_STRING = colorama.Fore.GREEN + "YES" + colorama.Fore.RESET
@@ -154,5 +158,9 @@ class TerminalPrinter(object):
 
         return (system_calibrated, gyro_calibrated, accel_calibrated, magnet_calibrated)
 
-
-    pass
+    def print_track_warning(self):
+        msg = "WARNING: Your IMU is not enabled. For the tracking functionality to work, the station needs to \n"\
+              "be oriented properly. Please run 'startmotion 0 90' and use your phone to orient the station to \n"\
+              "point north. If you haven't already oriented it, use 'cancel' to exit tracking mode and properly \n"\
+              "position your base station."
+        print_warning(msg)

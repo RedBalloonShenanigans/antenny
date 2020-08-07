@@ -10,7 +10,7 @@ from time import sleep
 from dataclasses import dataclass
 from typing import List
 
-from nyansat.host.shell.terminal_printer import TerminalPrinter
+from nyansat.host.shell.terminal_printer import TerminalPrinter, print_warning
 from nyansat.host.shell.command_invoker import CommandInvoker
 from nyansat.host.shell.errors import *
 
@@ -125,6 +125,9 @@ class AntennyClient(object):
     def track(self, sat_name):
         self.guard_open()
         self.guard_init()
+        imu_enabled = self.invoker.config_get("use_imu")
+        if imu_enabled == 'False':
+            TerminalPrinter().print_track_warning()
         self.invoker.set_tracking(True)
         latitude = float(self.invoker.config_get("latitude"))
         longitude = float(self.invoker.config_get("longitude"))
