@@ -276,32 +276,23 @@ def esp32_antenna_api_factory():
         LOG.info("I2C Channel 0 is same as Channel 1; using chained bus")
     else:
         i2c_ch1 = machine.I2C(
-            1,
+            -1,
             scl=Pin(i2c_bno_scl, Pin.OUT, Pin.PULL_DOWN),
             sda=Pin(i2c_bno_sda, Pin.OUT, Pin.PULL_DOWN),
+            freq=1000,
         )
 
     if config.get("use_imu"):
         try:
             imu = Bno055ImuController(
                 i2c_ch1,
+                crystal=False,
                 address=config.get("i2c_bno_address"),
                 sign=(0, 0, 0)
             )
         except OSError:
-            address = i2c_ch1.scan()
-            if (i2c_ch0 != i2c_ch1) and (len(address) != 0):
-                imu = Bno055ImuController(
-                    i2c_ch1,
-                    crystal=False,
-                    address=address[0],
-                    sign=(0, 0, 0)
-                )
-                LOG.info("Using auto address configuration for IMU")
-            else:
-                LOG.warning("Unable to initialize IMU, check configuration")
-                LOG.warning("NOTE: Auto address configuration is not supported in chained I2C mode")
-                imu = MockImuController()
+            LOG.warning("Unable to initialize IMU, check configuration")
+            imu = MockImuController()
     else:
         LOG.warning("IMU disabled, please set use_imu=True in the settings and run `antkontrol`")
         imu = MockImuController()

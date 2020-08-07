@@ -75,6 +75,8 @@ class AntKontrolInitError(AntennyException):
 class NotRespondingError(AntennyException):
     msg = "The AntKontrol object is not responding. Restart it with 'antkontrol start'"
 
+class StartMotionError(AntennyException):
+    msg = "Either motion is not started or AntKontrol object is not responding. Try 'startmotion' or 'antkontrol start'"
 
 class NotVisibleError(AntennyException):
     msg = "The satellite is not visible from your position"
