@@ -46,6 +46,12 @@ class AxisController:
         self._current_motor_position = desired_heading
         self.motor.smooth_move(self.motor_idx, desired_heading, 50)
 
+    def get_duty(self):
+        return self.motor.duty(self.motor_idx)
+
+    def set_duty(self, duty):
+        self.motor.set_position(self.motor_idx, duty=duty)
+
 
 class AntennaController:
     """
@@ -188,6 +194,68 @@ class AntennyAPI:
         if self._telemetry is None:
             raise ValueError("Please enable the 'use_telemetry' option in the config")
         self._telemetry.update(data)
+
+    def pwm_calibration(self, error=0.1):
+        """
+        Calibrates Azimuth and Elevation to within specified error
+        :param error: Acceptable target error
+        :return: Duty cycle to get 1 degree movement with acceptable error for azimuth & elevation
+        """
+        # TODO Save calibrated data to some place and actually make use of it
+        self.antenna.start_motion(90, 90)
+        calibrated_az_duty = self.pwm_calibrate_axis(self.antenna.azimuth, 0, 1, error=error)
+        calibrated_el_duty = self.pwm_calibrate_axis(self.antenna.elevation, 2, 1, error=error)
+        print("Calibrated Az Duty: {}\nCalibrated El Duty: {}".format(calibrated_az_duty, calibrated_el_duty))
+        return calibrated_az_duty, calibrated_el_duty
+
+    def pwm_calibrate_axis(self, index, euler_axis, multiplier, error=0.1):
+        """
+        Calibrates the target axis with given measurement axis
+        :param index: Target axis motor object
+        :param euler_axis: Target measurement axis from Euler measurement
+        :param multiplier: Calibration step multiplier
+        :param error: Acceptable target error
+        :return: Duty cycle to get 1 degree movement with acceptable error
+        """
+        # Move axis to "neutral"
+        base_degree = 90
+        import time
+        index.set_motor_position(base_degree)
+        time.sleep(2)
+        base_duty = index.get_duty()
+        base_euler = self.imu.euler()[euler_axis]
+
+        if base_euler < 3.0 or base_euler > 357.0:
+            base_degree = 100
+            index.set_motor_position(base_degree)
+            time.sleep(2)
+            base_duty = index.get_duty()
+            base_euler = self.imu.euler()[euler_axis]
+
+        # Move "1" degree
+        index.set_motor_position(base_degree + 1)
+        time.sleep(2)
+        end_duty = index.get_duty()
+        end_euler = self.imu.euler()[euler_axis]
+
+        diff_euler = end_euler - base_euler
+        print("Initial Reading\nDifference: {} End: {} Base: {}".format(diff_euler, end_euler, base_euler))
+
+        # Try to "edge" duty cycle to acceptable error
+        while abs(diff_euler - 1) > error:
+            if (diff_euler - 1) > 0:
+                end_duty = end_duty + multiplier
+            else:
+                end_duty = end_duty - multiplier
+            index.set_duty(end_duty)
+            time.sleep(2)
+            end_euler = self.imu.euler()[euler_axis]
+            diff_euler = end_euler - base_euler
+            print("Difference: {} End: {} Base: {}".format(diff_euler, end_euler, base_euler))
+
+        calibrated_duty = abs(base_duty - end_duty)
+
+        return calibrated_duty
 
     def motor_test(self, index: int, positon: int):
         # type: (...) -> Tuple[int, float, float, float]
