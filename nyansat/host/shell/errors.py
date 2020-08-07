@@ -1,7 +1,5 @@
 import logging
 
-from abc import ABC
-
 from nyansat.host.shell.terminal_printer import TerminalPrinter
 from mp.pyboard import PyboardError
 
