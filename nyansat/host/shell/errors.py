@@ -139,6 +139,14 @@ class AntennyImportError(AntennyException):
     msg = "Could not import a module"
 
 
+class IMUError(AntennyException):
+    msg = "Error reading from IMU"
+
+
+class GetMotorPositionError(AntennyException):
+    msg = "Could not read the position of the motors. Try 'antkontrol start'?"
+
+
 class ParameterError(AntennyException, CLIException):
     msg = "Incorrect parameter type"
 

@@ -365,6 +365,49 @@ class AntennyClient(object):
             print("WiFi setup canceled, using previous settings")
 
     @exception_handler
+    def helmet(self):
+        """Move antenna with BNO."""
+        self.guard_open()
+        self.guard_init()
+        TerminalPrinter.print_warning("WARNING: Motors will now move with the IMU.")
+        self.helmet_running = True
+        x,y,z = self.invoker.get_euler()
+        self.last_azimuth = float(x)
+        self.last_elevation = float(z)
+        threading.Thread(target=self._helmet_thread, args=())
+
+    def _helmet_thread(self):
+        while self.helmet_running:
+            x,y,z = self.invoker.get_euler()
+            x = float(x)
+            y = float(y)
+            z = float(z)
+            # Alternatively: use iget() instead of euler(), ISR specific function
+
+            diff_x = x - self.last_azimuth
+            if abs(diff_x) >= 5:
+                current_azimuth = float(self.invoker.get_azimuth())
+                self.last_azimuth = x
+                print(f"setting azimuth to {current_azimuth+diff}")
+                # self.azimuth(current_azimuth + diff)
+
+            diff_z = z - self.last_elevation
+            if abs(diff_z) >= 5:
+                current_elevation = float(self.invoker.get_elevation())
+                self.last_elevation = z
+                print(f"setting elevation to {current_elevation+diff}")
+                # self.elevation(current_elevation + diff)
+
+            sleep(0.2)
+        print("Exiting helmet mode.")
+
+    @exception_handler
+    def helmet_stop(self):
+        self.guard_open()
+        self.guard_init()
+        self.helmet_running = False
+
+    @exception_handler
     def bno_test(self):
         self.guard_open()   # No need to guard for antenna initialization when doing diagnostics
 

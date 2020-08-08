@@ -187,6 +187,22 @@ class CommandInvoker(NyanPyboard):
         except PyboardError as e:
             raise StartMotionError(str(e))
 
+    def get_elevation(self):
+        """Get the elevation angle"""
+        index = self.config_get("elevation_servo_index")
+        try:
+            return self.eval_string_expr("api.motor.get_position({})".format(index))
+        except PyboardError as e:
+            raise GetMotorPositionError(str(e))
+
+    def get_azimuth(self):
+        """Get the azimuth angle"""
+        index = self.config_get("azimuth_servo_index")
+        try:
+            return self.eval_string_expr("api.motor.get_position({})".format(index))
+        except PyboardError as e:
+            raise GetMotorPositionError(str(e))
+
     def create_antkontrol(self):
         """Create an antkontrol object on the ESP32."""
         try:
@@ -227,6 +243,13 @@ class CommandInvoker(NyanPyboard):
             return ret
         except PyboardError as e:
             raise NotRespondingError(str(e))
+
+    def get_euler(self):
+        """Get euler angles."""
+        try:
+            ret = self.eval_string_expr("api.imu.euler()")
+        except PyboardError as e:
+            raise IMUError(str(e))
 
     def bno_diagnostics(self, sda, scl):
         """
