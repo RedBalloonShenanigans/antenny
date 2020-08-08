@@ -374,26 +374,37 @@ class AntennyClient(object):
         x,y,z = self.invoker.get_euler()
         self.last_azimuth = float(x)
         self.last_elevation = float(z)
-        threading.Thread(target=self._helmet_thread, args=())
+        t = threading.Thread(target=self._helmet_thread, args=())
+        t.start()
 
     def _helmet_thread(self):
+        print("starting thread")
         while self.helmet_running:
             x,y,z = self.invoker.get_euler()
             x = float(x)
             y = float(y)
             z = float(z)
+            print(x,y,z)
             # Alternatively: use iget() instead of euler(), ISR specific function
 
             diff_x = x - self.last_azimuth
             if abs(diff_x) >= 5:
-                current_azimuth = float(self.invoker.get_azimuth())
+                try:
+                    current_azimuth = float(self.invoker.get_azimuth())
+                except:
+                    # for testing
+                    current_azimuth = 90
                 self.last_azimuth = x
                 print(f"setting azimuth to {current_azimuth+diff}")
                 # self.azimuth(current_azimuth + diff)
 
             diff_z = z - self.last_elevation
             if abs(diff_z) >= 5:
-                current_elevation = float(self.invoker.get_elevation())
+                try:
+                    current_elevation = float(self.invoker.get_elevation())
+                except:
+                    # for testing
+                    current_elevation = 90
                 self.last_elevation = z
                 print(f"setting elevation to {current_elevation+diff}")
                 # self.elevation(current_elevation + diff)

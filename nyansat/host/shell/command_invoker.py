@@ -247,7 +247,7 @@ class CommandInvoker(NyanPyboard):
     def get_euler(self):
         """Get euler angles."""
         try:
-            ret = self.eval_string_expr("api.imu.euler()")
+            return eval(self.eval_string_expr("api.imu.euler()"))
         except PyboardError as e:
             raise IMUError(str(e))
 
