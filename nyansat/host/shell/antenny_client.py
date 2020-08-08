@@ -365,7 +365,7 @@ class AntennyClient(object):
             print("WiFi setup canceled, using previous settings")
 
     @exception_handler
-    def helmet(self):
+    def helmet_mode(self):
         """Move antenna with BNO."""
         self.guard_open()
         self.guard_init()
