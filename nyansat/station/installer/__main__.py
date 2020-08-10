@@ -24,6 +24,7 @@ STATION_CODE_RELATIVE_PATH = 'nyansat/station'
 PACKAGES_TO_INSTALL = [
     "logging"
 ]
+# File paths in the antenny repo, not on the board
 LIBRARY_FILES = [
     'lib/BNO055/bno055.py',
     'lib/BNO055/bno055_base.py',
@@ -64,14 +65,21 @@ class AntennyInstaller(object):
                 LOG.warning(f"Retrying to connect to the ESP32 device, attempt "
                             f"{retry_count}/{num_connection_retries}")
 
-    def _clean_files(self, in_subdirectory=False):
+    def _clean_files(
+            self,
+            in_subdirectory: bool = False,
+            ignore_lib: bool = False,
+    ):
         """
         Clean up the existing files on the device.
         """
         files = self._file_explorer.ls()
+        libs = set([os.path.basename(f) for f in LIBRARY_FILES])
         if not in_subdirectory:
             LOG.info(f"Cleaning {len(files)} file(s) on the device")
         for file_ in files:
+            if ignore_lib and not in_subdirectory and (file_ in libs or file_ == "lib"):
+                continue
             try:
                 self._file_explorer.rm(file_)
             except Exception as e:
@@ -258,16 +266,18 @@ class AntennyInstaller(object):
     def install(
             self,
             package_install_retry: int = 3,
+            only_core_reinstall: bool = False,
     ):
         """
         Perform the antenny installation.
         """
-        self._clean_files()
-        self._put_library_files_on_device()
+        self._clean_files(ignore_lib=only_core_reinstall)
+        if not only_core_reinstall:
+            self._put_library_files_on_device()
         self._put_antenny_files_on_device()
         has_wifi = self._query_user_for_wifi_credentials()
         has_web_repl = self._query_user_for_webrepl_creation()
-        if has_wifi:
+        if has_wifi and not only_core_reinstall:
             num_retries = 0
             packages_installed = False
             while not packages_installed:
@@ -288,6 +298,12 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser()
     parser.add_argument(
+            "-c",
+            "--core_install",
+            action="store_true",
+            help="Install only core antenny code, no libraries"
+    )
+    parser.add_argument(
             'serial_path',
             help='Path to the ESP serial device',
             type=str,
@@ -303,5 +319,5 @@ if __name__ == '__main__':
     if not confirm:
         print("Exiting installer; please backup existing files before running the installer!")
         sys.exit(0)
-    installer.install()
+    installer.install(only_core_reinstall=args.core_install)
     LOG.info("Installation complete!")
