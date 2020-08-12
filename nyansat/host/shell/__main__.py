@@ -3,7 +3,7 @@ import io
 import logging
 import platform
 import sys
-from websocket import WebSocketConnectionClosedException
+# from websocket import WebSocketConnectionClosedException
 
 import serial
 from mp import mpfshell
@@ -85,6 +85,7 @@ class NyanShell(mpfshell.MpFileShell):
 
         return self._connect(args)
 
+    """
     def do_repl(self, args):
         self.__doc__ = super().do_repl.__doc__
         try:
@@ -92,6 +93,8 @@ class NyanShell(mpfshell.MpFileShell):
         except WebSocketConnectionClosedException as e:
             TerminalPrinter.print_error("Connection lost to repl")
             self._disconnect()
+
+    """
 
     @cli_handler
     def do_setup(self, args):
@@ -336,6 +339,18 @@ class NyanShell(mpfshell.MpFileShell):
         Run the WiFi setup script.
         """
         self.client.wifi_setup()
+
+    def do_helmet(self, args):
+        """helmet
+        Ang's helmet mode.
+        """
+        self.client.helmet_mode()
+    
+    def do_stop(self, args):
+        """stop
+        Exit helmet mode.
+        """
+        self.client.helmet_stop()
 
 
 def main():
