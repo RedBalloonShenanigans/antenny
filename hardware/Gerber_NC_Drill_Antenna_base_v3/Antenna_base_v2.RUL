@@ -1,0 +1,10 @@
+DRC Rules Export File for PCB: C:\Users\yuanz\Documents\eedesgin\Antenna_base\Antenna_base_v2.PcbDoc
+RuleKind=MinimumAnnularRing|RuleName=MinimumAnnularRing|Scope=Board|Minimum=4.00
+RuleKind=ShortCircuit|RuleName=ShortCircuit|Scope=Board|Allowed=0
+RuleKind=SolderMaskExpansion|RuleName=SolderMaskExpansion|Scope=Board|Minimum=2.50
+RuleKind=Width|RuleName=Width|Scope=Board|Minimum=6.00
+RuleKind=Width|RuleName=3V3|Scope=Board|Minimum=10.00
+RuleKind=Width|RuleName=Power|Scope=Board|Minimum=20.00
+RuleKind=Width|RuleName=GND|Scope=Board|Minimum=10.00
+RuleKind=Clearance|RuleName=Clearance|Scope=Board|Minimum=5.00
+RuleKind=Clearance|RuleName=Clearance Polygons|Scope=Board|Minimum=6.00

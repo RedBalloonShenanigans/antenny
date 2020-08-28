@@ -1,0 +1,12 @@
+Output: NC Drill Files
+Type  : NC Drill
+From  : Project [Antenna_base.PrjPcb]
+   Generated File[Antenna_base_v2.TXT]
+   Generated File[Antenna_base_v2.LDP]
+   Generated File[Antenna_base_v2.DRR]
+
+
+Files Generated   : 3
+Documents Printed : 0
+
+Finished Output Generation At 3:14:53 PM On 7/28/2020

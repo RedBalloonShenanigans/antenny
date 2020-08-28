@@ -22,6 +22,10 @@ Antenny V2 and V3 board have the similar pin layout. Please use this Antenny V2 
 
 - [Antenny V3 Board Schematic](https://github.com/RedBalloonShenanigans/antenny/tree/master/hardware/Antenny_V3_Schematic.pdf)
 
+- [Antenny V3 Board Gerber files and NC Drill files for PCB manufacuture](https://github.com/RedBalloonShenanigans/antenny/tree/master/hardware/Gerber_NC_Drill_Antenna_base_v3)
+
+- [IMU v2 Board Gerber files and NC Drill files for PCB manufacuture](https://github.com/RedBalloonShenanigans/antenny/tree/master/hardware/Gerber_NC_Drill_IMU_standalone_v2)
+
 ## Antenny_board folder
 
 These folder contains the RBS Antenny Board Altium Designer source file. 
