@@ -1,0 +1,254 @@
+EESchema Schematic File Version 4
+EELAYER 30 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 4 9
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L Transistor_BJT:BCP56 Q1
+U 1 1 5F68ADC4
+P 4225 2675
+F 0 "Q1" H 4415 2721 50  0000 L CNN
+F 1 "BCP56-16" H 4415 2630 50  0000 L CNN
+F 2 "Package_TO_SOT_SMD:SOT-223-3_TabPin2" H 4425 2600 50  0001 L CIN
+F 3 "http://cache.nxp.com/documents/data_sheet/BCP56_BCX56_BC56PA.pdf?pspll=1" H 4225 2675 50  0001 L CNN
+	1    4225 2675
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R_Small R6
+U 1 1 5F68C731
+P 3450 2675
+F 0 "R6" V 3254 2675 50  0000 C CNN
+F 1 "10k" V 3345 2675 50  0000 C CNN
+F 2 "Resistor_SMD:R_0603_1608Metric" H 3450 2675 50  0001 C CNN
+F 3 "~" H 3450 2675 50  0001 C CNN
+	1    3450 2675
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	3550 2675 4025 2675
+Text GLabel 2725 2675 0    50   Input ~ 0
+DTR
+Wire Wire Line
+	2725 2675 3350 2675
+Text GLabel 4750 2250 2    50   Input ~ 0
+EN
+Wire Wire Line
+	4750 2250 4325 2250
+Wire Wire Line
+	4325 2250 4325 2475
+Text GLabel 4750 3075 2    50   Output ~ 0
+RTS
+Wire Wire Line
+	4325 2875 4325 3075
+Wire Wire Line
+	4325 3075 4750 3075
+$Comp
+L Transistor_BJT:BCP56 Q2
+U 1 1 5F69822F
+P 7050 2675
+F 0 "Q2" H 7240 2721 50  0000 L CNN
+F 1 "BCP56-16" H 7240 2630 50  0000 L CNN
+F 2 "Package_TO_SOT_SMD:SOT-223-3_TabPin2" H 7250 2600 50  0001 L CIN
+F 3 "http://cache.nxp.com/documents/data_sheet/BCP56_BCX56_BC56PA.pdf?pspll=1" H 7050 2675 50  0001 L CNN
+	1    7050 2675
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R_Small R7
+U 1 1 5F698235
+P 6275 2675
+F 0 "R7" V 6079 2675 50  0000 C CNN
+F 1 "10k" V 6170 2675 50  0000 C CNN
+F 2 "Resistor_SMD:R_0603_1608Metric" H 6275 2675 50  0001 C CNN
+F 3 "~" H 6275 2675 50  0001 C CNN
+	1    6275 2675
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	6375 2675 6850 2675
+Text GLabel 5550 2675 0    50   Input ~ 0
+RTS
+Wire Wire Line
+	5550 2675 6175 2675
+Text GLabel 7575 2250 2    50   Input ~ 0
+IO0
+Wire Wire Line
+	7575 2250 7150 2250
+Wire Wire Line
+	7150 2250 7150 2475
+Text GLabel 7575 3075 2    50   Output ~ 0
+DTR
+Wire Wire Line
+	7150 2875 7150 3075
+Wire Wire Line
+	7150 3075 7575 3075
+$Comp
+L Switch:SW_Push SW1
+U 1 1 5F698DF4
+P 2800 5000
+F 0 "SW1" V 2846 4952 50  0000 R CNN
+F 1 "push_button" V 2755 4952 50  0000 R CNN
+F 2 "Button_Switch_SMD:SW_SPST_FSMSM" H 2800 5200 50  0001 C CNN
+F 3 "~" H 2800 5200 50  0001 C CNN
+	1    2800 5000
+	0    -1   -1   0   
+$EndComp
+$Comp
+L Device:R_Small R8
+U 1 1 5F699819
+P 2800 4450
+F 0 "R8" H 2859 4496 50  0000 L CNN
+F 1 "120ohm" H 2859 4405 50  0000 L CNN
+F 2 "Resistor_SMD:R_0603_1608Metric" H 2800 4450 50  0001 C CNN
+F 3 "~" H 2800 4450 50  0001 C CNN
+	1    2800 4450
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R_Small R10
+U 1 1 5F6999BB
+P 2800 5550
+F 0 "R10" H 2859 5596 50  0000 L CNN
+F 1 "120ohm" H 2859 5505 50  0000 L CNN
+F 2 "Resistor_SMD:R_0603_1608Metric" H 2800 5550 50  0001 C CNN
+F 3 "~" H 2800 5550 50  0001 C CNN
+	1    2800 5550
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2800 4550 2800 4800
+Wire Wire Line
+	2800 5200 2800 5450
+$Comp
+L Device:C_Small C12
+U 1 1 5F69A648
+P 3450 4450
+F 0 "C12" H 3542 4496 50  0000 L CNN
+F 1 "0.10uF" H 3542 4405 50  0000 L CNN
+F 2 "Capacitor_SMD:C_0603_1608Metric" H 3450 4450 50  0001 C CNN
+F 3 "~" H 3450 4450 50  0001 C CNN
+	1    3450 4450
+	1    0    0    -1  
+$EndComp
+Text GLabel 4000 4200 2    50   Output ~ 0
+EN
+$Comp
+L power:GND #PWR0144
+U 1 1 5F69B705
+P 3450 5750
+F 0 "#PWR0144" H 3450 5500 50  0001 C CNN
+F 1 "GND" H 3455 5577 50  0000 C CNN
+F 2 "" H 3450 5750 50  0001 C CNN
+F 3 "" H 3450 5750 50  0001 C CNN
+	1    3450 5750
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2800 4350 2800 4200
+Wire Wire Line
+	2800 4200 3450 4200
+Wire Wire Line
+	3450 4200 3450 4350
+Connection ~ 3450 4200
+Wire Wire Line
+	3450 4200 4000 4200
+Wire Wire Line
+	2800 5650 2800 5700
+Wire Wire Line
+	2800 5700 3450 5700
+Wire Wire Line
+	3450 5700 3450 5750
+Wire Wire Line
+	3450 5700 3450 4550
+Connection ~ 3450 5700
+$Comp
+L Switch:SW_Push SW2
+U 1 1 5F6A072E
+P 4950 5000
+F 0 "SW2" V 4996 4952 50  0000 R CNN
+F 1 "push_button" V 4905 4952 50  0000 R CNN
+F 2 "Button_Switch_SMD:SW_SPST_FSMSM" H 4950 5200 50  0001 C CNN
+F 3 "~" H 4950 5200 50  0001 C CNN
+	1    4950 5000
+	0    -1   -1   0   
+$EndComp
+$Comp
+L Device:R_Small R9
+U 1 1 5F6A0734
+P 4950 4450
+F 0 "R9" H 5009 4496 50  0000 L CNN
+F 1 "120ohm" H 5009 4405 50  0000 L CNN
+F 2 "Resistor_SMD:R_0603_1608Metric" H 4950 4450 50  0001 C CNN
+F 3 "~" H 4950 4450 50  0001 C CNN
+	1    4950 4450
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R_Small R11
+U 1 1 5F6A073A
+P 4950 5550
+F 0 "R11" H 5009 5596 50  0000 L CNN
+F 1 "120ohm" H 5009 5505 50  0000 L CNN
+F 2 "Resistor_SMD:R_0603_1608Metric" H 4950 5550 50  0001 C CNN
+F 3 "~" H 4950 5550 50  0001 C CNN
+	1    4950 5550
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4950 4550 4950 4800
+Wire Wire Line
+	4950 5200 4950 5450
+$Comp
+L Device:C_Small C13
+U 1 1 5F6A0742
+P 5600 4450
+F 0 "C13" H 5692 4496 50  0000 L CNN
+F 1 "0.10uF" H 5692 4405 50  0000 L CNN
+F 2 "Capacitor_SMD:C_0603_1608Metric" H 5600 4450 50  0001 C CNN
+F 3 "~" H 5600 4450 50  0001 C CNN
+	1    5600 4450
+	1    0    0    -1  
+$EndComp
+Text GLabel 6150 4200 2    50   Output ~ 0
+IO0
+$Comp
+L power:GND #PWR0145
+U 1 1 5F6A0749
+P 5600 5750
+F 0 "#PWR0145" H 5600 5500 50  0001 C CNN
+F 1 "GND" H 5605 5577 50  0000 C CNN
+F 2 "" H 5600 5750 50  0001 C CNN
+F 3 "" H 5600 5750 50  0001 C CNN
+	1    5600 5750
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4950 4350 4950 4200
+Wire Wire Line
+	4950 4200 5600 4200
+Wire Wire Line
+	5600 4200 5600 4350
+Connection ~ 5600 4200
+Wire Wire Line
+	5600 4200 6150 4200
+Wire Wire Line
+	4950 5650 4950 5700
+Wire Wire Line
+	4950 5700 5600 5700
+Wire Wire Line
+	5600 5700 5600 5750
+Wire Wire Line
+	5600 5700 5600 4550
+Connection ~ 5600 5700
+$EndSCHEMATC
