@@ -26,3 +26,6 @@ nyansat.egg-info/*
 webrepl_cfg.py
 wifi_config.json
 __board_webrepl_cfg.py
+
+# Ignore bak files
+*.bak
