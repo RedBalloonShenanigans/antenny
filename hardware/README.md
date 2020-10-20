@@ -22,9 +22,13 @@ Antenny V2 and V3 board have the similar pin layout. Please use this Antenny V2 
 
 - [Antenny V3 Board Schematic](https://github.com/RedBalloonShenanigans/antenny/tree/master/hardware/Antenny_V3_Schematic.pdf)
 
+- [Antenny V5 Board Schematic](https://github.com/RedBalloonShenanigans/antenny/tree/master/hardware/Antenny_V5_Schematic.pdf)
+
 - [IMU V2 Board Schematic](https://github.com/RedBalloonShenanigans/antenny/tree/master/hardware/IMU_V2_Schematic.pdf)
 
 - [Antenny V3 Board Gerber files and NC Drill files for PCB manufacuture](https://github.com/RedBalloonShenanigans/antenny/tree/master/hardware/Gerber_NC_Drill_Antenna_base_v3)
+
+- [Antenny V5 Board Gerber files and NC Drill files for PCB manufacuture](https://github.com/RedBalloonShenanigans/antenny/tree/master/hardware/Gerber_NC_Drill_Antenna_base_v5)
 
 - [IMU v2 Board Gerber files and NC Drill files for PCB manufacuture](https://github.com/RedBalloonShenanigans/antenny/tree/master/hardware/Gerber_NC_Drill_IMU_standalone_v2)
 
