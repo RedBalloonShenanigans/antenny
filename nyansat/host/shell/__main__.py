@@ -173,6 +173,16 @@ class NyanShell(mpfshell.MpFileShell):
         _ = parse_cli_args(args, 'pwmtest', 0, arg_properties)
         self.client.pwm_test()
 
+    def do_gpstest(self, args):
+        """gpstest
+        Initialize a spare UART for serial communication with user-specified rx and tx pins.
+        Instantiate the MicroGPS class with the UART and test up to 10 NMEA sentences for a fix.
+        If the MicroGPS class can't recognize the data, show a few lines to the user for debugging.
+        """
+        arg_properties = []
+        _ = parse_cli_args(args, 'gpstest', 0, arg_properties)
+        self.client.gps_test()
+
     def do_calibrate(self, args):
         """calibrate
         Detect IMU calibration status and provide instructions on how to

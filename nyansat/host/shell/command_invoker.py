@@ -126,6 +126,14 @@ class CommandInvoker(NyanPyboard):
             )
         return self.eval_string_expr("i2c.scan()")
 
+    def uart_read(self, iterations):
+        self.exec_("sentences = []")
+        for x in range(iterations):
+            self.exec_("g_sentence = uart.readline()")
+            self.exec_("try:\n\tg_sentence = g_sentence.decode(\"ascii\")\nexcept:\n\tg_sentence = None\n")
+            self.exec_("sentences.append(g_sentence)")
+        return self.eval_string_expr("str(sentences)")
+
     def imu_calibration_status(self):
         """Get IMU calibration status."""
         try:
@@ -351,6 +359,68 @@ class CommandInvoker(NyanPyboard):
             pca_object_created
         )
 
+    def gps_diagnostics(self, tx, rx):
+        gps_initialized = False
+        # TODO: figure out how to call the actual GPS class
+        iterations = 5
+        sentences = [None] * iterations
+        sentence_list = [None] * iterations
+        satellites_in_view = None
+        latitude = None
+        longitude = None
+        altitude = None
+        timestamp = None
+        fix_type = -1
+
+        try:
+            self.exec_("from machine import UART")
+            self.exec_("uart = UART(2, 9600)") # ALIBI: spare UART, won't conflict with core antenny functionality.
+            self.exec_("uart.init(9600, rx={}, tx={}, bits=8, parity=None, stop=1)".format(rx, tx))
+            uart_initialized = True
+        except Error:
+            uart_initialized = False
+
+        if uart_initialized:
+            reads = 0;
+            self.exec_("from micropyGPS import MicropyGPS")
+            self.exec_("gps = MicropyGPS()")
+            # almost a direct port of gps_basic.py :: _update_gps()
+            self.exec_("def update_gps_state(uart, gps):\n\tg_sentence = uart.readline()\n\twhile g_sentence:\n\t\tg_sentence = g_sentence.decode(\"ascii\")\n\t\tfor g_word in g_sentence:\n\t\t\tgps.update(g_word)\n\t\tg_sentence = uart.readline()")
+
+            while reads < 10 and int(fix_type) < 2:
+                try:
+                    self.exec_("try:\n\tupdate_gps_state(uart, gps)\nexcept Exception as e:\n\tprint(e)\ntime.sleep(1)")
+                    satellites_in_view = self.eval_string_expr("gps.satellites_in_view")
+                    latitude = self.eval_string_expr("gps.latitude_string()")
+                    longitude = self.eval_string_expr("gps.longitude_string()")
+                    altitude = self.eval_string_expr("gps.altitude")
+                    timestamp = self.eval_string_expr("gps.timestamp")
+                    fix_type = self.eval_string_expr("gps.fix_type")
+                    print(".")
+                    #DEBUG: print("read line: {}, {} ({} sats, fix: {}, at {})".format(latitude, longitude, satellites_in_view, fix_type, timestamp))
+                except Exception as e:
+                    print("GPS failed to get gps state: {}".format(e))
+                reads += 1
+            else:
+                gps_initialized = True
+
+            if not gps_initialized:
+                print("Invalid GPS state")
+                sentences = self.uart_read(5)
+                sentence_list = sentences.strip('][').split(', ')
+        self.exec_("uart.deinit()")
+
+        return GpsTestDiagnostics(
+            sentence_list,
+            uart_initialized,
+            gps_initialized,
+            latitude,
+            longitude,
+            altitude,
+            timestamp,
+            satellites_in_view
+        )
+
 @dataclass
 class BnoTestDiagnostics:
     """Store diagnostic T/F values for BNO test. Used in the handling for 'bnotest' command."""
@@ -365,3 +435,15 @@ class PwmTestDiagnostics:
     i2c_bus_scannable: bool
     i2c_addresses: List[int]
     pca_object_created: bool
+
+@dataclass
+class GpsTestDiagnostics:
+    """Store diagnostic values for GPS test. Used in the handling for 'gpstest' command."""
+    sentences: List[str]
+    uart_initialized: bool
+    gps_initialized: bool
+    gps_latitude: str
+    gps_longitude: str
+    gps_altitude: float
+    gps_timestamp: List
+    gps_satellites_in_view: int
