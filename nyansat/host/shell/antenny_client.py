@@ -406,3 +406,28 @@ class AntennyClient(object):
         else:
             print("I2C address detected? True, addresses =", pwm_test_diagnostics.i2c_addresses)
         print("PWM connection established?", pwm_test_diagnostics.pca_object_created)
+
+    @exception_handler
+    def gps_test(self):
+        self.guard_open()
+
+        print("Input the TX and RX pins of the GPS to test")
+        try:
+            tx = int(input("TX Pin#: "))
+            rx = int(input("RX Pin#: "))
+        except ValueError as e:
+            TerminalPrinter.print_error("Invalid type for pin number. Try again using only decimal numbers: {}".format(e))
+            return
+
+        gps_test_diagnostics = self.invoker.gps_diagnostics(tx, rx)
+        print("---")
+        print("UART initialized: ", gps_test_diagnostics.uart_initialized)
+        if gps_test_diagnostics.gps_initialized:
+            print("GPS initilized")
+            print("[latitude: {}, longitude: {}, altitude: {}]".format(gps_test_diagnostics.gps_latitude, gps_test_diagnostics.gps_longitude, gps_test_diagnostics.gps_altitude))
+        elif len(gps_test_diagnostics.sentences) == 0:
+            print("No GPS or serial data read")
+        else:
+            print("GPS init failed; sentence data for debugging:")
+            for x in range(len(gps_test_diagnostics.sentences)):
+                print("{}: {}".format(x, gps_test_diagnostics.sentences[x]))
