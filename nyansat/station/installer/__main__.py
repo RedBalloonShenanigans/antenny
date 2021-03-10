@@ -172,7 +172,7 @@ class AntennyInstaller(object):
             if os.path.exists(WIFI_CONFIG_PATH):
                 with open(WIFI_CONFIG_PATH, 'r') as f:
                     wifi_config = json.load(f)
-                ssid, password = wifi_config.get(SSID_KEY, ''), wifi_config.get(PASSWORD_KEY, '')
+                ssid, password = wifi_config.get(SSID_KEY, '').replace("%20", " "), wifi_config.get(PASSWORD_KEY, '').replace("%20"," ")
                 printed_password = '*' * len(password)
                 use_cached = input(
                         f"Do you want to proceed with these wifi credentials - "
