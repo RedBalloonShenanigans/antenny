@@ -1,223 +1,165 @@
-# src/config.py
+from exceptions import AntennyConfigException
 
 try:
     import ujson as json
 except ImportError:
     import json
-try:
-    import logging
-except ImportError:
-    pass
 import os
 
 
-############
-# Main class
-############
+CONFIGS = "/configs/"
+ANTENNY_CONFIGS_PATH = CONFIGS + "antenny_configs/"
+DEFAULTS = CONFIGS + "defaults.json"
 
-class ConfigRepository:
-    """Used for getting, setting, loading, and storing configuration file
-    values.
-    """
+class Config:
+    def __init__(self):
+        self._config = None
+        self._config_name = self._get_default_config()
+        self.load(self._config_name)
 
-    DEFAULT_CONFIG = {
-        # Default configuration file to load
-        "last_loaded": "config.json",
-        # Disable optional hardware features
-        "use_gps": False,
-        "use_screen": False,
-        "use_telemetry": False,
-        "use_imu": False,
-        "use_webrepl": False,
-        "enable_demo": True,
-        # Elevation/azimuth servo defaults
-        "elevation_servo_index": 0,
-        "azimuth_servo_index": 1,
-        "elevation_max_rate": 0.1,
-        "azimuth_max_rate": 0.1,
-        # Antenny board layout
-        "antenny_board_version": 2,
-        # Pins
-        "gps_uart_tx": 33,
-        "gps_uart_rx": 27,
-        "i2c_servo_scl": 21,
-        "i2c_servo_sda": 22,
-        "i2c_servo_address": 64,
-        "i2c_bno_scl": 18,
-        "i2c_bno_sda": 19,
-        "i2c_bno_address": 40,
-        "i2c_screen_scl": 25,
-        "i2c_screen_sda": 26,
-        "i2c_screen_address": 0,
-        # Position coordinates
-        "latitude": 40.0,
-        "longitude": -73.0,
-        # IMU calibration - cf. section 3.6.4 "Sensor calibration data" in
-        # Bosch BNO055 datasheet. Default values are all zero
-        "acc_offset_x_lsb": 0,
-        "acc_offset_x_msb": 0,
-        "acc_offset_y_lsb": 0,
-        "acc_offset_y_msb": 0,
-        "acc_offset_z_lsb": 0,
-        "acc_offset_z_msb": 0,
-        "mag_offset_x_lsb": 0,
-        "mag_offset_x_msb": 0,
-        "mag_offset_y_lsb": 0,
-        "mag_offset_y_msb": 0,
-        "mag_offset_z_lsb": 0,
-        "mag_offset_z_msb": 0,
-        "gyr_offset_x_lsb": 0,
-        "gyr_offset_x_msb": 0,
-        "gyr_offset_y_lsb": 0,
-        "gyr_offset_y_msb": 0,
-        "gyr_offset_z_lsb": 0,
-        "gyr_offset_z_msb": 0,
-        "acc_radius_lsb": 0,
-        "acc_radius_msb": 0,
-        "mag_radius_lsb": 0,
-        "mag_radius_msb": 0,
-    }
+    @staticmethod
+    def _get_default_config():
+        with open(DEFAULTS, "r") as fh:
+            return json.load(fh)["config"]
 
-    def __init__(self, config_filename: str = "") -> None:
-        self._config = {}
-        self._config_filename = config_filename
-        self.reload()
+    @staticmethod
+    def _get_original_default_config():
+        with open(DEFAULTS, "r") as fh:
+            return json.load(fh)["original_config"]
 
-    def _save(self) -> None:
-        """Dump in-memory configuration values to a file on the board."""
-        with open(self._config_filename, "w") as f:
-            json.dump(self._config, f)
+    @staticmethod
+    def _get_path(config_name):
+        return ANTENNY_CONFIGS_PATH + config_name + ".json"
 
-    def reload(self) -> None:
-        """Reload the in-memory configuration key-value store from the config
-        file. Use a default filename if one is not set. The default file may
-        point to a different default config file.
+    @staticmethod
+    def _list_configs():
+        configs = os.listdir(ANTENNY_CONFIGS_PATH)
+        config_names = list()
+        for config in configs:
+            if "_help" not in config:
+                config = config.split(".")[0]
+                config_names.append(config)
+        return config_names
 
-        Note: it is possible to enter an infinite loop if configs have
-        "last_loaded" values that point to one another.
-        """
-        default_config = ConfigRepository.DEFAULT_CONFIG.get("last_loaded")
-        last_loaded = default_config
+    @staticmethod
+    def _check_name(config_name):
+        if "/" in config_name or "\\" in config_name:
+            print("Config name can not look like a unix path")
+            return False
+        if "_help" in config_name:
+            print("Config name is invalid, \"_help\" is reserved")
+            return False
+        return True
 
-        try:
-            if self._config_filename:
-                with open(self._config_filename, "r") as f:
-                    self._config = json.load(f)
-            else:
-                loaded = set()
-                while self._config_filename != last_loaded:
-                    # Set config filename to the default value
-                    self._config_filename = last_loaded
-                    with open(self._config_filename, "r") as f:
-                        self._config = json.load(f)
-                    last_loaded = self._config.get("last_loaded",
-                                                   self._config_filename)
-                    if (last_loaded in loaded
-                            and last_loaded != self._config_filename):
-                        try:
-                            logging.error("Cyclic config files! Using default: "
-                                          + default_config)
-                        except (NameError, AttributeError):
-                            pass
-                        self._config_filename = default_config
-                        self.reload()
-                        self._config["last_loaded"] = self._config_filename
-                    else:
-                        loaded.add(last_loaded)
-        except OSError:
-            self._config = dict(ConfigRepository.DEFAULT_CONFIG)
-            self._config["last_loaded"] = self._config_filename
+    def _is_config(self, config_name):
+        configs = self._list_configs()
+        return config_name  in configs
 
-    def new(self, name: str) -> None:
-        """Create a new configuration file and ensure each call to "reload" uses
-        the correct file. Does not overwrite if the file already exists.
-        """
-        self.set("last_loaded", name)
-        self._config_filename = name
-        self.reload()
+    def _get_current_path(self):
+        return self._get_path(self._config_name)
 
-    def switch(self, name: str) -> None:
-        """Switch the configuration file being used."""
-        self.new(name)
+    def _get_help_path(self):
+        return self._get_path(self._config_name + "_help")
 
-    def get(self, key: str, call_reload: bool = True):
-        """Get a value from the in-memory key-value store loaded from the
-        configuration file. If no value exists for the key, try and get it from
-        the dictionary of default values. If "call_reload" is true, it will try
-        and reload the config file from storage before checking for the value.
-        """
-        if call_reload and self._config is None:
-            self.reload()
+    def load(self, config_name):
+        if not self._check_name(config_name):
+            print("Failed to load {} due to invalid name".format(config_name))
+            return False
+        if not self._is_config(config_name):
+            print("Failed to load {}, config does not exist".format(config_name))
+            return False
+        self._config_name = config_name
+        with open(self._get_current_path(), "r") as fh:
+            self._config = json.load(fh)
 
-        if key not in self._config:
-            return self.get_default(key, call_reload=call_reload)
-        else:
-            return self._config[key]
+    def save_as(self, config_name, force=False):
+        if not self._check_name(config_name):
+            print("Failed to save config as {} due to invalid name".format(config_name))
+            return False
+        if self._is_config(config_name) and not force:
+            print("The config {} already exists, use \"force\" option to overwrite")
+            return False
+        elif force:
+            print("Overwriting the config {}".format(config_name))
+        self._config_name = config_name
+        with open(self._get_current_path(), "w") as fh:
+            json.dump(self._config, fh)
+        return self._config_name
 
-    def get_default(self, key: str, call_reload: bool = True):
-        """Get the default value for a given key. Reload the config file if
-        the flag is set and it is not already loaded in memory.
-        """
-        if call_reload and self._config is None:
-            self.reload()
-        return ConfigRepository.DEFAULT_CONFIG[key]
+    def save(self):
+        self.save_as(self._config_name, force=True)
 
-    def set(self, key: str, value) -> None:
-        """Set the value for a key in-memory and save it to the file system."""
+    def set(self, key, value):
         if self._config is None:
-            self.reload()
-
+            print("Trying to set key: {} to value: {} in an empty config".format(key, value))
+            raise AntennyConfigException("Trying to set key: {} to value: {} in an empty config".format(key, value))
         self._config[key] = value
-        self._save()
-        self.reload()
+        return True
 
-    def print_values(self) -> None:
-        """Print the value of all user-set and default keys."""
-        print("Using configuration file %s" % self._config_filename)
-        print()
+    def get(self, key):
+        if self._config is None:
+            print("Trying to get key: {} in an empty config".format(key))
+            raise AntennyConfigException("Trying to get key: {} in an empty config".format(key))
+        if key not in self._config:
+            print("The key {} does not exists in the current config".format(key))
+            raise AntennyConfigException("The key {} does not exists in the current config".format(key))
+        return self._config[key]
 
-        if self._config:
-            print("Config values:")
-            for key, val in self._config.items():
-                print("%s: %s" % (key, json.dumps(val)))
+    def print_values(self):
+        if self._config is None:
+            print("Trying to print key value pairs from an empty config")
+            return False
+        for key, value in self._config.items():
+            print("{}: {}".format(key, json.dumps(value)))
+        return True
+
+    def print_keys(self):
+        if self._config is None:
+            print("Trying to print keys from an empty config")
+            return False
+        for key in self._config:
             print()
-        else:
-            print("No non-default configuration values set!")
 
-        print("Default values:")
-        for key, val in ConfigRepository.DEFAULT_CONFIG.items():
-            print("%s: %s" % (key, json.dumps(val)))
-        print()
+    def save_as_default_config(self):
+        self.save()
+        with open(DEFAULTS, "r") as fh:
+            defaults = json.load(fh)
+        defaults["config"] = self._config_name
+        with open(DEFAULTS, "w") as fh:
+            json.dump(defaults, fh)
 
-    def clear(self, backup: bool = True) -> None:
-        """Erase all user-set keys and back up the configuration file to a .bak
-        file by default.
-        """
-        try:
-            if backup:
-                os.rename(self._config_filename,
-                          "%s.bak" % self._config_filename)
-            else:
-                os.remove(self._config_filename)
-        except OSError:
-            pass
-        self.reload()
+    def load_default_config(self):
+        return self.load(self._get_default_config())
 
-    def revert(self) -> None:
-        """Revert the current configuration from a backup."""
-        try:
-            os.rename("%s.bak" % self._config_filename, self._config_filename)
-            self.reload()
-        except OSError:
-            pass
+    def reset_default_config(self):
+        return self.load(self._get_original_default_config())
 
-    def remove_backup(self) -> None:
-        """Delete a stored backup, if one exists."""
-        try:
-            os.remove("%s.bak" % self._config_filename)
-        except OSError:
-            pass
+    def new_config(self, config_name):
+        self._config_name = config_name
 
-    def current_file(self) -> None:
-        """Return the current config filename being used."""
-        return self._config_filename
+    def check(self):
+        check_flag = True
+        with open(DEFAULTS, "r") as fh:
+            valid_config_path = self._get_path(json.load(fh)["original_config"])
+        with open(valid_config_path, "r") as fh:
+            valid_config = json.load(fh)
+        for key in valid_config:
+            if key not in self._config:
+                print("The config {} is missing the key {}".format(self.get_name(), key))
+                check_flag = False
+        return check_flag
+
+    def get_name(self):
+        return self._config_name
+
+    def get_help_info(self):
+        with open(self._get_help_path(), "r") as fh:
+            return json.load(fh)
+
+    def list_configs(self):
+        configs = list()
+        for config in self._list_configs():
+            if config == self._config_name:
+                config = "> " + config
+            configs.append(config)
+        return configs

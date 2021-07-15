@@ -1,19 +1,16 @@
 import machine
-import logging
 import time
 
 from micropyGPS import MicropyGPS
 
-from config.config import ConfigRepository
 from gps.gps import GPSController, GPSStatus
 
 
 class BasicGPSController(GPSController):
-    def __init__(self):
+    def __init__(self, tx, rx):
         self._gps_uart = machine.UART(1, 9600)
-        self.cfg = ConfigRepository()
-        self._gps_uart.init(tx=self.cfg.get("gps_uart_tx"),
-                            rx=self.cfg.get("gps_uart_rx"))
+        self._gps_uart.init(tx=tx,
+                            rx=rx)
         self._gps = MicropyGPS()
         self._model = None
 
@@ -23,7 +20,7 @@ class BasicGPSController(GPSController):
             try:
                 self._update_gps()
             except Exception as e:
-                logging.info(e)
+                print(e)
 
             time.sleep(1)
 

@@ -5,6 +5,7 @@ import getpass
 import json
 import logging
 import threading
+from pydoc import locate
 
 from time import sleep
 from dataclasses import dataclass
@@ -23,6 +24,7 @@ from nyansat.host.satellite_observer import SatelliteObserver, parse_tle_file
 
 import nyansat.host.satdata_client as SatelliteScraper
 
+LOG = logging.getLogger("antenny_client")
 
 class AntennyClient(object):
 
@@ -31,51 +33,31 @@ class AntennyClient(object):
         self.fe = None
         self.invoker = None
         self.tracking = None
-        self.prompts = {
-            "antenny_board_version": ("Antenny Board Version (integer, -1 for DIY)", int),
-            "gps_uart_tx": ("GPS UART TX pin#", int),
-            "gps_uart_rx": ("GPS UART RX pin#", int),
-            "use_gps": ("Use GPS (True or False)", bool),
-            "latitude": ("Current position latitude (ignore if using GPS)", float),
-            "longitude": ("Current position longitude (ignore if using GPS)", float),
-            "i2c_servo_scl": ("Servo SCL pin#", int),
-            "i2c_servo_sda": ("Servo SDA pin#", int),
-            "i2c_servo_address": ("Servo address (in decimal)", int),
-            "i2c_bno_scl": ("BNO055 SCL pin#", int),
-            "i2c_bno_sda": ("BNO055 SDA pin#", int),
-            "i2c_bno_address": ("BNO055 address (in decimal)", int),
-            "use_imu": ("Use IMU (True or False)", bool),
-            "i2c_screen_scl": ("Screen SCL pin#", int),
-            "i2c_screen_sda": ("Screen SDA pin#", int),
-            "i2c_screen_address": ("Screen address (in decimal)", int),
-            "use_screen": ("Use Screen (True or False)", bool),
-            "elevation_servo_index": ("Servo default elevation index", float),
-            "azimuth_servo_index": ("Servo default azimuth index", float),
-            "elevation_max_rate": ("Servo elevation max rate", float),
-            "azimuth_max_rate": ("Servo azimuth max rate", float),
-            "use_webrepl": ("Use WebREPL", bool),
-            "use_telemetry": ("Use Telemetry", bool),
-            "enable_demo": ("Enable movement demo (short pin#15 to ground)", bool)
-        }
+        self.defaults = None
 
+    @exception_handler
     def initialize(self, fe: MpFileExplorer):
         if fe:
             self.fe = fe
             self.invoker = CommandInvoker(fe.con)
 
+    @exception_handler
     def safemode_guard(self):
         """Warns user if AntKontrol is in SAFE MODE while using motor-class commands"""
         if self.invoker.is_safemode():
             raise SafeModeWarning
 
+    @exception_handler
     def guard_open(self):
         if self.fe is None or self.invoker is None:
             raise DeviceNotOpenError
 
+    @exception_handler
     def guard_init(self):
         if not self.invoker.is_antenna_initialized():
             raise NoAntKontrolError
 
+    @exception_handler
     def guard_config_status(self):
         if not self.invoker.config_status():
             raise ConfigStatusError
@@ -248,18 +230,27 @@ class AntennyClient(object):
         print("real imu angles: %d", real_pos)
         print("expected position: %d", real_pos)
 
+    def get_prompts(self):
+        return json.loads(self.invoker.config_help())
+
     @exception_handler
     def setup(self, name):
         self.guard_open()
-        current = self.invoker.which_config()
-        self.invoker.config_new(name)
         print("Welcome to Antenny!")
+        current = self.invoker.which_config()
+        if current == name:
+            print("The config {} is already open!".format(name))
+            overwrite = input("Do you wish to overwrite its values? (y/N)")
+            if overwrite not in ("y", "Y", "yes", "Yes"):
+                return
+        else:
+            self.invoker.config_new(name)
         print("Please enter the following information about your hardware\n")
-
-        for k, info in self.prompts.items():
-            prompt_text_bare, typ = info
-            default_val = self.invoker.config_get_default(k)
-            prompt_text = prompt_text_bare + " (Default value is {}): ".format(default_val)
+        for k, info in self.get_prompts():
+            prompt_text_bare = info["msg"]
+            typ = locate(info["type"])
+            default_val = self.invoker.config_get(k)
+            prompt_text = prompt_text_bare + " (Current value is {}): ".format(default_val)
             try:
                 if typ == bool:
                     literal_input = input(prompt_text)
@@ -267,16 +258,17 @@ class AntennyClient(object):
                         new_val = False
                     elif literal_input == "True" or literal_input == "1":
                         new_val = True
+                    elif literal_input == "":
+                        new_val = default_val
                     else:
                         raise ValueError
                 else:
                     new_val = typ(input(prompt_text))
 
             except ValueError:
-                new_val = self.invoker.config_get_default(k)
+                new_val = self.invoker.config_get(k)
                 print("Invalid type, setting to default value \"{}\".\nUse \"set\" to "
                       "change the parameter".format(new_val))
-
             self.invoker.config_set(k, new_val)
 
         # TODO: figure this out, do we need this (make caching by default?)
@@ -291,36 +283,79 @@ class AntennyClient(object):
     @exception_handler
     def set(self, key, new_val):
         self.guard_open()
-
         # TODO: raise appropriate NoSuchConfig error in nyan_explorer
         old_val = self.invoker.config_get(key)
-        _, typ = self.prompts[key]
+        _, typ = self.get_prompts()[key]
         new_val = typ(new_val)
 
         self.invoker.config_set(key, new_val)
         print("Changed " + "\"" + key + "\" from " + str(old_val) + " --> " + str(new_val))
 
     @exception_handler
-    def configs(self):
+    def config(self):
         # TODO: Something with ConfigUnknownError
         self.guard_open()
-        print("-Config parameters-\n" +
-              "Using \"{}\"".format(self.invoker.which_config()))
-        for key in self.prompts.keys():
-            print(key + ": " + self.invoker.config_get(key))
+        config = json.loads(self.invoker.config_print())
+        help = json.loads(self.invoker.config_help())
+        if not list(config.keys()) == list(help.keys()):
+            LOG.error("Config and help info are mismatched, restore default config")
+            raise ConfigStatusError
+        for k, i in help:
+            value = config[k]
+            msg = i["msg"]
+            t = i["type"]
+            line = "Key: {} Value: {} Type: {} Help: {}".format(k, value, t, msg)
+            print(line)
 
     @exception_handler
-    def switch(self, name):
+    def configs(self):
         self.guard_open()
         self.guard_config_status()
+        print(self.invoker.config_list())
 
-        files = self.fe.ls()
-        if name not in files:
-            raise NoSuchConfigFileError
+
+    @exception_handler
+    def load(self, name):
+        self.guard_open()
+        self.guard_config_status()
         current = self.invoker.which_config()
-        self.invoker.config_switch(name)
+        self.invoker.config_load(name)
         print("Switched from \"{}\"".format(current) +
               " to \"{}\"".format(name))
+
+    @exception_handler
+    def save(self):
+        self.guard_open()
+        self.guard_config_status()
+        self.invoker.config_save()
+        print("Saved config {}".format(self.invoker.which_config))
+
+    @exception_handler
+    def save_as(self, name):
+        self.guard_open()
+        self.guard_config_status()
+        self.invoker.config_save_as(name)
+        print("Saved config as {}".format(name))
+
+    @exception_handler
+    def load_default(self):
+        self.guard_open()
+        self.guard_config_status()
+        self.invoker.config_load_default()
+        print("Loaded default config {}".format(self.invoker.which_config))
+
+    @exception_handler
+    def save_as_default(self):
+        self.guard_open()
+        self.guard_config_status()
+        self.invoker.config_save_as_default()
+        print("Saved config {} as default")
+
+    @exception_handler
+    def reset_config(self):
+        self.guard_open()
+        self.guard_config_status()
+        self.invoker.config_reset()
 
     @exception_handler
     def _track_update(self, observer):
@@ -332,6 +367,7 @@ class AntennyClient(object):
             self.invoker.set_azimuth_degree(azimuth)
             sleep(2)
 
+    @exception_handler
     async def _start_track(self, sat_name, coords):
         """Track a satellite across the sky"""
         tle_data_encoded = await SatelliteScraper.load_tle()
@@ -344,6 +380,7 @@ class AntennyClient(object):
         t = threading.Thread(target=self._track_update, args=(observer,))
         t.start()
 
+    @exception_handler
     def _cancel(self):
         """Cancel tracking mode"""
         self.invoker.set_tracking(False)
@@ -351,7 +388,7 @@ class AntennyClient(object):
     @exception_handler
     def wifi_setup(self):
         self.guard_open()
-        wifi_config_path = 'wifi_config.json'
+        wifi_config_path = '/configs/wifi_config.json'
         try:
             wifi_config = {
                 'ssid': input("WiFi SSID: "),

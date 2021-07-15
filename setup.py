@@ -12,7 +12,6 @@ setup(
         "aiohttp",
         "colorama",
         "fuzzywuzzy",
-        "mpfshell==0.9.1",
         "pyserial",
         "rbs-tui-dom",
         "skyfield",

@@ -72,16 +72,21 @@ class NyanShell(mpfshell.MpFileShell):
         parsed_args = parse_cli_args(args, 'open', 1, arg_properties)
         port, = parsed_args
         if (
-                not port.startswith("ser:/dev/")
-                and not port.startswith("ser:COM")
-                and not port.startswith("tn:")
-                and not port.startswith("ws:")
+                port.startswith("ser:")
+                or port.startswith("tn:")
+                or port.startswith("ws:")
         ):
-
+            return self._connect(args)
+        else:
             if platform.system() == "Windows":
+                if not port.startswith("COM"):
+                    raise argparse.ArgumentError("Windows ports should start with COM")
                 args = "ser:" + args
             else:
-                args = "ser:/dev/" + args
+                if not port.startswith("/dev/"):
+                    args = "ser:/dev/" + args
+                else:
+                    args = "ser:" + args
 
         return self._connect(args)
 
@@ -130,7 +135,7 @@ class NyanShell(mpfshell.MpFileShell):
 
     def complete_set(self, *args):
         """Tab completion for 'set' command."""
-        return [key for key in self.client.prompts.keys() if key.startswith(args[0])]
+        return [key for key in self.client.get_prompts().keys() if key.startswith(args[0])]
 
     def do_configs(self, args):
         """configs
@@ -138,7 +143,7 @@ class NyanShell(mpfshell.MpFileShell):
         self.client.configs()
 
     @cli_handler
-    def do_switch(self, args):
+    def do_load(self, args):
         """switch <CONFIG_FILE>
         Switch to using a different config file."""
         arg_properties = [
@@ -147,9 +152,9 @@ class NyanShell(mpfshell.MpFileShell):
                 None
             )
         ]
-        parsed_args = parse_cli_args(args, 'switch', 1, arg_properties)
+        parsed_args = parse_cli_args(args, 'load', 1, arg_properties)
         name, = parsed_args
-        self.client.switch(name)
+        self.client.load(name)
 
     def do_i2ctest(self, args):
         """i2ctest

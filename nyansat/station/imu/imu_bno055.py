@@ -6,12 +6,12 @@ from imu.imu import ImuController, ImuHeading, ImuStatus, ImuCalibrationStatus
 
 
 class Bno055ImuStatus(ImuStatus):
-
     __slots__ = ['euler', 'temperature', 'magnetometer', 'gyroscope', 'accelerometer', 'linear_acccelerometer',
                  'gravity']
-    def __init__(self, euler: tuple(float, float, float), temperature: float, magnetometer: tuple(float, float, float),
-                 gyroscope: tuple(float, float, float), accelerometer: tuple(float, float, float),
-                 linear_accelerometer: tuple(float, float, float), gravity: tuple(float, float, float)):
+
+    def __init__(self, euler: tuple[float, float, float], temperature: float, magnetometer: tuple[float, float, float],
+                 gyroscope: tuple[float, float, float], accelerometer: tuple[float, float, float],
+                 linear_accelerometer: tuple[float, float, float], gravity: tuple[float, float, float]):
         self.euler = euler
         self.temperature = temperature
         self.magnetometer = magnetometer
@@ -35,6 +35,7 @@ class Bno055ImuStatus(ImuStatus):
 
 class Bno055ImuCalibrationStatus(ImuCalibrationStatus):
     __slots__ = ['system', 'gyroscope', 'accelerometer', 'magnetometer']
+
     def __init__(self, system: bool, gyroscope: bool, accelerometer: bool, magnetometer: bool):
         self.system = system
         self.gyroscope = gyroscope

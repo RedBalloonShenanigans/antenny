@@ -1,4 +1,3 @@
-import logging
 import random
 import socket
 import time
@@ -7,12 +6,11 @@ from antenny_threading import Thread, Queue, Empty
 from multi_client.common import common_time
 from multi_client.protocol.constants import HEARTBEAT_PAYLOAD_TYPE, MOVE_REQUEST_PAYLOAD_TYPE
 from multi_client.protocol.heartbeat import HeartbeatRequest, HeartbeatResponse
-from multi_client.protocol.move import MoveRequest, MoveResponse
+from multi_client.protocol.move import MoveRequest
 from multi_client.protocol.packet import MultiAntennyPacket, MultiAntennyPacketHeader
 
 MULTICAST_ADDR = "224.11.11.11"
 _DEFAULT_TIMEOUT = 0.0001
-LOG = logging.getLogger("antenny.multi_client.leader")
 
 
 def create_heartbeat_request_packet(board_id: int, listen_port: int):
@@ -51,7 +49,7 @@ class LeaderClient(Thread):
 
     def recv(
             self,
-            payload_type,  # type: Type[MultiAntennyPayload]
+            payload_type,
     ):
         """
         Fetch a packet from the queue, of a specific payload type
@@ -125,7 +123,7 @@ class OnlineDevice(object):
             self,
             device_id: int,
             last_online: float,
-            round_trip_times,  # type: List[float]
+            round_trip_times,
     ):
         self.device_id = device_id
         self.last_online = last_online
@@ -164,7 +162,6 @@ class HeartbeatThread(Thread):
         self._online_devices = {}
 
     def get_device_info(self, device_id):
-        # type: (int) -> Optional[OnlineDevice]
         try:
             return self._online_devices[device_id]
         except KeyError:
@@ -224,8 +221,7 @@ class AntennyLeader(object):
             device_ids,
             max_delay=10,
     ):
-        # type: (List[int]) -> None
-        LOG.info("Waiting for devices {}".format(device_ids))
+        print("Waiting for devices {}".format(device_ids))
         waited_for = 0
         while True:
             if all([self.heartbeat.get_device_info(device_id)
@@ -243,13 +239,13 @@ class AntennyLeader(object):
             elevation: int,
             move_at_timestamp: float,
     ):
-        device_info = self.heartbeat.get_device_info(device_id)  # type: Optional[OnlineDevice]
+        device_info = self.heartbeat.get_device_info(device_id)
         if device_info is None:
-            LOG.warning(
+            print(
                     "Not sending move command to an unknown device with ID '{}'".format(device_id))
             return
         if not device_info.is_online():
-            LOG.warning("Not sending move command to an offline device")
+            print("Not sending move command to an offline device")
             return
         rtt_delta = device_info.average_rtt()
         move_at = move_at_timestamp - (rtt_delta / 2)  # 1/2 full RTT delay
@@ -277,7 +273,6 @@ def programmed_move_demo(device_ids, moves):
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
     board_id = 0x42
     listen_port = 44444
     udp_client = UDPLeaderClient(Queue(), Queue(), 31337, listen_port)

@@ -1,4 +1,3 @@
-
 class ScreenController():
     """Interface for a generic screen controller, for displaying nyansat motor
     and IMU status."""

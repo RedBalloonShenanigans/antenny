@@ -1,0 +1,102 @@
+{
+            "antenny_board_version": {
+              "msg": "Antenny Board Version {teger, -1 for DIY}",
+              "type": "int"
+            },
+            "use_gps": {
+              "msg": "Use GPS {True or False}",
+              "type": "bool"
+            },
+            "use_motor": {
+              "msg": "Use Motor {True or False}",
+              "type": "bool"
+            },
+            "use_screen": {
+              "msg": "Use Screen {ue or False}",
+              "type": "bool"
+            },
+            "use_telemetry": {
+              "msg": "Use Telemetry",
+              "type": "bool"
+            },
+            "use_imu": {
+              "msg": "Use IMU {ue or False}",
+              "type": "bool"
+            },
+            "use_webrepl": {
+              "msg": "Use WebREPL",
+              "type": "bool"
+            },
+            "enable_demo": {
+              "msg": "Enable movement demo {ort pin#15 to ground}",
+              "type": "bool"
+            },
+            "elevation_servo_index": {
+              "msg": "Servo default elevation index",
+              "type": "float"
+            },
+            "azimuth_servo_index": {
+              "msg": "Servo default azimuth index",
+              "type": "float"
+            },
+            "elevation_max_rate": {
+              "msg": "Servo elevation max rate",
+              "type": "float"
+            },
+            "azimuth_max_rate": {
+              "msg": "Servo azimuth max rate",
+              "type": "float"
+            },
+            "gps_uart_tx": {
+              "msg": "GPS UART TX pin#",
+              "type": "int"
+            },
+            "gps_uart_rx": {
+              "msg": "GPS UART RX pin#",
+              "type": "int"
+            },
+            "i2c_servo_scl": {
+              "msg": "Servo SCL pin#",
+              "type": "int"
+            },
+            "i2c_servo_sda": {
+              "msg": "Servo SDA pin#",
+              "type": "int"
+            },
+            "i2c_servo_address": {
+              "msg": "Servo address { decimal}",
+              "type": "int"
+            },
+            "i2c_bno_scl": {
+              "msg": "BNO055 SCL pin#",
+              "type": "int"
+            },
+            "i2c_bno_sda": {
+              "msg": "BNO055 SDA pin#",
+              "type": "int"
+            },
+            "i2c_bno_address": {
+              "msg": "BNO055 address { decimal}",
+              "type": "int"
+            },
+            "i2c_screen_scl": {
+              "msg": "Screen SCL pin#",
+              "type": "int"
+            },
+            "i2c_screen_sda": {
+              "msg": "Screen SDA pin#",
+              "type": "int"
+            },
+            "i2c_screen_address": {
+              "msg": "Screen address { decimal}",
+              "type": "int"
+            },
+            "latitude": {
+              "msg": "Current position latitude {nore if using GPS}",
+              "type": "float"
+            },
+            "longitude": {
+              "msg": "Current position longitude {nore if using GPS}",
+              "type": "float"
+            },
+}

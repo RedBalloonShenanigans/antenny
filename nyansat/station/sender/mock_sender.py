@@ -1,4 +1,3 @@
-import logging
 import socket
 import time
 
@@ -10,8 +9,6 @@ except ImportError:
 from antenny_threading import Empty, Thread, Queue
 
 _DEFAULT_TIMEOUT = 0.01
-
-LOG = logging.getLogger('telemetry.mock')
 
 
 class MockTelemetrySender(Thread):

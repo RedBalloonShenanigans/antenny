@@ -10,7 +10,7 @@ class MockMotorController(MotorController):
     def set_position(self, index, degrees=None, radians=None, us=None, duty=None):
         self._position = degrees
 
-    def get_position(self, index, degrees=None, radians=None, us=None, duty=None):
+    def get_position(self, index):
         return self._position
 
     def degrees(self, index):

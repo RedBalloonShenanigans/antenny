@@ -5,12 +5,13 @@ try:
     RTC = machine.RTC()
 except ImportError:
     RTC = None
-import logging
+
 import struct
 import socket
 import time
 
-from antenny import AntennyAPI, esp32_antenna_api_factory, mock_antenna_api_factory
+from api.api import AntennyAPI
+from antenny import start
 from antenny_threading import Thread, Queue, Empty
 from multi_client.protocol.constants import HEARTBEAT_PAYLOAD_ACK_TYPE, MOVE_RESPONSE_PAYLOAD_TYPE
 from multi_client.protocol.heartbeat import HeartbeatRequest, HeartbeatResponse
@@ -20,8 +21,6 @@ from multi_client.protocol.packet import MultiAntennyPacket, MultiAntennyPacketH
 MCAST_GRP = '224.11.11.11'
 MCAST_PORT = 31337
 IS_ALL_GROUPS = False
-
-LOG = logging.getLogger("antenny.multi_client.follower")
 
 MAX_MESSAGE_SIZE = 1024
 _DEFAULT_TIMEOUT = 0.0001
@@ -89,7 +88,6 @@ class FollowerClient(Thread):
         self.outbound_queue = outbound_queue
 
     def receive(self):
-        # type: (...) -> Optional[FollowerMessage]
         try:
             return self.inbound_queue.get(timeout=_DEFAULT_TIMEOUT)
         except Empty:
@@ -175,9 +173,9 @@ class AntennyFollowerNode(Thread):
 
     def follow(self, board_id: int):
         if board_id not in self._leaders:
-            LOG.warning("Waiting for leader with ID {} to come online".format(board_id))
+            print("Waiting for leader with ID {} to come online".format(board_id))
             return False
-        LOG.debug("Following board_id={}".format(board_id))
+        print("Following board_id={}".format(board_id))
         self.following_id = board_id
         return True
 
@@ -196,13 +194,13 @@ class AntennyFollowerNode(Thread):
         assert isinstance(packet.payload, HeartbeatRequest)
         self._leaders.add(packet.header.board_id)
         if packet.header.board_id == self.following_id:
-            LOG.debug("Got heartbeat from leader id={}".format(self.following_id))
+            print("Got heartbeat from leader id={}".format(self.following_id))
             self.follower_client.send((
                 create_heartbeat_response_packet(self.board_id).serialize(),
                 (message.sender_hostname, packet.header.listen_port)
             ))
         else:
-            LOG.debug("Ignoring heartbeat from leader id={}".format(packet.header.board_id))
+            print("Ignoring heartbeat from leader id={}".format(packet.header.board_id))
 
     def _handle_move(
             self,
@@ -211,20 +209,20 @@ class AntennyFollowerNode(Thread):
     ):
         assert isinstance(packet.payload, MoveRequest)
         if packet.payload.board_id != self.board_id:
-            LOG.debug("Received a MoveRequest for another device_id={}".format(
+            print("Received a MoveRequest for another device_id={}".format(
                     packet.payload.board_id
             ))
             return
         now = time.time()
         if packet.payload.move_at_timestamp < now:
-            LOG.warning("Received a MoveRequest after the given timestamp, NOT moving!")
+            print("Received a MoveRequest after the given timestamp, NOT moving!")
             return
         delta = packet.payload.move_at_timestamp - now
         delta += packet.payload.move_at_millis - (RTC.datetime()[-1] / 1000000)
         if delta > 10000:
-            LOG.debug("Very large time offset.")
+            print("Very large time offset.")
             return
-        LOG.debug("Sleeping for time delta of {} seconds".format(delta))
+        print("Sleeping for time delta of {} seconds".format(delta))
         time.sleep(delta)
         self.api.antenna.set_azimuth(packet.payload.azimuth)
         self.api.antenna.set_elevation(packet.payload.elevation)
@@ -236,7 +234,7 @@ class AntennyFollowerNode(Thread):
 
 
 def main(board_id: int):
-    api = mock_antenna_api_factory(False, False)
+    api = start()
     # api = esp32_antenna_api_factory(True, True)
     udp_client = UDPFollowerClient(Queue(), Queue(), MCAST_PORT)
     follower = AntennyFollowerNode(board_id, udp_client, api)
@@ -260,5 +258,4 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('device_id', type=int)
     args = parser.parse_args()
-    logging.basicConfig(level=logging.DEBUG)
     main(args.device_id)

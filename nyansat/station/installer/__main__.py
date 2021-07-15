@@ -4,25 +4,27 @@ Antenny installer
 import argparse
 import getpass
 import json
-import logging
 import os
 import sys
 import time
+import logging
 
-from mp.mpfexp import MpFileExplorer, RemoteIOError
+from mp.mpfexp import RemoteIOError, ConError
 from mp.pyboard import PyboardError
 from typing import List
 
+from nyansat.host.exceptions import AntennyFilesystemException, AntennyHardwareException, AntennyInstallationException
+from nyansat.host.mp_extensions import AntennyMpFileExplorer
+
 PASSWORD_KEY = 'key'
 SSID_KEY = 'ssid'
-WIFI_CONFIG_PATH = 'wifi_config.json'
+WIFI_CONFIG_PATH = 'configs/wifi_config.json'
 WEBREPL_CONFIG_PATH = 'webrepl_cfg.py'
 REPO_NAME = 'antenny'
 UP_ONE_DIRECTORY = '..'
 STATION_CODE_RELATIVE_PATH = 'nyansat/station'
 
 PACKAGES_TO_INSTALL = [
-    "logging"
 ]
 # File paths in the antenny repo, not on the board
 LIBRARY_FILES = [
@@ -36,7 +38,6 @@ LIBRARY_FILES = [
 
 LOG = logging.getLogger('antenny_installer')
 
-
 class AntennyInstaller(object):
     """
     Install the antenny source code
@@ -48,9 +49,8 @@ class AntennyInstaller(object):
     ):
         self._serial_path = serial_path
         self._file_explorer = None
-        self._connect()
 
-    def _connect(
+    def connect(
             self,
             num_connection_retries=3
     ):
@@ -59,11 +59,16 @@ class AntennyInstaller(object):
         """
         for retry_count in range(num_connection_retries):
             try:
-                self._file_explorer = MpFileExplorer(f'ser:{self._serial_path}')
+                self._file_explorer = AntennyMpFileExplorer(f'ser:{self._serial_path}')
+                LOG.info("Connected to ground station")
                 break
-            except:
-                LOG.warning(f"Retrying to connect to the ESP32 device, attempt "
+            except ConError as e:
+                if retry_count < num_connection_retries-1:
+                    LOG.warning(f"Retrying to connect to the ground station device, attempt "
                             f"{retry_count}/{num_connection_retries}")
+                else:
+                    LOG.error(f"Failed to connect to Antenny board", exc_info=True)
+                    raise AntennyHardwareException("Failed to connect to Antenny board")
 
     def _clean_files(
             self,
@@ -73,6 +78,9 @@ class AntennyInstaller(object):
         """
         Clean up the existing files on the device.
         """
+        if not in_subdirectory:
+            LOG.info("Entering root")
+            self._file_explorer.cd("/")
         files = self._file_explorer.ls()
         libs = set([os.path.basename(f) for f in LIBRARY_FILES])
         if not in_subdirectory:
@@ -80,77 +88,87 @@ class AntennyInstaller(object):
         for file_ in files:
             if ignore_lib and not in_subdirectory and (file_ in libs or file_ == "lib"):
                 continue
-            try:
-                self._file_explorer.rm(file_)
-            except Exception as e:
-                # Try to explore subdirectory
-                LOG.info(f"Attempting to clean directory {file_}")
+
+            if self._file_explorer.isdir(file_):
+                LOG.info("Attempting to clean directory {}".format(file_))
                 self._file_explorer.cd(file_)
                 self._clean_files(in_subdirectory=True)
+
+            LOG.info("Remvoing file {}".format(file_))
+            self._file_explorer.rm(file_)
+
         if in_subdirectory:
             self._file_explorer.cd('..')
         else:
             LOG.info("Done cleaning FS")
 
-    def _ensure_directory(self):
-        """
-        Ensure we're in the main antenny directory.
-        """
-        curr_working_dir = os.getcwd()
-        if os.path.basename(curr_working_dir) != REPO_NAME:
-            if REPO_NAME not in curr_working_dir:
-                # TODO: should we clone the git repo instead?
-                raise RuntimeError(
-                        "Cannot find the antenny repository, please run this from the root "
-                        "of that directory."
-                )
-            # walk back up the directory tree, it's in the current working dir
-            while os.path.basename(os.getcwd()) != REPO_NAME:
-                os.chdir(UP_ONE_DIRECTORY)
-        os.chdir(STATION_CODE_RELATIVE_PATH)
-
-    def _recursive_put_files(self, is_subdirectory=False, sub_directory_name=None):
+    def _recursive_put_files(self, sub_directory=None):
         """
         Recursively copy all files from a starting directory to the pyboard.
         """
         current_path = os.path.basename(os.getcwd())
-        LOG.info(f"Copying files from the directory '{current_path}'")
+        LOG.info("Copying files from the directory {}".format(current_path))
         for path_ in os.listdir():
-            # Skip dotfiles and __pycache__
-            if path_.startswith('.') or path_.startswith('__'):
+            if path_.startswith('.'):
+                LOG.warning("Dotfile found, skipping file {}".format(path_))
                 continue
-            if os.path.isdir(path_):
-                if sub_directory_name is not None:
-                    dir_name = os.path.join(sub_directory_name, path_)
-                else:
-                    dir_name = path_
+
+            if path_.startswith('__'):
+                LOG.warning("Python reserved file found, skipping file {}".format(path_))
+                continue
+
+            if sub_directory is not None:
+                path_ = os.path.join(sub_directory, path_)
+
+            filename_ = os.path.basename(path_)
+
+            if os.path.isdir(filename_):
                 try:
-                    self._file_explorer.md(dir_name)
-                except Exception as e:
-                    print(e)
-                os.chdir(dir_name.split(os.path.sep)[-1])
+                    self._file_explorer.md(path_)
+                except RemoteIOError:
+                    LOG.error("Failed to make directory {} on antenny board, see mpf error information for more details"
+                              "".format(path_), exc_info=True)
+                    raise AntennyFilesystemException("Failed to make directory {} on antenny board".format(path_))
+                except PyboardError:
+                    LOG.error("A problem was detected with the antenny board while trying to put files", exc_info=True)
+                    raise AntennyHardwareException("A problem was detected with the antenny board while trying to put files")
+
+                os.chdir(filename_)
                 self._recursive_put_files(
-                        is_subdirectory=True,
-                        sub_directory_name=dir_name,
+                        sub_directory=path_,
                 )
             else:
                 try:
-                    if sub_directory_name is not None:
-                        self._file_explorer.put(path_, os.path.join(sub_directory_name, path_))
+                    if sub_directory is not None:
+                        LOG.info("Adding file {}".format(path_))
+                        self._file_explorer.put(filename_, path_)
                     else:
-                        self._file_explorer.put(path_)
-                except RemoteIOError as e:
-                    print(path_, e)
-        if is_subdirectory:
-            os.chdir(UP_ONE_DIRECTORY)
+                        self._file_explorer.put(filename_)
+                except Exception as e:
+                    LOG.error("Failed to put file {}".format(path_))
+                    raise AntennyFilesystemException("Could not find file {}".format(path_))
+        if sub_directory is not None:
+                os.chdir(UP_ONE_DIRECTORY)
 
     def _put_antenny_files_on_device(self):
         """
         Copy antenny source files to the device
         """
-        self._ensure_directory()
+        curr_working_dir = os.getcwd()
+        LOG.info("Executing file copy from {}".format(curr_working_dir))
+        if os.path.basename(curr_working_dir) != REPO_NAME:
+            if REPO_NAME not in curr_working_dir:
+                raise RuntimeError(
+                    "Cannot find the antenny repository, please run this from the root "
+                    "of that directory."
+                )
+            # walk back up the directory tree, it's in the current working dir
+            while os.path.basename(os.getcwd()) != REPO_NAME:
+                os.chdir(UP_ONE_DIRECTORY)
+        os.chdir(STATION_CODE_RELATIVE_PATH)
         self._recursive_put_files()
 
+    #TODO: Should not have to edit this script to add more libraries, seperate station and host libraries. 
     def _put_library_files_on_device(self):
         """
         Copy required antenny library files.
@@ -158,58 +176,104 @@ class AntennyInstaller(object):
         LOG.info(f"Putting {len(LIBRARY_FILES)} library files on the device.")
         for file_ in LIBRARY_FILES:
             try:
+                LOG.info("Putting {} onto device".format(file_))
+                start = time.time()
                 self._file_explorer.put(file_, os.path.basename(file_))
+                LOG.info("Took {} seconds".format(time.time()-start))
             except Exception as e:
-                print(f"Didn't put library file {file_} on the device: {e}")
+                LOG.error("Failed to put library file {}".format(file_))
+                raise AntennyInstallationException("Failed to install libraryy file {}".format(file_))
         LOG.info("Library files installed")
+        return True
 
     def _query_user_for_wifi_credentials(self):
         """
         Optional: Query user for their login credentials (wifi & webrepl)
         """
-        LOG.info("Credentials gathering [ctrl-c to skip]")
-        try:
-            if os.path.exists(WIFI_CONFIG_PATH):
-                with open(WIFI_CONFIG_PATH, 'r') as f:
-                    wifi_config = json.load(f)
-                ssid, password = wifi_config.get(SSID_KEY, ''), wifi_config.get(PASSWORD_KEY, '')
-                printed_password = '*' * len(password)
-                use_cached = input(
-                        f"Do you want to proceed with these wifi credentials - "
-                        f"{ssid}:{printed_password} (Y/n)?"
-                )
-                use_cached = use_cached == '' or use_cached == 'y' or use_cached == 'Y'
-                if use_cached:
-                    self._file_explorer.put(WIFI_CONFIG_PATH)
-                    return True
-            wifi_config = {
-                SSID_KEY: input("WiFi SSID: "),
-                PASSWORD_KEY: getpass.getpass("Wifi password: "),
-            }
+        LOG.info("Gathering WiFi credentials")
+        use_cached = False
+        if os.path.exists(WIFI_CONFIG_PATH):
+            with open(WIFI_CONFIG_PATH, 'r') as f:
+                wifi_config = json.load(f)
+            ssid, password = wifi_config.get(SSID_KEY, ''), wifi_config.get(PASSWORD_KEY, '')
+            printed_password = '*' * len(password)
+            use_cached = input(
+                    "Do you want to proceed with these wifi credentials - "
+                    "{}:{} (Y/n)?".format(ssid, printed_password)
+            )
+            use_cached = use_cached == '' or use_cached == 'y' or use_cached == 'Y'
+        if use_cached:
+            self._file_explorer.put(WIFI_CONFIG_PATH)
+            return True
+        else:
+            LOG.info("Please enter WiFi credentials, or use [ctrl-C] to exit.")
+            LOG.info("Wifi credentials can be changed after setup by editing {} through the MPFShell".format(WIFI_CONFIG_PATH))
+            try:
+                wifi_config = {
+                    SSID_KEY: input("WiFi SSID: "),
+                    PASSWORD_KEY: getpass.getpass("Wifi password: "),
+                }
+            except KeyboardInterrupt:
+                LOG.warning("No WFi selected, dependencies will not be installed")
+                return False
             with open(WIFI_CONFIG_PATH, 'w') as f:
                 json.dump(wifi_config, f)
             self._file_explorer.put(WIFI_CONFIG_PATH)
             return True
-        except KeyboardInterrupt:
-            print(f"Skipping! You can change {WIFI_CONFIG_PATH} on the device after installation!")
-        return False
 
     def _query_user_for_webrepl_creation(self):
         """
         Ask the user for new webrepl credentials.
         """
         LOG.info("Getting webREPL credentials")
-        try:
-            if os.path.exists(WEBREPL_CONFIG_PATH):
-                self._file_explorer.put(WEBREPL_CONFIG_PATH)
-                return True
-            webrepl_pass = getpass.getpass('Create WiFi console password: ')
+        if os.path.exists(WEBREPL_CONFIG_PATH):
+            self._file_explorer.put(WEBREPL_CONFIG_PATH)
+            return True
+        else:
+            try:
+                webrepl_pass = getpass.getpass('Create WiFi console password: ')
+            except KeyboardInterrupt:
+                LOG.warning("Skipping WiFi console creation")
+                return False
             with open(WEBREPL_CONFIG_PATH, 'w') as f:
                 f.write("PASS = '{}'\n".format(webrepl_pass))
             self._file_explorer.put(WEBREPL_CONFIG_PATH)
             return True
-        except KeyboardInterrupt:
-            return False
+
+    def _install_upip(self, timeout=0):
+        start = time.time()
+        while True:
+            try:
+                self._file_explorer.exec("import upip")
+                return True
+            except PyboardError:
+                LOG.warning("Failed to import upip")
+                pass
+            if (time.time() - start) > timeout:
+                LOG.error("Importing upip has timed out!")
+                return False
+            else:
+                LOG.warning("Retrying")
+
+    def _install_package(self, package, timeout=0.0):
+        start = time.time()
+        while True:
+            try:
+                self._file_explorer.exec_raw("upip.install('{}')".format(package), timeout=30)
+                try:
+                    self._file_explorer.exec_raw("import {}".format(package))
+                    LOG.info("Successfully installed and imported {}".format(package))
+                    return True
+                except Exception as e:
+                    LOG.error("Failed to import package {} after installation".format(package))
+                    raise
+            except Exception as e:
+                LOG.warning("Failed to import {}".format(package))
+            if (time.time() - start) > timeout:
+                LOG.error("Importing {} has timed out!".format(package))
+                raise AntennyInstallationException
+            else:
+                LOG.warning("Retrying")
 
     def _install_packages(
             self,
@@ -221,6 +285,8 @@ class AntennyInstaller(object):
         Install packages required by antenny.
         """
         LOG.info(f"Installing {len(packages)} packages.")
+        if len(packages) == 0:
+            return True
         try:
             LOG.info("Resetting the device in order to trigger boot.py + WiFi connection logic.")
             self._file_explorer.exec("import sys")
@@ -240,24 +306,10 @@ class AntennyInstaller(object):
             return False
 
         try:
-            start = time.time()
-            while (time.time() - start) < reboot_timeout:
-                try:
-                    self._file_explorer.exec("import upip")
-                    break
-                except PyboardError:
-                    continue
+            self._install_upip(timeout=reboot_timeout)
             for package in packages:
                 LOG.info(f"Installing {package}")
-                try:
-                    t1 = time.time()
-                    self._file_explorer.exec_raw(f"upip.install('{package}')", timeout=30)
-                    elapsed = time.time() - t1
-                    if elapsed < .5:
-                        LOG.warning("Package installed too quickly, retrying")
-                        self._file_explorer.exec_raw(f"upip.install('{package}')", timeout=30)
-                except Exception as e:
-                    print("Issue with insalling: {}".format(e))
+                self._install_package(package, timeout=.5)
         except:
             LOG.warning("Unable to install packages, please double check internet connectivity!")
             return False
@@ -283,15 +335,22 @@ class AntennyInstaller(object):
             while not packages_installed:
                 try:
                     packages_installed = self._install_packages(PACKAGES_TO_INSTALL)
+                    return True
                 except:
-                    pass
+                    LOG.warning("Failed to install packages")
                 num_retries += 1
                 if num_retries > package_install_retry:
-                    raise RuntimeError(
+                    raise AntennyInstallationException(
                         "Some packages weren't installed. To fix this, please run `import upip; "
                         "upip.install('logging')` from the REPL after you have successfully "
                         "connected to WiFi."
                     )
+                else:
+                    LOG.warning("Retrying")
+        else:
+            LOG.error("WiFi is required to install external packages, please enter your WiFi credentials and try "
+                      "again.")
+            return False
 
 
 if __name__ == '__main__':
@@ -311,6 +370,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     LOG.info(f"Connecting to the device at {args.serial_path}")
     installer = AntennyInstaller(args.serial_path)
+    installer.connect()
     LOG.info("Connected, welcome to the Antenny installer!")
     confirm = input(
             f"Are you sure you want to erase all files on the device at {args.serial_path}? ("

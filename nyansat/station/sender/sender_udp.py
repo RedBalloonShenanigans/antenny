@@ -1,4 +1,3 @@
-import logging
 import socket
 import struct
 
@@ -6,6 +5,7 @@ from antenny_threading import Thread
 from imu.mock_imu import MockImuController
 from gps.gps import GPSController
 from imu.imu import ImuController
+from gps.mock_gps_controller import MockGPSController
 
 try:
     import utime as time
@@ -19,7 +19,6 @@ try:
 except ImportError:
     TelemetrySender = object
 
-LOGGER = logging.getLogger("station.sender.udp")
 NYANSAT_CLIENT_MAGIC = b"nyansat_client"
 
 MCAST_GRP = '239.255.255.250'
@@ -115,9 +114,6 @@ class UDPTelemetrySender(AbstractTelemetrySender):
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
-    from gps.mock_gps_controller import MockGPSController
-
     sender = UDPTelemetrySender(
             MCAST_PORT,
             MockGPSController(),

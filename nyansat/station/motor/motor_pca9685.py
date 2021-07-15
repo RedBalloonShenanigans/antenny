@@ -1,4 +1,3 @@
-import _thread
 import math
 
 import machine

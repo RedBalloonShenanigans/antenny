@@ -1,5 +1,6 @@
 class GPSStatus(object):
     __slots__ = ['valid', 'latitude', 'longitude', 'altitude', 'speed', 'course', 'timestamp']
+
     def __init__(self, valid: bool, latitude: float, longitude: float, altitude: float, speed: float, course: float,
                  timestamp: float):
         self.valid = valid

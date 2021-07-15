@@ -4,6 +4,12 @@ class MotorController(object):
     def set_position(self, index, degrees=None, radians=None, us=None, duty=None):
         raise NotImplementedError()
 
+    def get_position(self, index):
+        raise NotImplementedError()
+
+    def duty(self, index):
+        raise NotImplementedError()
+
     def degrees(self, index):
         """Return the position in degrees of the servo with the given index."""
         raise NotImplementedError()

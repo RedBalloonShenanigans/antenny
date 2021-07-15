@@ -32,22 +32,12 @@ class CommandInvoker(NyanPyboard):
     def set_tracking(self, val: bool):
         self.tracking = val
 
-    def config_status(self):
-        """Test if there is a valid config object on the board; if not, try to create one"""
-        try:
-            self.exec_("isinstance(config, ConfigRepository")
-            return True
-        except PyboardError:
-            self.exec_("config = ConfigRepository()")
-            ret = self.eval_string_expr("isinstance(config, ConfigRepository)")
-            if ret == "False":
-                return False
-            else:
-                return True
-
     def which_config(self):
         """Get the name of the currently used config file."""
-        return self.eval_string_expr("config.current_file()")
+        try:
+            return self.eval_string_expr("api.which_config()")
+        except PyboardError as e:
+            raise ConfigUnknownError
 
     def config_get(self, key):
         """Get the value of an individual config parameter.
@@ -55,9 +45,8 @@ class CommandInvoker(NyanPyboard):
         Arguments:
         key -- name of config parameter.
         """
-        command = "config.get(\"{}\")".format(key)
         try:
-            return self.eval_string_expr(command)
+            return self.eval_string_expr("api.config_get(\"{}\")".format(key))
         except PyboardError as e:
             raise NoSuchConfigError(str(e))
 
@@ -69,45 +58,71 @@ class CommandInvoker(NyanPyboard):
         val -- value of paramter
         """
         try:
-            if isinstance(val, int) or isinstance(val, float):
-                self.exec_("config.set(\"%s\", %d)" % (key, val))
-            elif isinstance(val, str):
-                self.exec_("config.set(\"%s\", %s)" % (key, val))
+            if isinstance(val, str):
+                val = "\"{}\"".format(val)
+            self.exec_("api.config_set(\"{}\", {}".format(key, val))
         except PyboardError as e:
             raise NoSuchConfigError(str(e))
 
-    def config_get_default(self, key):
-        """Get the default value of a config parameter.
-
-        Arguments:
-        key -- name of config parameter.
-        """
+    def config_save(self):
         try:
-            return self.eval_string_expr("config.get_default(\"{}\")".format(key))
+            return self.exec_("api.config_save()")
         except PyboardError as e:
-            raise NoSuchConfigError(str(e))
+            raise ConfigStatusError(str(e))
 
-    def config_new(self, name):
-        """Create a new config file on the ESP32.
-
-        Arguments:
-        name -- name of new config file.
-        """
+    def config_save_as(self, config_name, force=False):
         try:
-            self.exec_("config.new(\"{}\")".format(name))
+            return self.exec_("api.config_save_as(\"{}\", force={})".format(config_name, False))
         except PyboardError as e:
-            raise ConfigUnknownError(str(e))
+            raise ConfigStatusError(str(e))
 
-    def config_switch(self, name):
-        """Switch to using a different config file.
-
-        Arguments:
-        name -- name of config file.
-        """
+    def config_load(self, config_name):
         try:
-            self.exec_("config.switch(\"{}\")".format(name))
+            return self.exec_("api.config_load(\"{}\")".format(config_name))
         except PyboardError as e:
-            raise ConfigUnknownError(str(e))
+            raise ConfigStatusError(str(e))
+
+    def config_print(self):
+        try:
+            return self.eval_string_expr("api.config_print()")
+        except PyboardError as e:
+            raise ConfigStatusError(str(e))
+
+    def config_load_default(self):
+        try:
+            return self.exec("api.config_load_defaut()")
+        except PyboardError as e:
+            raise ConfigStatusError(str(e))
+
+    def config_save_as_default(self):
+        try:
+            return self.exec_("api.save_as_default()")
+        except PyboardError as e:
+            raise ConfigStatusError(str(e))
+
+    def config_new(self, config_name):
+        try:
+            return self.exec_("api.config_new(\"{}\"".format(config_name))
+        except PyboardError as e:
+            raise ConfigStatusError(str(e))
+
+    def config_help(self):
+        try:
+            return self.eval_string_expr("api.get_help_info()")
+        except PyboardError as e:
+            raise ConfigStatusError(str(e))
+
+    def config_reset(self):
+        try:
+            return self.exec_("api.config_reset()")
+        except PyboardError as e:
+            raise ConfigStatusError(str(e))
+
+    def config_list(self):
+        try:
+            return self.eval_string_expr("api.config_list()")
+        except PyboardError as e:
+            raise ConfigStatusError(str(e))
 
     def i2c_scan(self, sda, scl):
         """
@@ -191,7 +206,7 @@ class CommandInvoker(NyanPyboard):
         """Create an antkontrol object on the ESP32."""
         try:
             ret = self.exec_("import antenny")
-            ret = self.exec_("api = antenny.esp32_antenna_api_factory()")
+            ret = self.exec_("api = antenny.start()")
         except PyboardError as e:
             raise AntennaAPIFactoryError(str(e))
         try:

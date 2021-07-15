@@ -1,8 +1,6 @@
-import logging
 import time
 
 _DEFAULT_DELAY = 0.01
-LOG = logging.getLogger('antenny.common')
 
 _in_micro_python = 'machine' in globals()
 try:

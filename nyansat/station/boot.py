@@ -5,10 +5,6 @@ import machine
 import network
 import ujson
 
-from machine import I2C, Pin
-from ssd1306 import SSD1306_I2C
-from config.config import ConfigRepository
-
 # Constants
 STA_MODE = 0
 AP_MODE = 1
@@ -26,9 +22,8 @@ class Connection(object):
         self.ap = network.WLAN(network.AP_IF)
         self.mode = None
         self.num_retries = connection_retries
-        self.cfg = ConfigRepository()
 
-        with open('wifi_config.json', 'r') as f:
+        with open('/configs/wifi_config.json', 'r') as f:
             wifi_dict = ujson.load(f)
             self.ssid = wifi_dict['ssid']
             self.password = wifi_dict['key']
@@ -72,35 +67,8 @@ class Connection(object):
             self.create_ap()
             self.mode = AP_MODE
 
-    def ip_display(self):
-        """Show connection status on the SSD1306 display."""
-        if not self.cfg.get("use_screen"):
-            return
-        i2c = I2C(
-                -1,
-                scl=Pin(self.cfg.get("i2c_screen_scl")),
-                sda=Pin(self.cfg.get("i2c_screen_sda"))
-        )
-        screen = SSD1306_I2C(128, 32, i2c)
-        screen.fill(0)
-        if self.mode == STA_MODE:
-            ip = self.sta_if.ifconfig()[0]
-            screen.text('Normal Mode', 0, 0)
-            screen.text('IP Address:', 0, 8)
-            screen.text(ip, 0, 16)
-        if self.mode == AP_MODE:
-            ip = self.ap.ifconfig()[0]
-            screen.text('Access Point:', 0, 0)
-            screen.text(Connection.AP_SSID, 0, 8)
-            screen.text('IP Address:', 0, 16)
-            screen.text(ip, 0, 24)
-
-        screen.show()
-        time.sleep(5)
-
 
 if __name__ == '__main__':
-    machine.freq(240000000)
 
+    machine.freq(240000000)
     conn = Connection()
-    conn.ip_display()

@@ -1,10 +1,5 @@
-import logging
-
 from antenny_threading import Thread, Queue
 from screen.screen import ScreenController
-
-LOG = logging.getLogger('antenny.mock_screen')
-
 
 class MockScreenController(ScreenController, Thread):
     """Interface for a generic screen controller, for displaying nyansat motor
@@ -26,7 +21,7 @@ class MockScreenController(ScreenController, Thread):
             previously_displayed = newly_displayed
 
     def _display(self, data) -> None:
-        LOG.info(data)
+        print(data)
 
     def display(self, data) -> None:
         """Display a tuple of numeric data on screen."""
