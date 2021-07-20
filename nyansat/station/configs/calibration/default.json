@@ -1,0 +1,30 @@
+{
+      "accelerometer": {
+            "acc_offset_x_lsb": 0,
+            "acc_offset_x_msb": 0,
+            "acc_offset_y_lsb": 0,
+            "acc_offset_y_msb": 0,
+            "acc_offset_z_lsb": 0,
+            "acc_offset_z_msb": 0,
+            "acc_radius_lsb": 0,
+            "acc_radius_msb": 0
+      },
+      "magnetometer": {
+            "mag_offset_x_lsb": 0,
+            "mag_offset_x_msb": 0,
+            "mag_offset_y_lsb": 0,
+            "mag_offset_y_msb": 0,
+            "mag_offset_z_lsb": 0,
+            "mag_offset_z_msb": 0,
+            "mag_radius_lsb": 0,
+            "mag_radius_msb": 0
+      },
+      "gyroscrope": {
+            "gyr_offset_x_lsb": 0,
+            "gyr_offset_x_msb": 0,
+            "gyr_offset_y_lsb": 0,
+            "gyr_offset_y_msb": 0,
+            "gyr_offset_z_lsb": 0,
+            "gyr_offset_z_msb": 0
+      }
+}

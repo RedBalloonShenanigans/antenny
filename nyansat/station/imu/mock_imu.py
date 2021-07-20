@@ -21,7 +21,7 @@ class MockImuController(ImuController):
     def get_calibration_status(self) -> ImuCalibrationStatus:
         return ImuCalibrationStatus()
 
-    def save_calibration_profile(self, filename: str) -> None:
+    def save_calibration_profile(self) -> None:
         """Save the device's current calibration profile to the specified file,
         creating the file if it does not exist and overwriting it if it does.
         The format that the calibration profile is saved in should be readable
@@ -29,7 +29,7 @@ class MockImuController(ImuController):
         """
         pass
 
-    def upload_calibration_profile(self, filename: str) -> None:
+    def upload_calibration_profile(self) -> None:
         """Upload a calibration profile from the specified file to the device.
         The format that the calibration profile is saved in should be the same
         as that used by save_calibration_profile.

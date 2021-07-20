@@ -74,6 +74,7 @@ class AntennyInstaller(object):
             self,
             in_subdirectory: bool = False,
             ignore_lib: bool = False,
+            ignore_configs: bool = False
     ):
         """
         Clean up the existing files on the device.
@@ -89,6 +90,9 @@ class AntennyInstaller(object):
             if ignore_lib and not in_subdirectory and (file_ in libs or file_ == "lib"):
                 continue
 
+            if ignore_configs and file_ == "configs":
+                continue
+
             if self._file_explorer.isdir(file_):
                 LOG.info("Attempting to clean directory {}".format(file_))
                 self._file_explorer.cd(file_)
@@ -102,7 +106,7 @@ class AntennyInstaller(object):
         else:
             LOG.info("Done cleaning FS")
 
-    def _recursive_put_files(self, sub_directory=None):
+    def _recursive_put_files(self, sub_directory=None, ignore_configs=False):
         """
         Recursively copy all files from a starting directory to the pyboard.
         """
@@ -115,6 +119,9 @@ class AntennyInstaller(object):
 
             if path_.startswith('__'):
                 LOG.warning("Python reserved file found, skipping file {}".format(path_))
+                continue
+
+            if ignore_configs and path_ == "configs":
                 continue
 
             if sub_directory is not None:
@@ -150,7 +157,7 @@ class AntennyInstaller(object):
         if sub_directory is not None:
                 os.chdir(UP_ONE_DIRECTORY)
 
-    def _put_antenny_files_on_device(self):
+    def _put_antenny_files_on_device(self, ignore_configs=False):
         """
         Copy antenny source files to the device
         """
@@ -166,7 +173,7 @@ class AntennyInstaller(object):
             while os.path.basename(os.getcwd()) != REPO_NAME:
                 os.chdir(UP_ONE_DIRECTORY)
         os.chdir(STATION_CODE_RELATIVE_PATH)
-        self._recursive_put_files()
+        self._recursive_put_files(ignore_configs=ignore_configs)
 
     #TODO: Should not have to edit this script to add more libraries, seperate station and host libraries. 
     def _put_library_files_on_device(self):
@@ -199,9 +206,8 @@ class AntennyInstaller(object):
             printed_password = '*' * len(password)
             use_cached = input(
                     "Do you want to proceed with these wifi credentials - "
-                    "{}:{} (Y/n)?".format(ssid, printed_password)
+                    "{}:{} (Y/n)?".format(ssid, printed_password).strip().lower() in ("y", "")
             )
-            use_cached = use_cached == '' or use_cached == 'y' or use_cached == 'Y'
         if use_cached:
             self._file_explorer.put(WIFI_CONFIG_PATH)
             return True
@@ -319,14 +325,17 @@ class AntennyInstaller(object):
             self,
             package_install_retry: int = 3,
             only_core_reinstall: bool = False,
+            ignore_configs: bool = False
+
     ):
         """
         Perform the antenny installation.
         """
-        self._clean_files(ignore_lib=only_core_reinstall)
+
+        self._clean_files(ignore_lib=only_core_reinstall, ignore_configs=ignore_configs)
         if not only_core_reinstall:
             self._put_library_files_on_device()
-        self._put_antenny_files_on_device()
+        self._put_antenny_files_on_device(ignore_configs=ignore_configs)
         has_wifi = self._query_user_for_wifi_credentials()
         has_web_repl = self._query_user_for_webrepl_creation()
         if has_wifi and not only_core_reinstall:
@@ -372,12 +381,10 @@ if __name__ == '__main__':
     installer = AntennyInstaller(args.serial_path)
     installer.connect()
     LOG.info("Connected, welcome to the Antenny installer!")
-    confirm = input(
-            f"Are you sure you want to erase all files on the device at {args.serial_path}? ("
-            "y/N) "
-    ).strip().lower() == 'y'
+    ignore_configs = input("Do you want to keep the configs on the device? (Y/n)").strip().lower() == 'y'
+    confirm = input(f"Are you sure you want to erase all files on the device? (y/N) ").strip().lower() == 'y'
     if not confirm:
         print("Exiting installer; please backup existing files before running the installer!")
         sys.exit(0)
-    installer.install(only_core_reinstall=args.core_install)
+    installer.install(only_core_reinstall=args.core_install, ignore_configs=ignore_configs)
     LOG.info("Installation complete!")

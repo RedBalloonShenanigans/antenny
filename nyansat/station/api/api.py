@@ -2,8 +2,21 @@ import machine
 import _thread
 
 from config.config import Config
+from exceptions import AntennyIMUException, AntennyMotorException, AntennyGPSException, AntennyTelemetryException, \
+    AntennyControllerException, AntennyConfigException, AntennyScreenException
+from gps.gps_basic import BasicGPSController
+from gps.mock_gps_controller import MockGPSController
 from imu.imu import ImuController
+from imu.imu_bno055 import Bno055ImuController
+from imu.mock_imu import MockImuController
+from motor.mock_motor import MockMotorController
 from motor.motor import MotorController
+from motor.motor_pca9685 import Pca9685Controller
+from screen.mock_screen import MockScreenController
+from screen.screen_ssd1306 import Ssd1306ScreenController
+from antenny_threading import Queue
+from sender.sender_udp import UDPTelemetrySender
+from sender.mock_sender import MockTelemetrySender
 
 _DEFAULT_MOTOR_POSITION = 90.
 _DEFAULT_MOTION_DELAY = 0.75
@@ -116,39 +129,230 @@ class AntennaController:
             time.sleep(15)
 
 
-
 class AntennyAPI:
     """
     Interface for interacting with the antenny board.
     """
 
-    def __init__(
-            self,
-            antenna: AntennaController,
-            imu: ImuController,
-            config: Config,
-            screen,
-            telemetry,
-            safe_mode: bool,
-    ):
-        self.antenna = antenna
-        self.imu = imu
+    def __init__(self, config: Config):
         self.config = config
-        self._screen = screen
-        self._telemetry = telemetry
+        self.safe_mode = True
+        self.antenna = None
+        self.imu = None
+        self.motor = None
+        self.screen = None
+        self.telemetry = None
+        self.gps = None
+        self.i2c_bno = None
+        self.i2c_servo = None
+        self.i2c_screen = None
+
+    @staticmethod
+    def init_i2c(id_, scl, sda, freq=400000):
+        return machine.I2C(id_,
+                           scl=machine.Pin(scl, machine.Pin.OUT, machine.Pin.PULL_DOWN),
+                           sda=machine.Pin(sda, machine.Pin.OUT, machine.Pin.PULL_DOWN),
+                           freq=freq
+                           )
+
+    def init_imu(self, chain: machine.I2C = None):
+        if self.config.get("use_imu"):
+            print("use_imu found in config: {}".format(self.config.get_name()))
+            try:
+                if chain is None:
+                    i2c_bno_scl = self.config.get("i2c_bno_scl")
+                    i2c_bno_sda = self.config.get("i2c_bno_sda")
+                    self.i2c_bno = self.init_i2c(-1, i2c_bno_scl, i2c_bno_sda, freq=1000)
+                else:
+                    self.i2c_bno = chain
+                imu = Bno055ImuController(
+                    self.i2c_bno,
+                    crystal=False,
+                    address=self.config.get("i2c_bno_address"),
+                    sign=(0, 0, 0)
+                )
+                print("IMU connected")
+            except Exception as e:
+                print("Failed to initialize IMU I2C ")
+                raise AntennyIMUException(e)
+        else:
+            imu = MockImuController()
+            print("According to your config, ou do not have an IMU connected")
+        self.imu = imu
+        return imu
+
+    def init_motor(self, chain: machine.I2C = None):
+        if self.config.get("use_motor"):
+            print("use_motor found in config: {}".format(self.config.get_name()))
+            try:
+                if chain is None:
+                    i2c_servo_scl = self.config.get("i2c_servo_scl")
+                    i2c_servo_sda = self.config.get("i2c_servo_sda")
+                    self.i2c_servo = self.init_i2c(0, i2c_servo_scl, i2c_servo_sda)
+                else:
+                    self.i2c_servo = chain
+                motor = Pca9685Controller(
+                    self.i2c_servo,
+                    address=self.config.get("i2c_servo_address"),
+                    min_us=500,
+                    max_us=2500,
+                    degrees=180
+                )
+                print("Motor connected")
+                safe_mode = False
+            except Exception as e:
+                print("Failed to initialize motor")
+                raise AntennyMotorException("Failed to initialize motor")
+        else:
+            motor = MockMotorController()
+            print("According to your config, you do not have a motor connected, entering Safe Mode")
+            safe_mode = True
+        self.motor = motor
         self.safe_mode = safe_mode
+        return motor, safe_mode
+
+    def init_screen(self, chain: machine.I2C = None):
+        if self.config.get("use_screen"):
+            if chain is None:
+                i2c_screen_scl = self.config.get("i2c_screen_scl")
+                i2c_screen_sda = self.config.get("i2c_screen_sda")
+                self.i2c_screen = machine.I2C(
+                    0,
+                    scl=machine.Pin(i2c_screen_scl, machine.Pin.OUT, machine.Pin.PULL_DOWN),
+                    sda=machine.Pin(i2c_screen_sda, machine.Pin.OUT, machine.Pin.PULL_DOWN),
+                )
+            else:
+                self.i2c_screen = chain
+            screen = Ssd1306ScreenController(
+                self.i2c_screen,
+            )
+        else:
+            screen = MockScreenController(Queue())
+            print("According to your config, you do not have a screen connected")
+        self.screen = screen
+        return screen
+
+    def init_gps(self):
+        if self.config.get("use_gps"):
+            print("use_gps found in config: {}".format(self.config.get_name()))
+            try:
+                gps = BasicGPSController(self.config.get("gps_uart_tx"), self.config.get("gps_uart_rx"))
+            except Exception as e:
+                print("Failed to initialize GPS")
+                raise AntennyGPSException(e)
+        else:
+            gps = MockGPSController()
+            print("According to your config, you do not have a GPS connected")
+        self.gps = gps
+        return gps
+
+    def init_telemetry(self, port=31337):
+        if self.imu is None:
+            print("Cannot initialize telemetry without IMU")
+            raise AntennyTelemetryException("Cannot initialize telemetry without IMU")
+        if self.gps is None:
+            print("Cannot initalize telemetry without GPS")
+            raise AntennyTelemetryException("Cannot initalize telemetry without GPS")
+
+        if isinstance(self.imu, MockImuController) or isinstance(self.gps, MockGPSController):
+            print("WARNING: Initializing telemetry sender with mock components, please check your config")
+
+        if self.config.get("use_telemetry"):
+            print("use_telemetry found in config")
+            try:
+                telemetry_sender = UDPTelemetrySender(port, self.gps, self.imu)
+            except Exception as e:
+                print("Failed to initialize telemetry sender")
+                raise AntennyTelemetryException(e)
+        else:
+            telemetry_sender = MockTelemetrySender("localhost", 31337)
+            print("According to your config, you do not have a telemetry enabled")
+        self.telemetry = telemetry_sender
+        return telemetry_sender
+
+    def init_controller(self):
+        if self.imu is None:
+            print("Cannot initialize antenna controller without IMU")
+            print("Attempting to initialize IMU from Antenna Controller initialization")
+            try:
+                self.init_imu()
+            except Exception as e:
+                print("Failed to initialize IMU from Antenna Controller initialization")
+                raise AntennyControllerException(e)
+        if self.motor is None:
+            print("Cannot initialize antenna controller without Motor")
+            print("Attempting to initialize Motor from Antenna Controller initialization")
+            try:
+                self.init_motor()
+            except Exception as e:
+                print("Failed to initialize Motor from Antenna Controller initialization")
+                raise AntennyControllerException(e)
+        try:
+            if isinstance(self.imu, MockImuController) or isinstance(self.motor, MockMotorController):
+                print("WARNING: Initializing Antenna Controller with mock components, please check your config")
+            print("Initializing AntennaController class")
+            antenna = AntennaController(
+                AxisController(
+                    self.config.get("azimuth_servo_index"),
+                    self.imu,
+                    self.motor,
+                ),
+                AxisController(
+                    self.config.get("elevation_servo_index"),
+                    self.imu,
+                    self.motor,
+                ),
+            )
+        except Exception as e:
+            print("Failed to initialize AntennaController class")
+            raise AntennyControllerException(e)
+        self.antenna = antenna
+        return antenna
+
+    def init_components(self):
+        if self.config is None:
+            print("Please load a config before initializing components")
+        if not self.config.check():
+            print("Config {} is not valid, failed to initialize".format(self.config.get_name()))
+            print("If you believe this is an error, or you have modified the base components of the antenny board, "
+                  "please check Config class as well as the default configs for more details.")
+
+        self.init_imu()
+        self.init_motor()
+        self.init_screen()
+        self.init_gps()
+        self.init_telemetry()
+        self.init_controller()
+
+    def scan_imu(self):
+        if self.i2c_bno is None:
+            print("No I2C bus set for the IMU")
+            raise AntennyIMUException("No I2C bus set for the IMU")
+        return self.i2c_bno.scan()
+
+    def scan_motor(self):
+        if self.i2c_servo is None:
+            print("No I2C bus set for the Motor")
+            raise AntennyMotorException("No I2C bus set for the Motor")
+        return self.i2c_servo.scan()
+
+    def scan_screen(self):
+        if self.i2c_bno is None:
+            print("No I2C bus set for the Screen")
+            raise AntennyScreenException("No I2C bus set for the Screen")
+        return self.i2c_screen.scan()
 
     def start(self):
-        if self._screen is not None:
-            self._screen.start()
-        if self._telemetry is not None:
-            self._telemetry.start()
+        if self.screen is not None:
+            self.screen.start()
+        if self.telemetry is not None:
+            self.telemetry.start()
 
     def stop(self):
-        if self._screen is not None:
-            self._screen.stop()
-        if self._telemetry is not None:
-            self._telemetry.stop()
+        if self.screen is not None:
+            self.screen.stop()
+        if self.telemetry is not None:
+            self.telemetry.stop()
 
     def which_config(self):
         return self.config.get_name()
@@ -194,10 +398,51 @@ class AntennyAPI:
 
     def imu_is_calibrated(self) -> bool:
         print("Checking the IMU calibration status")
-        return self.imu.get_calibration_status().is_calibrated()
+        return self.imu.is_calibrated()
 
-    def save_imu__calibration_profile(self, path: str):
+    def imu_calibrate_accelerometer(self):
+        return self.imu.calibrate_accelerometer()
+
+    def imu_calibrate_magnetometer(self):
+        return self.imu.calibrate_magnetometer()
+
+    def imu_calibrate_gyroscope(self):
+        return self.imu.calibrate_gyroscope()
+
+    def imu_save_calibration(self):
+        return self.imu.save_calibration_profile()
+
+    def imu_save_calibration_as(self, name):
+        return self.imu.save_calibration_profile_as(name)
+
+    def imu_make_default(self):
+        return self.imu.save_calibration_profile_as_default()
+
+    def imu_load_calibration(self, name):
+        return self.imu.load_calibration_profile(name)
+
+    def imu_reload_calibration(self):
+        return self.imu.reload_calibration_profile()
+
+    def imu_load_default(self):
+        return self.imu.load_default_calibration()
+
+    def imu_reset_calibration(self):
+        return self.imu.reset_calibration()
+
+    def imu_upload_calibration(self):
+        self.imu.upload_calibration_profile()
+
+    def imu_calibrate(self):
+        self.imu_reset_calibration()
+        self.imu_calibrate_magnetometer()
+        self.imu_calibrate_gyroscope()
+        self.imu_calibrate_accelerometer()
+        self.imu_upload_calibration()
+
+    def imu_save_calibration_profile(self, path: str):
         print("Saving IMU calibration from '{}'".format(path))
+
 
     def load_imu_calibration_profile(self, path: str):
         print("Loading IMU calibration from '{}'".format(path))
@@ -211,15 +456,15 @@ class AntennyAPI:
 
     def print_to_display(self, data):
         print("Outputting '{}' to the screen.".format(data))
-        if self._screen is None:
+        if self.screen is None:
             raise ValueError("Please enable the 'use_screen' option in the config")
-        self._screen.display(data)
+        self.screen.display(data)
 
     def update_telemetry(self, data: dict):
         print("Outputting '{}' to telemetry.".format(data))
-        if self._telemetry is None:
+        if self.telemetry is None:
             raise ValueError("Please enable the 'use_telemetry' option in the config")
-        self._telemetry.update(data)
+        self.telemetry.update(data)
 
     def pwm_calibration(self, error=0.1):
         """

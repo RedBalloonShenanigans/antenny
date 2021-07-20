@@ -1,5 +1,7 @@
 {
-  "config": "default",
-  "original_config": "default",
-  "wifi_config": "wifi_config.json"
+  "antenny": "default",
+  "original_antenny": "default",
+  "calibration": "default",
+  "original_calibration": "default",
+  "wifi": "wifi_config.json"
 }

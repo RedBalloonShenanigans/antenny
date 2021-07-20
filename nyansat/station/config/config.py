@@ -7,39 +7,16 @@ except ImportError:
 import os
 
 
-CONFIGS = "/configs/"
-ANTENNY_CONFIGS_PATH = CONFIGS + "antenny_configs/"
-DEFAULTS = CONFIGS + "defaults.json"
+CONFIGS = "configs"
+DEFAULTS = "/configs/defaults.json"
+
 
 class Config:
-    def __init__(self):
+    def __init__(self, config_type="antenny"):
+        self.config_type = config_type
         self._config = None
         self._config_name = self._get_default_config()
         self.load(self._config_name)
-
-    @staticmethod
-    def _get_default_config():
-        with open(DEFAULTS, "r") as fh:
-            return json.load(fh)["config"]
-
-    @staticmethod
-    def _get_original_default_config():
-        with open(DEFAULTS, "r") as fh:
-            return json.load(fh)["original_config"]
-
-    @staticmethod
-    def _get_path(config_name):
-        return ANTENNY_CONFIGS_PATH + config_name + ".json"
-
-    @staticmethod
-    def _list_configs():
-        configs = os.listdir(ANTENNY_CONFIGS_PATH)
-        config_names = list()
-        for config in configs:
-            if "_help" not in config:
-                config = config.split(".")[0]
-                config_names.append(config)
-        return config_names
 
     @staticmethod
     def _check_name(config_name):
@@ -51,15 +28,41 @@ class Config:
             return False
         return True
 
+    def _get_default_config(self):
+        with open(DEFAULTS, "r") as fh:
+            return json.load(fh)[self.config_type]
+
+    def _get_original_default_config(self):
+        with open(DEFAULTS, "r") as fh:
+            return json.load(fh)["original_{}".format(self.config_type)]
+
+    def _get_type_path(self):
+        return "/{}/{}".format(CONFIGS, self.config_type)
+
+    def _get_config_path(self, config_name):
+        return "{}/{}.json".format(self._get_type_path(), config_name)
+
+    def _get_this_config_path(self):
+        return self._get_config_path(self._config_name)
+
+    def _list_configs(self):
+        configs = os.listdir(self._get_type_path())
+        config_names = list()
+        for config in configs:
+            if "_help" not in config:
+                config = config.split(".")[0]
+                config_names.append(config)
+        return config_names
+
     def _is_config(self, config_name):
         configs = self._list_configs()
         return config_name  in configs
 
     def _get_current_path(self):
-        return self._get_path(self._config_name)
+        return self._get_config_path(self._config_name)
 
     def _get_help_path(self):
-        return self._get_path(self._config_name + "_help")
+        return self._get_config_path(self._config_name + "_help")
 
     def load(self, config_name):
         if not self._check_name(config_name):
@@ -118,13 +121,13 @@ class Config:
             print("Trying to print keys from an empty config")
             return False
         for key in self._config:
-            print()
+            print(key)
 
     def save_as_default_config(self):
         self.save()
         with open(DEFAULTS, "r") as fh:
             defaults = json.load(fh)
-        defaults["config"] = self._config_name
+        defaults[self.config_type] = self._config_name
         with open(DEFAULTS, "w") as fh:
             json.dump(defaults, fh)
 
@@ -140,7 +143,7 @@ class Config:
     def check(self):
         check_flag = True
         with open(DEFAULTS, "r") as fh:
-            valid_config_path = self._get_path(json.load(fh)["original_config"])
+            valid_config_path = self._get_config_path(json.load(fh)["original_{}".format(self.config_type)])
         with open(valid_config_path, "r") as fh:
             valid_config = json.load(fh)
         for key in valid_config:
@@ -163,3 +166,6 @@ class Config:
                 config = "> " + config
             configs.append(config)
         return configs
+
+    def get_config(self):
+        return self._config
