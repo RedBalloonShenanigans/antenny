@@ -74,7 +74,8 @@ class AntennyInstaller(object):
             self,
             in_subdirectory: bool = False,
             ignore_lib: bool = False,
-            ignore_configs: bool = False
+            ignore_configs: bool = False,
+            components: list = None
     ):
         """
         Clean up the existing files on the device.
@@ -87,13 +88,15 @@ class AntennyInstaller(object):
         if not in_subdirectory:
             LOG.info(f"Cleaning {len(files)} file(s) on the device")
         for file_ in files:
-            if ignore_lib and not in_subdirectory and (file_ in libs or file_ == "lib"):
+            if ignore_lib and not in_subdirectory and (os.path.basename(file_) in libs or file_ == "lib"):
                 continue
 
             if ignore_configs and file_ == "configs":
                 continue
 
             if self._file_explorer.isdir(file_):
+                if components is not None and file_ not in components:
+                    continue
                 LOG.info("Attempting to clean directory {}".format(file_))
                 self._file_explorer.cd(file_)
                 self._clean_files(in_subdirectory=True)
@@ -106,11 +109,18 @@ class AntennyInstaller(object):
         else:
             LOG.info("Done cleaning FS")
 
-    def _recursive_put_files(self, sub_directory=None, ignore_configs=False):
+    def _recursive_put_files(
+            self,
+            sub_directory=None,
+            ignore_configs=False,
+            components: list = None
+    ):
         """
         Recursively copy all files from a starting directory to the pyboard.
         """
         current_path = os.path.basename(os.getcwd())
+        if components is not None and current_path not in components + ["station"]:
+            return
         LOG.info("Copying files from the directory {}".format(current_path))
         for path_ in os.listdir():
             if path_.startswith('.'):
@@ -130,20 +140,21 @@ class AntennyInstaller(object):
             filename_ = os.path.basename(path_)
 
             if os.path.isdir(filename_):
-                try:
-                    self._file_explorer.md(path_)
-                except RemoteIOError:
-                    LOG.error("Failed to make directory {} on antenny board, see mpf error information for more details"
-                              "".format(path_), exc_info=True)
-                    raise AntennyFilesystemException("Failed to make directory {} on antenny board".format(path_))
-                except PyboardError:
-                    LOG.error("A problem was detected with the antenny board while trying to put files", exc_info=True)
-                    raise AntennyHardwareException("A problem was detected with the antenny board while trying to put files")
+                if components is None or filename_ in components:
+                    try:
+                        self._file_explorer.md(path_)
+                    except RemoteIOError:
+                        LOG.error("Failed to make directory {} on antenny board, see mpf error information for more details"
+                                  "".format(path_), exc_info=True)
+                        raise AntennyFilesystemException("Failed to make directory {} on antenny board".format(path_))
+                    except PyboardError:
+                        LOG.error("A problem was detected with the antenny board while trying to put files", exc_info=True)
+                        raise AntennyHardwareException("A problem was detected with the antenny board while trying to put files")
 
-                os.chdir(filename_)
-                self._recursive_put_files(
-                        sub_directory=path_,
-                )
+                    os.chdir(filename_)
+                    self._recursive_put_files(
+                            sub_directory=path_,
+                    )
             else:
                 try:
                     if sub_directory is not None:
@@ -157,7 +168,7 @@ class AntennyInstaller(object):
         if sub_directory is not None:
                 os.chdir(UP_ONE_DIRECTORY)
 
-    def _put_antenny_files_on_device(self, ignore_configs=False):
+    def _put_antenny_files_on_device(self, ignore_configs=False, components: list = None):
         """
         Copy antenny source files to the device
         """
@@ -173,7 +184,7 @@ class AntennyInstaller(object):
             while os.path.basename(os.getcwd()) != REPO_NAME:
                 os.chdir(UP_ONE_DIRECTORY)
         os.chdir(STATION_CODE_RELATIVE_PATH)
-        self._recursive_put_files(ignore_configs=ignore_configs)
+        self._recursive_put_files(ignore_configs=ignore_configs, components=components)
 
     #TODO: Should not have to edit this script to add more libraries, seperate station and host libraries. 
     def _put_library_files_on_device(self):
@@ -324,21 +335,21 @@ class AntennyInstaller(object):
     def install(
             self,
             package_install_retry: int = 3,
-            only_core_reinstall: bool = False,
-            ignore_configs: bool = False
-
+            ignore_lib: bool = False,
+            ignore_configs: bool = False,
+            components: list = None
     ):
         """
         Perform the antenny installation.
         """
 
-        self._clean_files(ignore_lib=only_core_reinstall, ignore_configs=ignore_configs)
-        if not only_core_reinstall:
+        self._clean_files(ignore_lib=ignore_lib, ignore_configs=ignore_configs, components=components)
+        if not ignore_lib and components is None:
             self._put_library_files_on_device()
-        self._put_antenny_files_on_device(ignore_configs=ignore_configs)
+        self._put_antenny_files_on_device(ignore_configs=ignore_configs, components=components)
         has_wifi = self._query_user_for_wifi_credentials()
         has_web_repl = self._query_user_for_webrepl_creation()
-        if has_wifi and not only_core_reinstall:
+        if has_wifi and not ignore_lib:
             num_retries = 0
             packages_installed = False
             while not packages_installed:
@@ -381,10 +392,19 @@ if __name__ == '__main__':
     installer = AntennyInstaller(args.serial_path)
     installer.connect()
     LOG.info("Connected, welcome to the Antenny installer!")
-    ignore_configs = input("Do you want to keep the configs on the device? (Y/n)").strip().lower() == 'y'
-    confirm = input(f"Are you sure you want to erase all files on the device? (y/N) ").strip().lower() == 'y'
-    if not confirm:
-        print("Exiting installer; please backup existing files before running the installer!")
-        sys.exit(0)
-    installer.install(only_core_reinstall=args.core_install, ignore_configs=ignore_configs)
+    fresh_install = input("Do you want to do an installation of all components?(Y/n)").strip().lower() in ('y', '')
+    if fresh_install:
+        ignore_configs = input("Do you want to keep the configs on the device? (Y/n)").strip().lower() in ('y', '')
+        confirm = input(f"Are you sure you want to erase all files on the device? (y/N) ").strip().lower() == 'y'
+        if not confirm:
+            print("Exiting installer; please backup existing files before running the installer!")
+            sys.exit(0)
+        installer.install(ignore_lib=args.core_install, ignore_configs=ignore_configs)
+    else:
+        done = False
+        components = []
+        while not done:
+            components.append(input("Name a component you wish to install: ").strip().lower())
+            done = input("Do you wish to install more? (y/N)").strip().lower() in ("n", "")
+        installer.install(ignore_lib=True, ignore_configs=True, components=components)
     LOG.info("Installation complete!")

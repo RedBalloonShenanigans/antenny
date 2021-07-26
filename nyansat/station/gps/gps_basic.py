@@ -38,7 +38,7 @@ class BasicGPSController(GPSController):
                 self._gps.latitude,
                 self._gps.longitude,
                 self._gps.altitude,
-                self._gps.speed,
+                self._gps.set_speed,
                 self._gps.course,
                 self._gps.timestamp,
             )

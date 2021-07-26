@@ -1,28 +1,45 @@
-from motor.motor import MotorController
+from motor.motor import ServoController
 
 
-class MockMotorController(MotorController):
-    """Interface for servomotor mux controller."""
+class MockPWMController(object):
+    """Mock interface for a pwm controller object"""
+    def _write(self, address, value):
+        pass
 
-    def __init__(self):
-        self._position = 90.
+    def _read(self, address):
+        return 0
 
-    def set_position(self, index, degrees=None, radians=None, us=None, duty=None):
-        self._position = degrees
+    def reset(self):
+        pass
 
-    def get_position(self, index):
-        return self._position
+    def freq(self, freq=None):
+        pass
 
-    def degrees(self, index):
-        """Return the position in degrees of the servo with the given index."""
-        return self._position
+    def pwm(self, index, on=None, off=None):
+        pass
 
-    def smooth_move(self, index, degrees, delay):
-        """Move the servo with the given index to a specified position and with
-        a given initial delay.
-        """
-        self._position = degrees
+    def duty(self, index, value=None, invert=False):
+        return 0
 
-    def release(self, index):
-        """Set the duty cycle of the servo with the given index to 0."""
+
+class MockServoController(ServoController):
+    def set_min_duty(self, min_duty):
+        pass
+
+    def get_min_duty(self):
+        pass
+
+    def set_max_duty(self, max_duty):
+        pass
+
+    def get_max_duty(self):
+        pass
+
+    def set_position(self, position):
+        pass
+
+    def get_position(self):
+        return 0
+
+    def step(self, d=1):
         pass

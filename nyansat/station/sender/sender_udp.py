@@ -72,7 +72,7 @@ class AbstractTelemetrySender(Thread, TelemetrySender):
                 "coordinates_lng": gps_status.longitude,
                 "coordinates_lat": gps_status.latitude,
                 "altitude": gps_status.altitude,
-                "speed": gps_status.speed,
+                "speed": gps_status.set_speed,
             })
         return data
 

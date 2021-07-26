@@ -1,70 +1,9 @@
-from bno055 import BNO055, CONFIG_MODE, NDOF_MODE, NDOF_FMC_OFF_MODE
+import time
+
+from bno055 import BNO055, CONFIG_MODE, NDOF_MODE
 import machine
-import ujson
-
 from config.config import Config
-from exceptions import AntennyIMUException
-from imu.imu import ImuController, ImuHeading, ImuStatus, ImuCalibrationStatus
-
-
-class Bno055ImuStatus(ImuStatus):
-    __slots__ = ['euler', 'temperature', 'magnetometer', 'gyroscope', 'accelerometer', 'linear_acccelerometer',
-                 'gravity']
-
-    def __init__(self, euler: tuple[float, float, float], temperature: float, magnetometer: tuple[float, float, float],
-                 gyroscope: tuple[float, float, float], accelerometer: tuple[float, float, float],
-                 linear_accelerometer: tuple[float, float, float], gravity: tuple[float, float, float]):
-        self.euler = euler
-        self.temperature = temperature
-        self.magnetometer = magnetometer
-        self.gyroscope = gyroscope
-        self.accelerometer = accelerometer
-        self.linear_accelerometer = linear_accelerometer
-        self.gravity = gravity
-
-    def to_string(self) -> str:
-        lines = [
-            "Temperature {}°C".format(self.temperature),
-            "Mag        x {:5.0f}    y {:5.0f}     z {:5.0f}".format(*self.magnetometer),
-            "Gyro       x {:5.0f}    y {:5.0f}     z {:5.0f}".format(*self.gyroscope),
-            "Accel      x {:5.1f}    y {:5.1f}     z {:5.1f}".format(*self.accelerometer),
-            "Lin accel  x {:5.1f}    y {:5.1f}     z {:5.1f}".format(*self.linear_accelerometer),
-            "Gravity    x {:5.1f}    y {:5.1f}     z {:5.1f}".format(*self.gravity),
-            "Heading    yaw {:4.0f} roll {:4.0f} pitch {:4.0f}".format(*self.euler),
-        ]
-        return "\n".join(lines)
-
-
-class Bno055ImuCalibrationStatus(ImuCalibrationStatus):
-    __slots__ = ['system', 'gyroscope', 'accelerometer', 'magnetometer']
-
-    def __init__(self, system: bool, gyroscope: bool, accelerometer: bool, magnetometer: bool):
-        self.system = system
-        self.gyroscope = gyroscope
-        self.accelerometer = accelerometer
-        self.magnetometer = magnetometer
-
-    def is_calibrated(self) -> bool:
-        return self.system and self.gyroscope and self.accelerometer and self.magnetometer
-
-    def __str__(self) -> str:
-        """Return a JSON representation of str->int mapping between
-        names of constituent sensors and integers representing levels of calibration
-        for those sensors. For example, BNO055s will
-        return {'magnetometer': <value>,
-                'gyroscope': <value>,
-                'accelerometer': <value>,
-                'system': <value>}
-        encoded in a string. The string used in this return value will be
-        used in the shell's calibration routine.
-        """
-        calibration_levels = {
-            'system': self.system,
-            'gyroscope': self.gyroscope,
-            'accelerometer': self.accelerometer,
-            'magnetometer': self.magnetometer
-        }
-        return ujson.dumps(calibration_levels)
+from imu.imu import ImuController
 
 
 class Bno055ImuController(ImuController):
@@ -112,34 +51,72 @@ class Bno055ImuController(ImuController):
         self.bno = BNO055(i2c, address=address, crystal=crystal, sign=sign)
         self.config = Config("calibration")
 
-    def euler(self) -> tuple:
-        """Return Euler angles in degrees: (heading, roll, pitch)."""
+    def mode(self, mode):
+        return self.bno.mode(mode)
+
+    def get_euler(self):
         return self.bno.euler()
 
-    def heading(self) -> ImuHeading:
-        elevation, azimuth, _ = self.euler()
-        return ImuHeading(elevation, azimuth)
+    def get_gyro_status(self):
+        _, gyro_level, _, _ = tuple(self.bno.cal_status())
+        return gyro_level
 
-    def get_status(self) -> Bno055ImuStatus:
-        return Bno055ImuStatus(
-            self.bno.euler(),
-            self.bno.temperature(),
-            self.bno.mag(),
-            self.bno.gyro(),
-            self.bno.accel(),
-            self.bno.lin_acc(),
-            self.bno.gravity(),
-        )
+    def get_accelerometer_status(self):
+        _, _, accel_level, _ = tuple(self.bno.cal_status())
+        return accel_level
+
+    def get_magnetometer_status(self):
+        _, _, _, magnet_level = tuple(self.bno.cal_status())
+        return magnet_level
+
+    def get_elevation(self):
+        elevation = self.bno.euler()[2]
+        time.sleep(.1)
+        new_elevation = self.bno.euler()[2]
+        while new_elevation != elevation:
+            elevation = self.bno.euler()[2]
+            time.sleep(.1)
+            new_elevation = self.bno.euler()[2]
+        return elevation
+
+    def get_azimuth(self):
+        azimuth = self.bno.euler()[0]
+        time.sleep(.05)
+        new_azimuth = self.bno.euler()[0]
+        while new_azimuth != azimuth:
+            azimuth = self.bno.euler()[0]
+            time.sleep(.05)
+            new_azimuth = self.bno.euler()[0]
+        return azimuth
+
+    def prepare_calibration(self):
+        return self.mode(NDOF_MODE)
 
     def is_calibrated(self):
         return self.bno.calibrated()
 
+    def set_accelerometer_calibration(self):
+        accel_calibration = self.get_calibration_profile(self.ACCELEROMETER_CALIBRATION_REGISTERS)
+        self.config.set("accelerometer", accel_calibration)
+        return accel_calibration
+
+    def set_magnetometer_calibration(self):
+        magnet_calibration = self.get_calibration_profile(self.MAGNETOMETER_CALIBRATION_REGISTERS)
+        self.config.set("magnetometer", magnet_calibration)
+        return magnet_calibration
+
+    def set_gyroscope_calibration(self):
+        gyro_calibration = self.get_calibration_profile(self.GYROSCOPE_CALIBRATION_REGISTERS)
+        self.config.set("gyroscope", gyro_calibration)
+        return gyro_calibration
+
     def calibrate_accelerometer(self):
-        old_mode = self.bno.mode(NDOF_MODE)
+        old_mode = self.prepare_calibration()
         _, _, accel_level, _ = tuple(self.bno.cal_status())
         prev_accel_level = accel_level
         print("Calibrating accelerometer")
-        print("Rotate the IMU smoothly to different 3D orientations, waiting 2 seconds in between!")
+        print("Rotate the IMU smoothly to different 3D orientations, waiting 2 seconds in between.")
+        print("It helps to keep one edge rested on a table to keep the IMU steady.")
         print("This one takes a while but bear with it!")
         print("Configuration level: {}".format(accel_level))
         while accel_level < 3:
@@ -149,12 +126,11 @@ class Bno055ImuController(ImuController):
                 prev_accel_level = accel_level
         print("Accelerometer calibration done!")
         self.bno.mode(old_mode)
-        accel_calibration = self._get_calibration_profile(self.ACCELEROMETER_CALIBRATION_REGISTERS)
-        self.config.set("accelerometer", accel_calibration)
+        accel_calibration = self.set_accelerometer_calibration()
         return accel_calibration
 
     def calibrate_magnetometer(self):
-        old_mode = self.bno.mode(NDOF_MODE)
+        old_mode = self.prepare_calibration()
         _, _, _, magnet_level = tuple(self.bno.cal_status())
         prev_magnet_level = magnet_level
         print("Calibrating magnetometer")
@@ -167,12 +143,11 @@ class Bno055ImuController(ImuController):
                 prev_magnet_level = magnet_level
         print("Magnetometer calibration done!")
         self.bno.mode(old_mode)
-        magnet_calibration = self._get_calibration_profile(self.MAGNETOMETER_CALIBRATION_REGISTERS)
-        self.config.set("magnetometer", magnet_calibration)
+        magnet_calibration = self.set_magnetometer_calibration()
         return magnet_calibration
 
     def calibrate_gyroscope(self):
-        old_mode = self.bno.mode(NDOF_MODE)
+        old_mode = self.prepare_calibration()
         _, gyro_level, _, _ = tuple(self.bno.cal_status())
         prev_gyro_level = gyro_level
         print("Calibrating gyroscope")
@@ -185,8 +160,7 @@ class Bno055ImuController(ImuController):
                 prev_gyro_level = gyro_level
         print("Gyr calibration done!")
         self.bno.mode(old_mode)
-        gyro_calibration = self._get_calibration_profile(self.GYROSCOPE_CALIBRATION_REGISTERS)
-        self.config.set("gyroscope", gyro_calibration)
+        gyro_calibration = self.set_gyroscope_calibration()
         return gyro_calibration
 
     def reset_calibration(self):
@@ -194,7 +168,7 @@ class Bno055ImuController(ImuController):
         self.bno.reset()  # reset will put the system into NDOF mode at the end
         self.bno.mode(old_mode)
 
-    def _get_calibration_profile(self, registers):
+    def get_calibration_profile(self, registers):
         # In order to read or write to the calibration registers, we have to
         # switch into the BNO's config mode, read/write, then switch out
         previous_mode = self.bno.mode(CONFIG_MODE)
@@ -212,15 +186,6 @@ class Bno055ImuController(ImuController):
         self.bno.mode(old_mode)
 
     def save_calibration_profile_as(self, name) -> None:
-        """Save the BNO's current calibration profile to the given file using
-        a JSON representation, creating the file if it does not exist and over-
-        writing it if it does.
-
-        The format that this controller saves BNO calibration profile data in
-        is as a str -> int dictionary, using as keys the descriptors found in
-        the BNO055 manual section 4.3 "Register description". They are also the
-        keys in CALIBRATION_REGISTERS.
-        """
         self.config.save_as(name)
 
     def save_calibration_profile(self):
@@ -239,10 +204,6 @@ class Bno055ImuController(ImuController):
         self.config.load_default_config()
 
     def upload_calibration_profile(self) -> None:
-        """Upload to the BNO a previously saved calibration profile, previously
-        saved to the given file using a JSON representation. Assumes the same
-        format as that used by save_calibration_profile.
-        """
         self._set_calibration_profile(
             self.config.get("accelerometer"),
             self.ACCELEROMETER_CALIBRATION_REGISTERS

@@ -11,7 +11,7 @@ import socket
 import time
 
 from api.api import AntennyAPI
-from antenny import start
+from main import start
 from antenny_threading import Thread, Queue, Empty
 from multi_client.protocol.constants import HEARTBEAT_PAYLOAD_ACK_TYPE, MOVE_RESPONSE_PAYLOAD_TYPE
 from multi_client.protocol.heartbeat import HeartbeatRequest, HeartbeatResponse

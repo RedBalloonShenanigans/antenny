@@ -98,5 +98,5 @@
             "longitude": {
               "msg": "Current position longitude {nore if using GPS}",
               "type": "float"
-            },
+            }
 }

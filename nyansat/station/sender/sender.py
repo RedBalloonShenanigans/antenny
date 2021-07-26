@@ -9,3 +9,6 @@ class TelemetrySender():
     def stop(self) -> None:
         """Stop sending telemetry data to client."""
         raise NotImplementedError()
+
+    def update(self):
+        raise NotImplementedError()

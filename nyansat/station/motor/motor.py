@@ -1,25 +1,41 @@
-class MotorController(object):
-    """Interface for servomotor mux controller."""
-
-    def set_position(self, index, degrees=None, radians=None, us=None, duty=None):
+class PWMController(object):
+    def _write(self, address, value):
         raise NotImplementedError()
 
-    def get_position(self, index):
+    def _read(self, address):
         raise NotImplementedError()
 
-    def duty(self, index):
+    def reset(self):
         raise NotImplementedError()
 
-    def degrees(self, index):
-        """Return the position in degrees of the servo with the given index."""
+    def freq(self, freq=None):
         raise NotImplementedError()
 
-    def smooth_move(self, index, degrees, delay):
-        """Move the servo with the given index to a specified position and with
-        a given initial delay.
-        """
+    def pwm(self, index, on=None, off=None):
         raise NotImplementedError()
 
-    def release(self, index):
-        """Set the duty cycle of the servo with the given index to 0."""
+    def duty(self, index, value=None, invert=False):
+        raise NotImplementedError()
+
+
+class ServoController(object):
+    def set_min_duty(self, min_duty):
+        raise NotImplementedError()
+
+    def get_min_duty(self):
+        raise NotImplementedError()
+
+    def set_max_duty(self, max_duty):
+        raise NotImplementedError()
+
+    def get_max_duty(self):
+        raise NotImplementedError()
+
+    def set_position(self, position):
+        raise NotImplementedError()
+
+    def get_position(self):
+        raise NotImplementedError()
+
+    def step(self, d=1):
         raise NotImplementedError()

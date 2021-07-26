@@ -136,7 +136,7 @@ class TelemetryView:
         if not self._is_loaded():
             value = "N/A"
         else:
-            speed = self._client.telemetry_entity.model.speed.value
+            speed = self._client.telemetry_entity.model.set_speed.value
             if speed is None:
                 value = "N/A"
             else:
