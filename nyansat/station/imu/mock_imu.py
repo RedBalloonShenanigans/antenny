@@ -3,20 +3,31 @@ from imu.imu import ImuController
 
 class MockImuController(ImuController):
     """Interface for a generic IMU controller for use in antenny."""
-
-    def mode(self, mode):
-        raise NotImplementedError()
-
-    def get_euler(self) -> tuple:
-        """Return Euler angles in degrees: (heading, roll, pitch)."""
-        return (0, 0, 0)
-
-    def get_gyro_status(self):
+    def get_elevation(self):
         """
-        Gets the calibration status of the gyroscope
+        Gets the elevation of the imu in degrees
         :return:
         """
         return 0
+
+    def get_azimuth(self):
+        """
+        Gets the azimuth of the imu in degrees
+        :return:
+        """
+        return 0
+
+    def mode(self, mode):
+        """
+        Changes the device mode
+        :param mode:
+        :return:
+        """
+        pass
+
+    def get_euler(self) -> tuple:
+        """Return Euler angles in degrees: (heading, roll, pitch)."""
+        return 0, 0, 0
 
     def get_accelerometer_status(self):
         """
@@ -32,26 +43,89 @@ class MockImuController(ImuController):
         """
         return 0
 
-    def set_accelerometer_calibration(self):
+    def get_gyro_status(self):
+        """
+        Gets the calibration status of the gyroscope
+        :return:
+        """
+        return 0
+
+    def prepare_calibration(self):
+        """
+        Prepares the IMU for calibration
+        :return:
+        """
+        pass
+
+    def is_calibrated(self):
+        """
+        Returns true if the imu is calibrated fully
+        :return:
+        """
+        return False
+
+    def set_accelerometer_calibration(self, calibration):
         """
         Sets the accelerometer config calibration values to what is on the device
         :return:
         """
-        return tuple()
+        pass
 
-    def set_magnetometer_calibration(self):
+    def get_accelerometer_calibration(self):
+        """
+        Gets the current calibration registers
+        :return:
+        """
+        pass
+
+    def download_accelerometer_calibration(self):
+        """
+        Downloads the calibration registers from the device
+        :return:
+        """
+        pass
+
+    def set_magnetometer_calibration(self, calibration):
         """
         Sets the magnetometer config calibration values to what is on the device
         :return:
         """
-        return tuple()
+        pass
 
-    def set_gyroscope_calibration(self):
+    def get_magnetometer_calibration(self):
+        """
+        Gets the current magnetometer calibration registers
+        :return:
+        """
+        pass
+
+    def download_magnetometer_calibration(self):
+        """
+        Downloads the calibration registers from the device
+        :return:
+        """
+        pass
+
+    def set_gyroscope_calibration(self, calibration):
         """
         Sets the gyroscope config calibration values to what is on the device
         :return:
         """
-        return tuple()
+        pass
+
+    def get_gyroscope_calibration(self):
+        """
+        Gets the current gyroscope calibration registers
+        :return:
+        """
+        pass
+
+    def download_gyroscope_calibration(self):
+        """
+        Downloads the calibration registers from the device
+        :return:
+        """
+        pass
 
     def calibrate_gyroscope(self):
         """
@@ -74,81 +148,9 @@ class MockImuController(ImuController):
         """
         return tuple()
 
-    def prepare_calibration(self):
-        """
-        Prepares the IMU for calibration
-        :return:
-        """
-        pass
-
-    def is_calibrated(self):
-        """
-        Returns true if the imu is calibrated fully
-        :return:
-        """
-        return False
-
     def reset_calibration(self):
         """
         Resets the IMU's calibration
-        :return:
-        """
-        pass
-
-    def get_elevation(self):
-        """
-        Gets the elevation of the imu in degrees
-        :return:
-        """
-        return 0
-
-    def get_azimuth(self):
-        """
-        Gets the azimuth of the imu in degrees
-        :return:
-        """
-        return 0
-
-    def save_calibration_profile(self) -> None:
-        """
-        Saves the imu calibration status to the internal config class
-        :return:
-        """
-        pass
-
-    def save_calibration_profile_as(self, name):
-        """
-        Save the current calibration as a new config profile
-        :param name:
-        :return:
-        """
-        pass
-
-    def save_calibration_profile_as_default(self):
-        """
-        Make the current calibration profile present at imu init
-        :return:
-        """
-        pass
-
-    def reload_calibration_profile(self):
-        """
-        Reload the calibration profile from the saved config
-        :return:
-        """
-        pass
-
-    def load_default_calibration(self):
-        """
-        Load the calibration profile present on startup
-        :return:
-        """
-        pass
-
-    def load_calibration_profile(self, name):
-        """
-        Loads a new imu calibration status from a config
-        :param name:
         :return:
         """
         pass

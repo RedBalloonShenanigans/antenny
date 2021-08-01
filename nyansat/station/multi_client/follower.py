@@ -224,8 +224,8 @@ class AntennyFollowerNode(Thread):
             return
         print("Sleeping for time delta of {} seconds".format(delta))
         time.sleep(delta)
-        self.api.antenna.set_azimuth(packet.payload.azimuth)
-        self.api.antenna.set_elevation(packet.payload.elevation)
+        self.api.platform.set_azimuth(packet.payload.azimuth)
+        self.api.platform.set_elevation(packet.payload.elevation)
         assert isinstance(message, UDPFollowerMessage)
         self.follower_client.send((
             create_move_response_packet(self.board_id, move_ok=True).serialize(),

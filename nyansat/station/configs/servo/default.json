@@ -1,0 +1,10 @@
+{
+  "elevation": {
+    "min": 0,
+    "max": 4095
+  },
+  "azimuth": {
+    "min": 0,
+    "max": 4095
+  }
+}

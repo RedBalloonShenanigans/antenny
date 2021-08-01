@@ -19,7 +19,7 @@
             "mag_radius_lsb": 0,
             "mag_radius_msb": 0
       },
-      "gyroscrope": {
+      "gyroscope": {
             "gyr_offset_x_lsb": 0,
             "gyr_offset_x_msb": 0,
             "gyr_offset_y_lsb": 0,

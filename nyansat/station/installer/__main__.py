@@ -392,9 +392,9 @@ if __name__ == '__main__':
     installer = AntennyInstaller(args.serial_path)
     installer.connect()
     LOG.info("Connected, welcome to the Antenny installer!")
+    ignore_configs = input("Do you want to keep the configs on the device? (Y/n)").strip().lower() in ('y', '')
     fresh_install = input("Do you want to do an installation of all components?(Y/n)").strip().lower() in ('y', '')
     if fresh_install:
-        ignore_configs = input("Do you want to keep the configs on the device? (Y/n)").strip().lower() in ('y', '')
         confirm = input(f"Are you sure you want to erase all files on the device? (y/N) ").strip().lower() == 'y'
         if not confirm:
             print("Exiting installer; please backup existing files before running the installer!")
@@ -406,5 +406,7 @@ if __name__ == '__main__':
         while not done:
             components.append(input("Name a component you wish to install: ").strip().lower())
             done = input("Do you wish to install more? (y/N)").strip().lower() in ("n", "")
-        installer.install(ignore_lib=True, ignore_configs=True, components=components)
+            if not ignore_configs:
+                components.append("configs")
+        installer.install(ignore_lib=True, ignore_configs=ignore_configs, components=components)
     LOG.info("Installation complete!")

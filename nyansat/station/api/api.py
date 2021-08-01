@@ -2,9 +2,9 @@ import machine
 import pca9685
 
 from config.config import Config
-from controller.controller import AntennaController
-from controller.mock_controller import MockAntennaController
-from controller.pid_controller import PIDAntennaController
+from controller.controller import PlatformController
+from controller.mock_controller import MockPlatformController
+from controller.pid_controller import PIDPlatformController
 from exceptions import AntennyIMUException, AntennyMotorException, AntennyTelemetryException, AntennyScreenException
 from gps.gps import GPSController
 from gps.gps_basic import BasicGPSController
@@ -32,8 +32,10 @@ class AntennyAPI:
     Interface for interacting with the antenny board.
     """
 
-    def __init__(self, config: Config):
-        self.config: Config = config
+    def __init__(self):
+        self.antenny_config: Config = Config("antenny")
+        self.imu_config: Config = Config("imu")
+        self.servo_config: Config = Config("servo")
         self.safe_mode: bool = True
         self.imu: ImuController = ImuController()
         self.pwm_controller: PWMController = PWMController()
@@ -42,16 +44,15 @@ class AntennyAPI:
         self.gps: GPSController = GPSController()
         self.elevation_servo: ServoController = ServoController()
         self.azimuth_servo: ServoController = ServoController()
-        self.antenna: AntennaController = AntennaController(
-            self.azimuth_servo,
-            self.elevation_servo,
-            self.imu)
-        self.i2c_bno: machine.I2C = self.init_i2c(0, 0, 0)
-        self.i2c_pwm_controller: machine.I2C = self.init_i2c(0, 0, 0)
-        self.i2c_screen: machine.I2C = self.init_i2c(0, 0, 0)
+        self.platform: PlatformController = PlatformController()
+        self.i2c_bno: machine.I2C = self.i2c_init(0, 0, 0)
+        self.i2c_pwm_controller: machine.I2C = self.i2c_init(0, 0, 0)
+        self.i2c_screen: machine.I2C = self.i2c_init(0, 0, 0)
+
+#  Antenny Generic Functions
 
     @staticmethod
-    def init_i2c(id_, scl, sda, freq=400000):
+    def i2c_init(id_, scl, sda, freq=400000):
         """
         Initialize a new I2C channel
         :param id_: a unique ID for the i2c channel (0 and -1 reserved for imu and motor
@@ -61,51 +62,179 @@ class AntennyAPI:
         :return: machine.I2C class
         """
         return machine.I2C(id_,
-                           scl=machine.Pin(scl, machine.Pin.OUT, machine.Pin.PULL_DOWN),
-                           sda=machine.Pin(sda, machine.Pin.OUT, machine.Pin.PULL_DOWN),
+                           scl=machine.Pin(
+                               scl,
+                               machine.Pin.OUT,
+                               machine.Pin.PULL_DOWN
+                           ),
+                           sda=machine.Pin(
+                               sda,
+                               machine.Pin.OUT,
+                               machine.Pin.PULL_DOWN
+                           ),
                            freq=freq
                            )
 
-    def init_imu(self, chain: machine.I2C = None):
+    def antenny_config_check(self):
         """
-        Initialize the antenny system IMU
-        :param chain: provide your own I2C channel
-        :return: Bno055ImuController class
+        Checks if the current config is valid
+        :return:
         """
-        if self.config.get("use_imu"):
-            print("use_imu found in config: {}".format(self.config.get_name()))
-            if chain is None:
-                i2c_bno_scl = self.config.get("i2c_bno_scl")
-                i2c_bno_sda = self.config.get("i2c_bno_sda")
-                self.i2c_bno = self.init_i2c(-1, i2c_bno_scl, i2c_bno_sda, freq=1000)
-            else:
-                self.i2c_bno = chain
-            imu = Bno055ImuController(
-                self.i2c_bno,
-                crystal=False,
-                address=self.config.get("i2c_bno_address"),
-                sign=(0, 0, 0)
-            )
-            print("IMU connected")
-        else:
-            imu = MockImuController()
-            print("According to your config, ou do not have an IMU connected")
-        self.imu = imu
-        return imu
+        return self.antenny_config.check()
 
-    def init_pwm_controller(self, chain: machine.I2C = None, freq: int = 333):
+    def antenny_which_config(self):
+        """
+        Show the current config
+        :return: config name
+        """
+        return self.antenny_config.get_name()
+
+    def antenny_config_get(self, key):
+        """
+        Get a key from the config
+        :param key: the config key
+        :return: the config value
+        """
+        return self.antenny_config.get(key)
+
+    def antenny_config_set(self, key, val):
+        """
+        Set a key from the config
+        :param key: the config key
+        :param val: the config  value
+        :return: bool
+        """
+        return self.antenny_config.set(key, val)
+
+    def antenny_config_save(self, name: str = None, force: bool = False):
+        """
+        Save the current config
+        :return: None
+        """
+        return self.antenny_config.save(name, force=force)
+
+    def antenny_config_load(self, name: str = None):
+        """
+        Load an existin config
+        :param name:
+        :return: None
+        """
+        return self.antenny_config.load(name)
+
+    def antenny_config_print_values(self):
+        """
+        Print the current config values
+        :return: None
+        """
+        return self.antenny_config.print_values()
+
+    def antenny_config_load_default(self):
+        """
+        Reloads the config that was present on startup
+        :return: None
+        """
+        return self.antenny_config.load_default_config()
+
+    def antenny_config_make_default(self):
+        """
+        Will now load the current config on startup
+        :return: None
+        """
+        return self.antenny_config.save_as_default_config()
+
+    def antenny_config_help(self):
+        """
+        Gives you help and type info for each config key in json format.
+        :return: help json dictionary
+        """
+        return self.antenny_config.get_help_info()
+
+    def antenny_config_reset(self):
+        """
+        Resets the config back to "default"
+        :return: None
+        """
+        return self.antenny_config.reset_default_config()
+
+    def antenny_list_configs(self):
+        """
+        Lists all of the configs available on the device.
+        :return:
+        """
+        return self.antenny_config.list_configs()
+
+    def antenny_is_safemode(self):
+        """
+        Checks if the device is in safemode
+        :return:
+        """
+        return self.safe_mode
+
+    def antenny_init_components(self):
+        """
+        Initialize all antenny system components
+        :return: None
+        """
+        if self.antenny_config is None:
+            print("Please load a config before initializing components")
+        if not self.antenny_config.check():
+            print("Config {} is not valid, failed to initialize".format(self.antenny_config.get_name()))
+            print("If you believe this is an error, or you have modified the base components of the antenny board, "
+                  "please check Config class as well as the default configs for more details.")
+
+        self.imu_init()
+        self.pwm_controller_init()
+        self.elevation_servo_init()
+        self.azimuth_servo_init()
+        self.screen_init()
+        self.gps_init()
+        self.telemetry_init()
+        self.platform_init()
+
+    def antenny_save_all_configs_as_default(self, name: str = None):
+        """
+        Will save all current configs to be started on device startup
+        :param name: A new name for the config, if not specified, will overwrite the current
+        :return:
+        """
+        self.antenny_config.save(name)
+        self.antenny_config.save_as_default_config()
+        self.imu_save(name)
+        self.imu_config.save_as_default_config()
+        self.azimuth_servo_save(name)
+        self.elevation_servo_save(name)
+        self.servo_config.save_as_default_config()
+
+    def antenny_start_calibrate_and_save_as_default(self, name: str = None):
+        """
+        Initializes all components, auto-calibrates the platform, then saves all as default
+        Should be used after assembling a new antenny or after wiping your previous configs
+        :param name:
+        :return:
+        """
+        self.antenny_init_components()
+        self.platform_auto_calibrate()
+        self.antenny_save_all_configs_as_default(name)
+
+#  PWM Controller Functions
+
+    def pwm_controller_init(self, chain: machine.I2C = None, freq: int = 333):
         """
         Initialize the antenny system PWM controller
         :param freq: pwm frequency
         :param chain: provide your own I2C channel
         :return: Pca9865Controller class
         """
-        if self.config.get("use_motor"):
-            print("use_motor found in config: {}".format(self.config.get_name()))
+        if self.antenny_config.get("use_motor"):
+            print("use_motor found in config: {}".format(self.antenny_config.get_name()))
             if chain is None:
-                i2c_pwm_controller_scl = self.config.get("i2c_pwm_controller_scl")
-                i2c_pwm_controller_sda = self.config.get("i2c_pwm_controller_sda")
-                self.i2c_pwm_controller = self.init_i2c(0, i2c_pwm_controller_scl, i2c_pwm_controller_sda)
+                i2c_pwm_controller_scl = self.antenny_config.get("i2c_pwm_controller_scl")
+                i2c_pwm_controller_sda = self.antenny_config.get("i2c_pwm_controller_sda")
+                self.i2c_pwm_controller = self.i2c_init(
+                    0,
+                    i2c_pwm_controller_scl,
+                    i2c_pwm_controller_sda
+                )
             else:
                 self.i2c_pwm_controller = chain
             pwm_controller = pca9685.PCA9685(self.i2c_pwm_controller)
@@ -120,37 +249,118 @@ class AntennyAPI:
         self.safe_mode = safe_mode
         return pwm_controller, safe_mode
 
-    def init_elevation_servo(self):
+    def pwm_controller_scan(self):
+        """
+        Scan the Motor I2C chain
+        :return: List of I2C addresses
+        """
+        if self.i2c_pwm_controller is None:
+            print("No I2C bus set for the Motor")
+            raise AntennyMotorException("No I2C bus set for the Motor")
+        return self.i2c_pwm_controller.scan()
+
+#  Servo Controller Functions
+
+    def elevation_servo_init(self):
+        """
+        Initializes the elevation servo
+        :return:
+        """
         if self.pwm_controller is None:
             print("You must initialize the PWM controller before the servo")
             raise AntennyMotorException
-        elevation_servo = Pca9685ServoController(self.pwm_controller, self.config_get("elevation_servo_index"))
-        self.elevation_servo = elevation_servo
+        self.elevation_servo = Pca9685ServoController(
+            self.pwm_controller,
+            self.antenny_config.get("elevation_servo_index")
+        )
+        self.elevation_servo_load()
         return self.elevation_servo
 
-    def init_azimuth_servo(self):
+    def elevation_servo_load(self, name: str = None):
+        """
+        Loads the servo's min and max duty cycle values from the config
+        :param name:
+        :return:
+        """
+        if name is not None:
+            self.servo_config.load(name)
+        self.elevation_servo.set_min_position(self.servo_config.get("elevation")["min"])
+        self.elevation_servo.set_max_position(self.servo_config.get("elevation")["max"])
+
+    def elevation_servo_save(self, name: str = None, force: bool = False):
+        """
+        Saves the servo's min and max duty cycle values to the config
+        :param force:
+        :param name:
+        :return:
+        """
+        self.servo_config.set(
+            "elevation",
+            {
+                "min": self.elevation_servo.get_min_position(),
+                "max": self.elevation_servo.get_max_position()
+             }
+        )
+        self.servo_config.save(name, force=force)
+
+    def azimuth_servo_init(self):
+        """
+        Initializes the azimuth servo
+        :return:
+        """
         if self.pwm_controller is None:
             print("You must initialize the PWM controller before the servo")
             raise AntennyMotorException
-        azimuth_servo = Pca9685ServoController(self.pwm_controller, self.config_get("azimuth_servo_index"))
-        self.azimuth_servo = azimuth_servo
+        self.azimuth_servo = Pca9685ServoController(
+            self.pwm_controller,
+            self.antenny_config.get("azimuth_servo_index")
+        )
+        self.azimuth_servo_load()
         return self.azimuth_servo
 
-    def init_screen(self, chain: machine.I2C = None):
+    def azimuth_servo_load(self, name: str = None):
+        """
+        Loads the servo's min and max duty cycle values from the config
+        :param name:
+        :return:
+        """
+        if name is not None:
+            self.servo_config.load(name)
+        self.azimuth_servo.set_min_position(self.servo_config.get("azimuth")["min"])
+        self.azimuth_servo.set_max_position(self.servo_config.get("azimuth")["max"])
+
+    def azimuth_servo_save(self, name: str = None, force: bool = False):
+        """
+        Saves the servo's min and max duty cycle values to the config
+        :param force:
+        :param name:
+        :return:
+        """
+        self.servo_config.set(
+            "azimuth",
+            {
+                "min": self.azimuth_servo.get_min_position(),
+                "max": self.azimuth_servo.get_max_position()
+            }
+        )
+        self.servo_config.save(name, force=force)
+
+    def servo_make_default(self):
+        self.servo_config.save_as_default_config()
+
+#  Screen Functions
+
+    def screen_init(self, chain: machine.I2C = None):
         """
         Initialize the antenny I2C screen
         :param chain: provide your own I2C channel
         :return: Ssd13065ScreenController class
         """
-        if self.config.get("use_screen"):
+        if self.antenny_config.get("use_screen"):
             if chain is None:
-                i2c_screen_scl = self.config.get("i2c_screen_scl")
-                i2c_screen_sda = self.config.get("i2c_screen_sda")
-                self.i2c_screen = machine.I2C(
-                    0,
-                    scl=machine.Pin(i2c_screen_scl, machine.Pin.OUT, machine.Pin.PULL_DOWN),
-                    sda=machine.Pin(i2c_screen_sda, machine.Pin.OUT, machine.Pin.PULL_DOWN),
-                )
+                i2c_screen_scl = self.antenny_config.get("i2c_screen_scl")
+                i2c_screen_sda = self.antenny_config.get("i2c_screen_sda")
+                self.i2c_screen = self.i2c_init(0, i2c_screen_scl, i2c_screen_sda)
             else:
                 self.i2c_screen = chain
             screen = Ssd1306ScreenController(
@@ -162,21 +372,35 @@ class AntennyAPI:
         self.screen = screen
         return screen
 
-    def init_gps(self):
+    def screen_scan(self):
+        """
+        Scan the screen I2C chain
+        :return: List of I2C addresses
+        """
+        if self.i2c_bno is None:
+            print("No I2C bus set for the Screen")
+            raise AntennyScreenException("No I2C bus set for the Screen")
+        return self.i2c_screen.scan()
+
+#  GPS Functions
+
+    def gps_init(self):
         """
         Initialize the antenny system GPS
         :return: BasicGPSController class
         """
-        if self.config.get("use_gps"):
-            print("use_gps found in config: {}".format(self.config.get_name()))
-            gps = BasicGPSController(self.config.get("gps_uart_tx"), self.config.get("gps_uart_rx"))
+        if self.antenny_config.get("use_gps"):
+            print("use_gps found in config: {}".format(self.antenny_config.get_name()))
+            gps = BasicGPSController(self.antenny_config.get("gps_uart_tx"), self.antenny_config.get("gps_uart_rx"))
         else:
             gps = MockGPSController()
             print("According to your config, you do not have a GPS connected")
         self.gps = gps
         return gps
 
-    def init_telemetry(self, port=31337):
+#  Telemetry Functions
+
+    def telemetry_init(self, port=31337):
         """
         Initialize the antenny system Telemetry sender
         :param port: Communcation UDP port
@@ -192,7 +416,7 @@ class AntennyAPI:
         if isinstance(self.imu, MockImuController) or isinstance(self.gps, MockGPSController):
             print("WARNING: Initializing telemetry sender with mock components, please check your config")
 
-        if self.config.get("use_telemetry"):
+        if self.antenny_config.get("use_telemetry"):
             print("use_telemetry found in config")
             telemetry_sender = UDPTelemetrySender(port, self.gps, self.imu)
         else:
@@ -201,46 +425,38 @@ class AntennyAPI:
         self.telemetry = telemetry_sender
         return telemetry_sender
 
-    def init_controller(self):
+#  IMU Functions
+
+    def imu_init(self, chain: machine.I2C = None):
         """
-        Initialize the antenny axis control system
-        :return: AntennaController
+        Initialize the antenny system IMU
+        :param chain: provide your own I2C channel
+        :return: Bno055ImuController class
         """
-        if isinstance(self.imu, MockImuController) or isinstance(self.pwm_controller, MockPWMController):
-            print("Mock components detected, creating mock antenna controller")
-            antenna = MockAntennaController()
-        else:
-            print("Initializing PIDAntennaController class")
-            antenna = PIDAntennaController(
-                self.azimuth_servo,
-                self.elevation_servo,
-                self.imu
+        if self.antenny_config.get("use_imu"):
+            print("use_imu found in config: {}".format(self.antenny_config.get_name()))
+            if chain is None:
+                i2c_bno_scl = self.antenny_config.get("i2c_bno_scl")
+                i2c_bno_sda = self.antenny_config.get("i2c_bno_sda")
+                self.i2c_bno = self.i2c_init(-1, i2c_bno_scl, i2c_bno_sda, freq=5000)
+            else:
+                self.i2c_bno = chain
+            imu = Bno055ImuController(
+                self.i2c_bno,
+                crystal=False,
+                address=self.antenny_config.get("i2c_bno_address"),
+                sign=(0, 0, 0)
             )
-        self.antenna = antenna
-        return antenna
+            print("IMU connected")
+        else:
+            imu = MockImuController()
+            print("According to your config, ou do not have an IMU connected")
+        self.imu = imu
+        self.imu_load()
+        self.imu.upload_calibration_profile()
+        return imu
 
-    def init_components(self):
-        """
-        Initialize all antenny system components
-        :return: None
-        """
-        if self.config is None:
-            print("Please load a config before initializing components")
-        if not self.config.check():
-            print("Config {} is not valid, failed to initialize".format(self.config.get_name()))
-            print("If you believe this is an error, or you have modified the base components of the antenny board, "
-                  "please check Config class as well as the default configs for more details.")
-
-        self.init_imu()
-        self.init_pwm_controller()
-        self.init_elevation_servo()
-        self.init_azimuth_servo()
-        self.init_screen()
-        self.init_gps()
-        self.init_telemetry()
-        self.init_controller()
-
-    def scan_imu(self):
+    def imu_scan(self):
         """
         Scan the IMU I2C chain
         :return: List of I2C addresses
@@ -249,131 +465,6 @@ class AntennyAPI:
             print("No I2C bus set for the IMU")
             raise AntennyIMUException("No I2C bus set for the IMU")
         return self.i2c_bno.scan()
-
-    def scan_motor(self):
-        """
-        Scan the Motor I2C chain
-        :return: List of I2C addresses
-        """
-        if self.i2c_pwm_controller is None:
-            print("No I2C bus set for the Motor")
-            raise AntennyMotorException("No I2C bus set for the Motor")
-        return self.i2c_pwm_controller.scan()
-
-    def scan_screen(self):
-        """
-        Scan the screen I2C chain
-        :return: List of I2C addresses
-        """
-        if self.i2c_bno is None:
-            print("No I2C bus set for the Screen")
-            raise AntennyScreenException("No I2C bus set for the Screen")
-        return self.i2c_screen.scan()
-
-    def which_config(self):
-        """
-        Show the current config
-        :return: config name
-        """
-        return self.config.get_name()
-
-    def config_get(self, key):
-        """
-        Get a key from the config
-        :param key: the config key
-        :return: the config value
-        """
-        return self.config.get(key)
-
-    def config_set(self, key, val):
-        """
-        Set a key from the config
-        :param key: the config key
-        :param val: the config  value
-        :return: bool
-        """
-        return self.config.set(key, val)
-
-    def config_save(self):
-        """
-        Save the current config
-        :return: None
-        """
-        return self.config.save()
-
-    def config_save_as(self, config_name, force=False):
-        """
-        Save the current config under a new name
-        :param config_name: the new name
-        :param force: overwrite if the config currently exists
-        :return: None
-        """
-        return self.config.save_as(config_name, force=force)
-
-    def config_load(self, config_name):
-        """
-        Load an existin config
-        :param config_name: the config to load
-        :return: None
-        """
-        return self.config.load(config_name)
-
-    def config_print_values(self):
-        """
-        Print the current config values
-        :return: None
-        """
-        return self.config.print_values()
-
-    def config_load_default(self):
-        """
-        Reloads the config that was present on startup
-        :return: None
-        """
-        return self.config.load_default_config()
-
-    def config_save_as_default(self):
-        """
-        Will now load the current config on startup
-        :return: None
-        """
-        return self.config.save_as_default_config()
-
-    def config_new(self, config_name):
-        """
-        Create a new config without saving it
-        :param config_name:
-        :return: None
-        """
-        return self.config.new_config(config_name)
-
-    def config_help(self):
-        """
-        Gives you help and type info for each config key in json format.
-        :return: help json dictionary
-        """
-        return self.config.get_help_info()
-
-    def config_reset(self):
-        """
-        Resets the config back to "default"
-        :return: None
-        """
-        return self.config.reset_default_config()
-
-    def list_configs(self):
-        """
-        Lists all of the configs available on the device.
-        :return:
-        """
-        return self.config.list_configs()
-
-    def is_safemode(self):
-        """
-        Checks if the device is in safemode
-        :return:
-        """
-        return self.safe_mode
 
     def imu_is_calibrated(self) -> bool:
         """
@@ -389,173 +480,200 @@ class AntennyAPI:
         """
         return self.imu.calibrate_accelerometer()
 
-    def auto_calibrate_check(self):
+    def imu_calibrate_magnetometer(self):
+        """
+        Starts the magnetometer calibration routine
+        :return:
+        """
+        return self.imu.calibrate_magnetometer()
+
+    def imu_calibrate_gyroscope(self):
+        """
+        Starts the gyroscope calibration routine
+        :return:
+        """
+        return self.imu.calibrate_gyroscope()
+
+    def imu_save(self, name: str = None, force: bool = False):
+        """
+        Saves the current calibration to the config
+        :param name: A new config name, overwritten if not specified
+        :param force:
+        :return:
+        """
+        self.imu_config.set(
+            "accelerometer",
+            self.imu.get_accelerometer_calibration()
+        )
+        self.imu_config.set(
+            "magnetometer",
+            self.imu.get_magnetometer_calibration()
+        )
+        self.imu_config.set(
+            "gyroscope",
+            self.imu.get_gyroscope_calibration()
+        )
+        self.imu_config.save(name=name, force=force)
+
+    def imu_load(self, name: str = None):
+        """
+        Reloads the calibration from the config
+        :param name: A different config to be loaded if specified
+        :return:
+        """
+        self.imu_config.load(name)
+        self.imu.set_accelerometer_calibration(
+            self.imu_config.get("accelerometer")
+        )
+        self.imu.set_magnetometer_calibration(
+            self.imu_config.get("magnetometer")
+        )
+        self.imu.set_gyroscope_calibration(
+            self.imu_config.get("gyroscope")
+        )
+        self.imu.upload_calibration_profile()
+
+    def imu_make_default(self):
+        """
+        Makes the current IMU calibration config default
+        :return:
+        """
+        return self.imu_config.save_as_default_config()
+
+    def imu_load_default(self):
+        """
+        Loads the default calibration config
+        :return:
+        """
+        return self.imu_config.load_default_config()
+
+    def imu_reset_calibration(self):
+        """
+        Resets the calibration on the IMU
+        :return:
+        """
+        return self.imu.reset_calibration()
+
+#  Platform Functions
+
+    def platform_init(self):
+        """
+        Initialize the antenny axis control system
+        :return: AntennaController
+        """
+        if isinstance(self.imu, MockImuController) or isinstance(self.pwm_controller, MockPWMController):
+            print("Mock components detected, creating mock antenna controller")
+            platform = MockPlatformController(self.azimuth_servo, self.elevation_servo, self.imu)
+        else:
+            print("Initializing PIDAntennaController class")
+            platform = PIDPlatformController(
+                self.azimuth_servo,
+                self.elevation_servo,
+                self.imu
+            )
+        self.platform = platform
+        return platform
+
+    def platform_auto_calibrate_accelerometer(self):
+        """
+        Uses the servos to perform the accelerometer routine
+        :return:
+        """
+        self._platform_auto_calibrate_check()
+        return self.platform.auto_calibrate_accelerometer()
+
+    def platform_auto_calibrate_magnetometer(self):
+        """
+        Uses the servos to perform the magnetometer routine
+        :return:
+        """
+        self._platform_auto_calibrate_check()
+        return self.platform.auto_calibrate_magnetometer()
+
+    def platform_auto_calibrate_gyroscope(self):
+        """
+        Uses the servos to perform the gyroscope routine
+        :return:
+        """
+        self._platform_auto_calibrate_check()
+        return self.platform.auto_calibrate_gyroscope()
+
+    def platform_auto_calibrate_imu(self):
+        """
+        Uses the servos to automatically perform the IMU calibration
+        :return:
+        """
+        self.imu_reset_calibration()
+        self.platform_auto_calibrate_magnetometer()
+        self.platform_auto_calibrate_gyroscope()
+        self.platform_auto_calibrate_accelerometer()
+
+    def platform_auto_calibrate_elevation_servo(self):
+        """
+        Uses the IMU to calibrate the elevation servo
+        :return:
+        """
+        self._platform_auto_calibrate_check()
+        self.platform.auto_calibrate_elevation_servo()
+
+    def platform_auto_calibrate_azimuth_servo(self):
+        """
+        Uses the IMU to calibrate the azimuth servo
+        :return:
+        """
+        self._platform_auto_calibrate_check()
+        self.platform.auto_calibrate_azimuth_servo()
+
+    def platform_auto_calibrate_servos(self):
+        """
+        Uses the IMU to automatically detect the min and max of the servos
+        :return:
+        """
+        self.platform_auto_calibrate_elevation_servo()
+        self.platform_auto_calibrate_azimuth_servo()
+
+    def platform_auto_calibrate(self):
+        """
+        Uses the assembled platform construction to calibrate it's components
+        :return:
+        """
+        self.platform_auto_calibrate_servos()
+        self.platform_auto_calibrate_imu()
+
+    def platform_set_azimuth(self, azimuth):
+        """
+        Sets the elevation of the antenna
+        :param azimuth:
+        :return:
+        """
+        self.platform.set_azimuth(azimuth)
+
+    def platform_set_elevation(self, elevation):
+        """
+        Sets the elevation of the antenna
+        :param elevation:
+        :return:
+        """
+        self.platform.set_elevation(elevation)
+
+    def platform_set_coordinates(self, azimuth, elevation):
+        """
+        Sets the coordinates of the antenna direction
+        :param azimuth:
+        :param elevation:
+        :return:
+        """
+        return self.platform.set_coordinates(azimuth, elevation)
+
+    def platform_orient(self):
+        self.platform.orient()
+
+    def _platform_auto_calibrate_check(self):
+        """
+        Checks the antenny config for components before attempting to calibrate
+        :return:
+        """
         if isinstance(self.pwm_controller, MockPWMController):
             raise AntennyMotorException("Can not auto calibrate without a motor")
         if isinstance(self.imu, MockImuController):
             raise AntennyIMUException("Can not auto calibrate without an imu")
-
-    def imu_auto_calibrate_accelerometer(self):
-        self.auto_calibrate_check()
-        return self.antenna.auto_calibrate_accelerometer()
-
-    def imu_auto_calibrate_magnetometer(self):
-        self.auto_calibrate_check()
-        return self.antenna.auto_calibrate_magnetometer()
-
-    def imu_auto_calibrate_gyroscope(self):
-        self.auto_calibrate_check()
-        return self.antenna.auto_calibrate_gyroscope()
-
-    def imu_calibrate_magnetometer(self):
-        return self.imu.calibrate_magnetometer()
-
-    def imu_calibrate_gyroscope(self):
-        return self.imu.calibrate_gyroscope()
-
-    def imu_save_calibration(self):
-        return self.imu.save_calibration_profile()
-
-    def imu_save_calibration_as(self, name):
-        return self.imu.save_calibration_profile_as(name)
-
-    def imu_make_default(self):
-        return self.imu.save_calibration_profile_as_default()
-
-    def imu_load_calibration(self, name):
-        return self.imu.load_calibration_profile(name)
-
-    def imu_reload_calibration(self):
-        return self.imu.reload_calibration_profile()
-
-    def imu_load_default(self):
-        return self.imu.load_default_calibration()
-
-    def imu_reset_calibration(self):
-        return self.imu.reset_calibration()
-
-    def imu_upload_calibration(self):
-        self.imu.upload_calibration_profile()
-
-    def imu_calibrate(self, name=None):
-        self.imu_reset_calibration()
-        self.imu_calibrate_magnetometer()
-        self.imu_calibrate_gyroscope()
-        self.imu_calibrate_accelerometer()
-        if name is not None:
-            self.imu_save_calibration_as(name)
-        else:
-            self.imu_save_calibration()
-        self.imu_upload_calibration()
-
-    def imu_auto_calibrate(self, name=None):
-        self.imu_reset_calibration()
-        self.imu_auto_calibrate_magnetometer()
-        self.imu_auto_calibrate_gyroscope()
-        self.imu_auto_calibrate_accelerometer()
-        if name is not None:
-            self.imu_save_calibration_as(name)
-        else:
-            self.imu_save_calibration()
-        self.imu_upload_calibration()
-
-    def motor_auto_find_min_max(self):
-        self.auto_calibrate_check()
-        self.antenna.get_elevation_min_max()
-        self.antenna.get_azimuth_min_max()
-
-    def auto_calibrate(self):
-        self.motor_auto_find_min_max()
-        self.imu_auto_calibrate()
-
-    def set_config_value(self, config_name: str, config_value):
-        print("Setting config entry '{}' to value '{}'".format(config_name, config_value))
-        self.config.set(config_name, config_value)
-
-    def get_config_value(self, config_name: str):
-        return self.config.get(config_name)
-
-    def print_to_display(self, data):
-        print("Outputting '{}' to the screen.".format(data))
-        if self.screen is None:
-            raise ValueError("Please enable the 'use_screen' option in the config")
-        self.screen.display(data)
-
-    def update_telemetry(self, data: dict):
-        #  TODO: The implimentation that was here does not work, make one that does or remove
-        raise NotImplementedError()
-
-    # def pwm_calibration(self, error=0.1):
-    #     """
-    #     Calibrates Azimuth and Elevation to within specified error
-    #     :param error: Acceptable target error
-    #     :return: Duty cycle to get 1 degree movement with acceptable error for azimuth & elevation
-    #     """
-    #     # TODO Save calibrated data to some place and actually make use of it
-    #     self.antenna.start_motion(90, 90)
-    #     calibrated_az_duty = self.pwm_calibrate_axis(self.antenna.azimuth, 0, 1, error=error)
-    #     calibrated_el_duty = self.pwm_calibrate_axis(self.antenna.elevation, 2, 1, error=error)
-    #     print("Calibrated Az Duty: {}\nCalibrated El Duty: {}".format(calibrated_az_duty, calibrated_el_duty))
-    #     return calibrated_az_duty, calibrated_el_duty
-    #
-    # def pwm_calibrate_axis(self, index, euler_axis, multiplier, error=0.1):
-    #     """
-    #     Calibrates the target axis with given measurement axis
-    #     :param index: Target axis motor object
-    #     :param euler_axis: Target measurement axis from Euler measurement
-    #     :param multiplier: Calibration step multiplier
-    #     :param error: Acceptable target error
-    #     :return: Duty cycle to get 1 degree movement with acceptable error
-    #     """
-    #     # Move axis to "neutral"
-    #     base_degree = 90
-    #     import time
-    #     index.set_motor_position(base_degree)
-    #     time.sleep(2)
-    #     base_duty = index.get_duty()
-    #     base_euler = self.imu.euler()[euler_axis]
-    #
-    #     if base_euler < 3.0 or base_euler > 357.0:
-    #         base_degree = 100
-    #         index.set_motor_position(base_degree)
-    #         time.sleep(2)
-    #         base_duty = index.get_duty()
-    #         base_euler = self.imu.euler()[euler_axis]
-    #
-    #     # Move "1" degree
-    #     index.set_motor_position(base_degree + 1)
-    #     time.sleep(2)
-    #     end_duty = index.get_duty()
-    #     end_euler = self.imu.euler()[euler_axis]
-    #
-    #     diff_euler = end_euler - base_euler
-    #     print("Initial Reading\nDifference: {} End: {} Base: {}".format(diff_euler, end_euler, base_euler))
-    #
-    #     # Try to "edge" duty cycle to acceptable error
-    #     while abs(diff_euler - 1) > error:
-    #         if (diff_euler - 1) > 0:
-    #             end_duty = end_duty + multiplier
-    #         else:
-    #             end_duty = end_duty - multiplier
-    #         index.set_duty(end_duty)
-    #         time.sleep(2)
-    #         end_euler = self.imu.euler()[euler_axis]
-    #         diff_euler = end_euler - base_euler
-    #         print("Difference: {} End: {} Base: {}".format(diff_euler, end_euler, base_euler))
-    #
-    #     calibrated_duty = abs(base_duty - end_duty)
-    #
-    #     return calibrated_duty
-    #
-    # def motor_test(self, index: int, positon: int):
-    #     """
-    #     Legacy motor test, chose an index to move (0 == elevation, 1 == azimuth) and return
-    #         the IMU values.
-    #     """
-    #     if index == 0:
-    #         self.antenna.elevation.set_motor_position(positon)
-    #     elif index == 1:
-    #         self.antenna.azimuth.set_motor_position(positon)
-    #     x, y, z = self.imu.euler()
-    #     return positon, x, y, z
-

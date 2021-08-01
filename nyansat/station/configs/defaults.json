@@ -1,7 +1,9 @@
 {
   "antenny": "default",
   "original_antenny": "default",
-  "calibration": "default",
-  "original_calibration": "default",
+  "imu": "default",
+  "original_imu": "default",
+  "servo": "default",
+  "original_servo": "default",
   "wifi": "wifi_config.json"
 }
