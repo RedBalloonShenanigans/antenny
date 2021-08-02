@@ -10,6 +10,20 @@ class MockPlatformController(PlatformController):
         self.elevation = elevation
         self.imu = imu
 
+    def start(self):
+        """
+        Allows the antenna to move
+        :return:
+        """
+        pass
+
+    def stop(self):
+        """
+        Stops the antenna from moving
+        :return:
+        """
+        pass
+
     def set_azimuth(self, azimuth):
         """
         Sets the platform to point at a specified azimuth

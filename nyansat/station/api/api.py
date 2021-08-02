@@ -656,6 +656,20 @@ class AntennyAPI:
         """
         self.platform.set_elevation(elevation)
 
+    def platform_start(self):
+        """
+        Starts the platform movement
+        :return:
+        """
+        self.platform.start()
+
+    def platfor_stop(self):
+        """
+        Stops the platform movement
+        :return:
+        """
+        self.platform.stop()
+
     def platform_set_coordinates(self, azimuth, elevation):
         """
         Sets the coordinates of the antenna direction
@@ -666,7 +680,7 @@ class AntennyAPI:
         return self.platform.set_coordinates(azimuth, elevation)
 
     def platform_orient(self):
-        self.platform.orient()
+        return self.platform.orient()
 
     def _platform_auto_calibrate_check(self):
         """

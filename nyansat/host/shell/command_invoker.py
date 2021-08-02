@@ -1,382 +1,622 @@
-import ast
-from dataclasses import dataclass
-import json
-from typing import List
-
 from nyansat.host.shell.nyan_pyboard import NyanPyboard
 from nyansat.host.shell.errors import *
 
 
 class CommandInvoker(NyanPyboard):
     """
-    Replacement for nyan_explorer. Antenny-specific functionality only.
+    Invokes antenny API commands on the device
     """
     def __init__(self, con):
         super().__init__(con)
         self.tracking = False
 
-    EL_SERVO_INDEX = "elevation_servo_index"
-    AZ_SERVO_INDEX = "azimuth_servo_index"
+#  Antenny Generic Functions
 
-    def is_antenna_initialized(self):
-        """Test if there is an AntKontrol object on the board"""
-        try:
-            self.exec_("isinstance(api, antenny.AntennyAPI)")
-            return True
-        except PyboardError:
-            return False
-
-    def is_tracking(self):
-        return self.tracking
-
-    def set_tracking(self, val: bool):
-        self.tracking = val
-
-    def which_config(self):
-        """Get the name of the currently used config file."""
-        try:
-            return self.eval_string_expr("api.which_config()")
-        except PyboardError as e:
-            raise ConfigUnknownError
-
-    def config_get(self, key):
-        """Get the value of an individual config parameter.
-
-        Arguments:
-        key -- name of config parameter.
+    def i2c_init(self, name: str, id_: int, scl: int, sda: int, freq=400000):
+        """
+        Initialize a new I2C channel
+        :param name: the python interpreter variable to save the i2c channel as
+        :param id_: a unique ID for the i2c channel (0 and -1 reserved for imu and motor
+        :param scl: the SCL pin on the antenny board
+        :param sda: the SDA pin on the antenny board
+        :param freq: the I2C comm frequency
+        :return: machine.I2C class
         """
         try:
-            return self.eval_string_expr("api.config_get(\"{}\")".format(key))
+            self.eval_string_expr("{} = api.i2c_init({}, {}, {}, freq={})".format(name, id_, scl, sda, freq))
+            return name
         except PyboardError as e:
-            raise NoSuchConfigError(str(e))
+            raise AntennyException(e)
 
-    def config_set(self, key, val):
-        """Set an individual parameter in the config file.
-
-        Arguments:
-        key -- name of config parameter. Tab complete to see choices.
-        val -- value of paramter
+    def antenny_which_config(self):
+        """
+        Show the current config
+        :return: config name
         """
         try:
-            if isinstance(val, str):
-                val = "\"{}\"".format(val)
-            self.exec_("api.config_set(\"{}\", {}".format(key, val))
+            return self.eval_string_expr("api.antenny_which_config()")
         except PyboardError as e:
-            raise NoSuchConfigError(str(e))
+            raise AntennyException(e)
 
-    def config_save(self):
-        try:
-            return self.exec_("api.config_save()")
-        except PyboardError as e:
-            raise ConfigStatusError(str(e))
-
-    def config_save_as(self, config_name, force=False):
-        try:
-            return self.exec_("api.config_save_as(\"{}\", force={})".format(config_name, False))
-        except PyboardError as e:
-            raise ConfigStatusError(str(e))
-
-    def config_load(self, config_name):
-        try:
-            return self.exec_("api.config_load(\"{}\")".format(config_name))
-        except PyboardError as e:
-            raise ConfigStatusError(str(e))
-
-    def config_print(self):
-        try:
-            return self.eval_string_expr("api.config_print()")
-        except PyboardError as e:
-            raise ConfigStatusError(str(e))
-
-    def config_load_default(self):
-        try:
-            return self.exec("api.config_load_defaut()")
-        except PyboardError as e:
-            raise ConfigStatusError(str(e))
-
-    def config_save_as_default(self):
-        try:
-            return self.exec_("api.save_as_default()")
-        except PyboardError as e:
-            raise ConfigStatusError(str(e))
-
-    def config_new(self, config_name):
-        try:
-            return self.exec_("api.config_new(\"{}\"".format(config_name))
-        except PyboardError as e:
-            raise ConfigStatusError(str(e))
-
-    def config_help(self):
-        try:
-            return self.eval_string_expr("api.get_help_info()")
-        except PyboardError as e:
-            raise ConfigStatusError(str(e))
-
-    def config_reset(self):
-        try:
-            return self.exec_("api.config_reset()")
-        except PyboardError as e:
-            raise ConfigStatusError(str(e))
-
-    def config_list(self):
-        try:
-            return self.eval_string_expr("api.config_list()")
-        except PyboardError as e:
-            raise ConfigStatusError(str(e))
-
-    def i2c_scan(self, sda, scl):
+    def antenny_config_check(self):
         """
-        Create and scan an i2c bus for addresses; helpful for debugging
-        :param sda: Pin number for sda
-        :param scl: Pin number for scl
-        :return: Addresses found on i2c bus
-        """
-        self.exec_("import machine")
-        self.exec_("from machine import Pin")
-        self.exec_(
-            "i2c = machine.I2C(-1, sda=Pin({}, Pin.OUT, Pin.PULL_DOWN), scl=Pin({}, Pin.OUT, Pin.PULL_DOWN))".format(
-                    sda,
-                    scl
-                )
-            )
-        return self.eval_string_expr("i2c.scan()")
-
-    def imu_calibration_status(self):
-        """Get IMU calibration status."""
-        try:
-            return json.loads(self.eval_string_expr("api.imu.get_calibration_status()"))
-        except PyboardError as e:
-            raise CalibrationStatusError(str(e))
-
-    def imu_save_calibration_profile(self):
-        """Save the current IMU calibration as 'calibration.json'."""
-        return self.eval_string_expr("api.imu.save_calibration_profile('calibration.json')")
-
-    def imu_upload_calibration_profile(self):
-        """Upload 'calibration.json' to the IMU."""
-        return self.eval_string_expr("api.imu.upload_calibration_profile('calibration.json')")
-
-    def motor_test(self, index, pos):
-        """Run a motor accuracy test, for testing the disparity between the motor and IMU.
-
-        Arguments:
-        index -- index of motor on the PWM driver (defaults: 0 == elevation, 1 == azimuth).
-        pos -- desired angle.
-        """
-        try:
-            return ast.literal_eval(self.eval_string_expr("api.motor_test({}, {})".format(index, pos)))
-        except PyboardError as e:
-            raise NotRespondingError(str(e))
-
-    def start_motion(self, az_angle, el_angle):
-        """
-        Sets the initial azimuth and elevation to the provided values and enables motion
-        :param az_angle: float
-        :param el_angle: float
+        Checks if the current config is valid
         :return:
         """
         try:
-            self.eval_string_expr("api.antenna.start_motion({}, {})".format(az_angle, el_angle))
+            return self.eval_string_expr("api.antenny_config_check()")
         except PyboardError as e:
-            raise NotRespondingError(str(e))
+            raise AntennyException(e)
 
-    def set_elevation_degree(self, el_angle):
-        """Set the elevation angle.
-
-        Arguments:
-        el_angle -- desired elevation angle.
+    def antenny_config_get(self, key: str):
+        """
+        Get a key from the config
+        :param key: the config key
+        :return: the config value
         """
         try:
-            self.eval_string_expr("api.antenna.set_elevation({})".format(el_angle))
+            return self.eval_string_expr("api.antenny_config_get(\"{}\")".format(key))
         except PyboardError as e:
-            raise StartMotionError(str(e))
+            raise AntennyException(e)
 
-    def set_azimuth_degree(self, az_angle):
-        """Set the azimuth angle.
-
-        Arguments:
-        az_angle -- desired azimuth angle.
+    def antenny_config_set(self, key: str, val):
+        """
+        Set a key from the config
+        :param key: the config key
+        :param val: the config  value
+        :return: bool
         """
         try:
-            self.eval_string_expr("api.antenna.set_azimuth({})".format(az_angle))
+            return self.eval_string_expr("api.antenny_config_set(\"{}\", \"{}\")".format(key, val))
         except PyboardError as e:
-            raise StartMotionError(str(e))
+            raise AntennyException(e)
 
-    def create_antkontrol(self):
-        """Create an antkontrol object on the ESP32."""
-        try:
-            ret = self.exec_("import antenny")
-            ret = self.exec_("api = antenny.start()")
-        except PyboardError as e:
-            raise AntennaAPIFactoryError(str(e))
-        try:
-            ret = self.exec_("del(config)")
-            ret = self.exec_("config = api.config")
-            # self.antenna_initialized = True
-            return ret.decode()
-        except PyboardError as e:
-            try:
-                self.exec_("from config.config import ConfigRepository")
-                self.exec_("config = ConfigRepository")
-            except PyboardError as e:
-                raise AntennyImportError(str(e))
-
-    def delete_antkontrol(self):
-        """Delete the existing antkontrol object on the ESP32."""
-        try:
-            ret = self.exec_("del(api)")
-            # self.antenna_initialized = False
-            return ret.decode()
-        except PyboardError as e:
-            raise NotRespondingError(str(e))
-
-    def is_safemode(self):
-        """Check if the API is in SAFE MODE"""
-        try:
-            ret = self.eval_string_expr("api.is_safemode()")
-            # The following is inelegant, but a result of eval_string_expr's return
-            if ret == 'False':
-                ret = False
-            else:
-                ret = True
-            return ret
-        except PyboardError as e:
-            raise NotRespondingError(str(e))
-
-    def bno_diagnostics(self, sda, scl):
+    def antenny_config_save(self, name: str = None, force: bool = False):
         """
-        Create a BNO controller object for the given I2C sda/scl configuration. Uses the default
-        value of 40 for the BNO055 I2C address.
-        :param sda: Pin number for sda
-        :param scl: Pin number for scl
-        :return: A BnoTestDiagnostics object containing relevant T/F information about the setup
+        Save the current config
+        :return: None
         """
-        i2c_bus_scannable = False
-        i2c_addresses = []
-        bno_object_created = False
-        bno_object_calibrated = False
-
-        # Test scanning I2C bus
         try:
-            addresses = self.i2c_scan(sda, scl)
-        except PyboardError:
-            return BnoTestDiagnostics(
-                i2c_bus_scannable,
-                i2c_addresses,
-                bno_object_created,
-                bno_object_calibrated
-            )
-        i2c_bus_scannable = True
+            return self.eval_string_expr("api.antenny_config_save(name=\"{}\", force={})".format(name, force))
+        except PyboardError as e:
+            raise AntennyException(e)
 
-        # Test what's on the I2C bus and their addresses
-        try:
-            i2c_addresses = [int(n) for n in addresses.strip('] [').split(', ')]
-            if not i2c_addresses:
-                return BnoTestDiagnostics(
-                    i2c_bus_scannable,
-                    i2c_addresses,
-                    bno_object_created,
-                    bno_object_calibrated
-                )
-        except ValueError:
-            return BnoTestDiagnostics(
-                i2c_bus_scannable,
-                i2c_addresses,
-                bno_object_created,
-                bno_object_calibrated
-            )
-
-        # Test creating BNO object
-        try:
-            self.exec_("from imu.imu_bno055 import Bno055ImuController")
-            self.exec_("bno = Bno055ImuController(i2c)")
-        except PyboardError:
-            return BnoTestDiagnostics(
-                i2c_bus_scannable,
-                i2c_addresses,
-                bno_object_created,
-                bno_object_calibrated
-            )
-        bno_object_created = True
-
-        # Test calibration status of BNO object
-        try:
-            calibration_status = json.loads(self.eval_string_expr("bno.get_calibration_status()"))
-            bno_object_calibrated = calibration_status['system'] > 0
-        except PyboardError:
-            bno_object_calibrated = False
-
-        return BnoTestDiagnostics(
-            i2c_bus_scannable,
-            i2c_addresses,
-            bno_object_created,
-            bno_object_calibrated
-        )
-
-    def pwm_diagnostics(self, sda, scl):
+    def antenny_config_load(self, name: str = None):
         """
-        Create a PCA9685 controller object for the given I2C sda/scl configuration. Uses the default
-        value of 40 for the controller's address.
-        :param sda: Pin number for sda
-        :param scl: Pin number for scl
-        :return: A PwmTestDiagnostics object containing relevant T/F information about the setup
+        Load an existin config
+        :param name:
+        :return: None
         """
-        i2c_bus_scannable = False
-        i2c_addresses = []
-        pca_object_created = False
-
-        # Test scanning I2C bus
         try:
-            addresses = self.i2c_scan(sda, scl)
-        except PyboardError:
-            return PwmTestDiagnostics(
-                i2c_bus_scannable,
-                i2c_addresses,
-                pca_object_created
-            )
-        i2c_bus_scannable = True
+            return self.eval_string_expr("api.antenny_config_load(name=\"{}\")".format(name))
+        except PyboardError as e:
+            raise AntennyException(e)
 
-        # Test what's on the I2C bus and their addresses
+    def antenny_config_print_values(self):
+        """
+        Print the current config values
+        :return: None
+        """
         try:
-            i2c_addresses = [int(n) for n in addresses.strip('] [').split(', ')]
-            if not i2c_addresses:
-                return PwmTestDiagnostics(
-                    i2c_bus_scannable,
-                    i2c_addresses,
-                    pca_object_created
-                )
-        except ValueError:
-            return PwmTestDiagnostics(
-                i2c_bus_scannable,
-                i2c_addresses,
-                pca_object_created
-            )
+            return self.eval_string_expr("api.antenny_config_print_values()")
+        except PyboardError as e:
+            raise AntennyException(e)
 
-        # Test creating BNO object
+    def antenny_config_load_default(self):
+        """
+        Reloads the config that was present on startup
+        :return: None
+        """
         try:
-            self.exec_("from motor.motor_pca9685 import Pca9685Controller")
-            self.exec_("pca = Pca9685Controller(i2c)")
-            pca_object_created = True
-        except PyboardError:
-            pca_object_created = False
+            return self.eval_string_expr("api.antenny_config_load_default()")
+        except PyboardError as e:
+            raise AntennyException(e)
 
-        return PwmTestDiagnostics(
-            i2c_bus_scannable,
-            i2c_addresses,
-            pca_object_created
-        )
+    def antenny_config_make_default(self):
+        """
+        Will now load the current config on startup
+        :return: None
+        """
+        try:
+            return self.eval_string_expr("api.antenny_config_make_default()")
+        except PyboardError as e:
+            raise AntennyException(e)
 
-@dataclass
-class BnoTestDiagnostics:
-    """Store diagnostic T/F values for BNO test. Used in the handling for 'bnotest' command."""
-    i2c_bus_scannable: bool
-    i2c_addresses: List[int]
-    bno_object_created: bool
-    bno_object_calibrated: bool
+    def antenny_config_help(self):
+        """
+        Gives you help and type info for each config key in json format.
+        :return: help json dictionary
+        """
+        try:
+            return self.eval_string_expr("api.antenny_config_help()")
+        except PyboardError as e:
+            raise AntennyException(e)
 
-@dataclass
-class PwmTestDiagnostics:
-    """Store diagnostic T/F values for PWM test. Used in the handling for 'pwmtest' command."""
-    i2c_bus_scannable: bool
-    i2c_addresses: List[int]
-    pca_object_created: bool
+    def antenny_config_reset(self):
+        """
+        Resets the config back to "default"
+        :return: None
+        """
+        try:
+            return self.eval_string_expr("api.antenny_config_reset()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def antenny_list_configs(self):
+        """
+        Lists all of the configs available on the device.
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.antenny_config_help()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def antenny_is_safemode(self):
+        """
+        Checks if the device is in safemode
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.antenny_is_safemode()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def antenny_init_components(self):
+        """
+        Initialize all antenny system components
+        :return: None
+        """
+        try:
+            return self.eval_string_expr("api.antenny_init_components()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def antenny_save_all_configs_as_default(self, name: str = None):
+        """
+        Will save all current configs to be started on device startup
+        :param name: A new name for the config, if not specified, will overwrite the current
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.antenny_save_all_configs_as_default(name=\"{}\")".format(name))
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def antenny_start_calibrate_and_save_as_default(self, name: str = None):
+        """
+        Initializes all components, auto-calibrates the platform, then saves all as default
+        Should be used after assembling a new antenny or after wiping your previous configs
+        :param name:
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.antenny_start_calibrate_and_save_as_default(name=\"{}\")".format(name))
+        except PyboardError as e:
+            raise AntennyException(e)
+
+#  PWM Controller Functions
+
+    def pwm_controller_init(self, chain: str = None, freq: int = 333):
+        """
+        Initialize the antenny system PWM controller
+        :param freq: pwm frequency
+        :param chain: the name of a created i2c channel if chaining the bus
+        :return: Pca9865Controller class
+        """
+        try:
+            if chain is not None:
+                chain = "\"{}\"".format(chain)
+            return self.eval_string_expr("api.pwm_controller_init(chain={}, freq={})".format(chain, freq))
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def pwm_controller_scan(self):
+        """
+        Scan the Motor I2C chain
+        :return: List of I2C addresses
+        """
+        try:
+            return self.eval_string_expr("api.pwm_controller_scan()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+#  Servo Controller Functions
+
+    def elevation_servo_init(self):
+        """
+        Initializes the elevation servo
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.elevation_servo_init()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def elevation_servo_load(self, name: str = None):
+        """
+        Loads the servo's min and max duty cycle values from the config
+        :param name:
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.elevation_servo_load(name=\"{}\")".format(name))
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def elevation_servo_save(self, name: str = None, force: bool = False):
+        """
+        Saves the servo's min and max duty cycle values to the config
+        :param force:
+        :param name:
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.elevation_servo_save(name=\"{}\", force={})".format(name, force))
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def azimuth_servo_init(self):
+        """
+        Initializes the azimuth servo
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.azimuth_servo_init()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def azimuth_servo_load(self, name: str = None):
+        """
+        Loads the servo's min and max duty cycle values from the config
+        :param name:
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.azimuth_servo_load(name=\"{}\")".format(name))
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def azimuth_servo_save(self, name: str = None, force: bool = False):
+        """
+        Saves the servo's min and max duty cycle values to the config
+        :param force:
+        :param name:
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.azimuth_servo_save(name=\"{}\", force={})".format(name, force))
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def servo_make_default(self):
+        try:
+            return self.eval_string_expr("api.servo_make_default()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+#  Screen Functions
+
+    def screen_init(self, chain: str = None):
+        """
+        Initialize the antenny I2C screen
+        :param chain: provide your own I2C channel
+        :return: Ssd13065ScreenController class
+        """
+        try:
+            if chain is not None:
+                chain = "\"{}\"".format(chain)
+            return self.eval_string_expr("api.screen_init(chain={})".format(chain))
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def screen_scan(self):
+        """
+        Scan the screen I2C chain
+        :return: List of I2C addresses
+        """
+        try:
+            return self.eval_string_expr("api.screen_scan()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+#  GPS Functions
+
+    def gps_init(self):
+        """
+        Initialize the antenny system GPS
+        :return: BasicGPSController class
+        """
+        try:
+            return self.eval_string_expr("api.gps_init()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+#  Telemetry Functions
+
+    def telemetry_init(self, port=31337):
+        """
+        Initialize the antenny system Telemetry sender
+        :param port: Communcation UDP port
+        :return: UDPTelemetrySender
+        """
+        try:
+            return self.eval_string_expr("api.telemetry_init(port={})".format(port))
+        except PyboardError as e:
+            raise AntennyException(e)
+
+#  IMU Functions
+
+    def imu_init(self, chain: str = None):
+        """
+        Initialize the antenny system IMU
+        :param chain: provide your own I2C channel
+        :return: Bno055ImuController class
+        """
+        try:
+            if chain is not None:
+                chain = "\"{}\"".format(chain)
+            return self.eval_string_expr("api.imu_init(chain={})".format(chain))
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def imu_scan(self):
+        """
+        Scan the IMU I2C chain
+        :return: List of I2C addresses
+        """
+        try:
+            return self.eval_string_expr("api.imu_scan()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def imu_is_calibrated(self) -> bool:
+        """
+        Checks if the IMU is calibrated
+        :return: bool
+        """
+        try:
+            return self.eval_string_expr("api.imu_is_calibrated()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def imu_calibrate_accelerometer(self):
+        """
+        Starts the accelerometer calibration routine.
+        :return: calibration results
+        """
+        try:
+            return self.eval_string_expr("api.imu_calibrate_accelerometer()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def imu_calibrate_magnetometer(self):
+        """
+        Starts the magnetometer calibration routine
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.imu_calibrate_magnetometer()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def imu_calibrate_gyroscope(self):
+        """
+        Starts the gyroscope calibration routine
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.imu_calibrate_gyroscope()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def imu_save(self, name: str = None, force: bool = False):
+        """
+        Saves the current calibration to the config
+        :param force:
+        :param name: A new config name, overwritten if not specified
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.imu_save(name=\"{}\", force={})".format(name, force))
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def imu_load(self, name: str = None):
+        """
+        Reloads the calibration from the config
+        :param name: A different config to be loaded if specified
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.imu_save(name=\"{}\")".format(name))
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def imu_make_default(self):
+        """
+        Makes the current IMU calibration config default
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.imu_make_default()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def imu_load_default(self):
+        """
+        Loads the default calibration config
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.imu_load_default()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def imu_reset_calibration(self):
+        """
+        Resets the calibration on the IMU
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.imu_reset_calibration()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    #  Platform Functions
+
+    def platform_init(self):
+        """
+        Initialize the antenny axis control system
+        :return: AntennaController
+        """
+        try:
+            return self.eval_string_expr("api.imu_reset_calibration()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def platform_auto_calibrate_accelerometer(self):
+        """
+        Uses the servos to perform the accelerometer routine
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.platform_auto_calibrate_accelerometer()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def platform_auto_calibrate_magnetometer(self):
+        """
+        Uses the servos to perform the magnetometer routine
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.platform_auto_calibrate_magnetometer()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def platform_auto_calibrate_gyroscope(self):
+        """
+        Uses the servos to perform the gyroscope routine
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.platform_auto_calibrate_gyroscope()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def platform_auto_calibrate_imu(self):
+        """
+        Uses the servos to automatically perform the IMU calibration
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.platform_auto_calibrate_imu()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def platform_auto_calibrate_elevation_servo(self):
+        """
+        Uses the IMU to calibrate the elevation servo
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.platform_auto_calibrate_elevation_servo()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def platform_auto_calibrate_azimuth_servo(self):
+        """
+        Uses the IMU to calibrate the azimuth servo
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.platform_auto_calibrate_azimuth_servo()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def platform_auto_calibrate_servos(self):
+        """
+        Uses the IMU to automatically detect the min and max of the servos
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.platform_auto_calibrate_servos()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def platform_auto_calibrate(self):
+        """
+        Uses the assembled platform construction to calibrate it's components
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.platform_auto_calibrate()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def platform_set_azimuth(self, azimuth):
+        """
+        Sets the elevation of the antenna
+        :param azimuth:
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.platform_set_azimuth({})".format(azimuth))
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def platform_set_elevation(self, elevation):
+        """
+        Sets the elevation of the antenna
+        :param elevation:
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.platform_set_elevation({})".format(elevation))
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def platform_start(self):
+        """
+        Starts the movement of the platform
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.platform_start()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def platform_stop(self):
+        """
+        Starts the movement of the platform
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.platform_stop()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def platform_set_coordinates(self, azimuth, elevation):
+        """
+        Sets the coordinates of the antenna direction
+        :param azimuth:
+        :param elevation:
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.platform_set_coordinates({}, {})".format(azimuth, elevation))
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def platform_orient(self):
+        """
+        Sets the coordinates of the antenna direction
+        :param azimuth:
+        :param elevation:
+        :return:
+        """
+        try:
+            return self.eval_string_expr("api.platform_orient()")
+        except PyboardError as e:
+            raise AntennyException(e)

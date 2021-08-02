@@ -2,6 +2,21 @@ class PlatformController:
     """
     Control the antenna motion device of the antenny.
     """
+
+    def start(self):
+        """
+        Allows the antenna to move
+        :return:
+        """
+        raise NotImplementedError()
+
+    def stop(self):
+        """
+        Stops the antenna from moving
+        :return:
+        """
+        raise NotImplementedError()
+
     def set_azimuth(self, azimuth):
         """
         Sets the platform to point at a specified azimuth

@@ -46,6 +46,12 @@ class PIDPlatformController(PlatformController):
             )
         )
 
+    def start(self):
+        self.start_pid_loop()
+
+    def stop(self):
+        self.stop_pid_loop()
+
     def set_azimuth(self, azimuth):
         """
         Sets the platform to point at a specified azimuth
@@ -90,6 +96,13 @@ class PIDPlatformController(PlatformController):
         :return:
         """
         self.elevation_pid_loop_timer.init(period=10, mode=machine.Timer.PERIODIC, callback=self.__pid_loop)
+
+    def stop_pid_loop(self):
+        """
+        Stops the PID timer
+        :return:
+        """
+        self.elevation_pid_loop_timer.deinit()
 
     def set_coordinates(self, azimuth, elevation, error=1):
         """
