@@ -30,6 +30,9 @@ PACKAGES_TO_INSTALL = [
 LIBRARY_FILES = [
     'lib/BNO055/bno055.py',
     'lib/BNO055/bno055_base.py',
+    'lib/BNO08x/bno08x.py',
+    'lib/BNO08x/bno08x_base.py',
+    'lib/BNO08x/debug.py',
     'lib/PCA9685/pca9685.py',
     'lib/micropython/drivers/display/ssd1306.py',
     'lib/micropygps/micropyGPS.py',
@@ -344,7 +347,7 @@ class AntennyInstaller(object):
         """
 
         self._clean_files(ignore_lib=ignore_lib, ignore_configs=ignore_configs, components=components)
-        if not ignore_lib and components is None:
+        if not ignore_lib:
             self._put_library_files_on_device()
         self._put_antenny_files_on_device(ignore_configs=ignore_configs, components=components)
         has_wifi = self._query_user_for_wifi_credentials()
@@ -393,7 +396,8 @@ if __name__ == '__main__':
     installer.connect()
     LOG.info("Connected, welcome to the Antenny installer!")
     ignore_configs = input("Do you want to keep the configs on the device? (Y/n)").strip().lower() in ('y', '')
-    fresh_install = input("Do you want to do an installation of all components?(Y/n)").strip().lower() in ('y', '')
+    fresh_install = input("Do you want to do an installation of all components and libraries?(Y/n)").strip().lower() \
+                    in ('y', '')
     if fresh_install:
         confirm = input(f"Are you sure you want to erase all files on the device? (y/N) ").strip().lower() == 'y'
         if not confirm:
@@ -408,5 +412,6 @@ if __name__ == '__main__':
             done = input("Do you wish to install more? (y/N)").strip().lower() in ("n", "")
             if not ignore_configs:
                 components.append("configs")
-        installer.install(ignore_lib=True, ignore_configs=ignore_configs, components=components)
+        ignore_libs = input("Do you want to re-install the libraries (y/N)").strip().lower() != 'y'
+        installer.install(ignore_lib=ignore_libs, ignore_configs=ignore_configs, components=components)
     LOG.info("Installation complete!")
