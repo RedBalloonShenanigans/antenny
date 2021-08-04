@@ -438,7 +438,7 @@ def esp32_antenna_api_factory():
         telemetry_sender = UDPTelemetrySender(31337, gps, imu)
     else:
         LOG.warning(
-            "Telemetry disabled, please set use_screen=True in the settings and run `antkontrol`")
+            "Telemetry disabled, please set use_telemetry=True in the settings and run `antkontrol`")
     api = AntennyAPI(
         antenna_controller,
         imu,
