@@ -28,16 +28,6 @@ class CommandInvoker(NyanPyboard):
         except PyboardError as e:
             raise AntennyException(e)
 
-    def antenny_which_config(self):
-        """
-        Show the current config
-        :return: config name
-        """
-        try:
-            return self.eval_string_expr("api.antenny_which_config()")
-        except PyboardError as e:
-            raise AntennyException(e)
-
     def antenny_config_check(self):
         """
         Checks if the current config is valid
@@ -45,6 +35,16 @@ class CommandInvoker(NyanPyboard):
         """
         try:
             return self.eval_string_expr("api.antenny_config_check()")
+        except PyboardError as e:
+            raise AntennyException(e)
+
+    def antenny_which_config(self):
+        """
+        Show the current config
+        :return: config name
+        """
+        try:
+            return self.eval_string_expr("api.antenny_which_config()")
         except PyboardError as e:
             raise AntennyException(e)
 
@@ -172,18 +172,18 @@ class CommandInvoker(NyanPyboard):
         except PyboardError as e:
             raise AntennyException(e)
 
-    def antenny_save_all_configs_as_default(self, name: str = None):
+    def antenny_save(self, name: str = None):
         """
         Will save all current configs to be started on device startup
         :param name: A new name for the config, if not specified, will overwrite the current
         :return:
         """
         try:
-            return self.eval_string_expr("api.antenny_save_all_configs_as_default(name=\"{}\")".format(name))
+            return self.eval_string_expr("api.antenny_save(name=\"{}\")".format(name))
         except PyboardError as e:
             raise AntennyException(e)
 
-    def antenny_start_calibrate_and_save_as_default(self, name: str = None):
+    def antenny_calibrate(self, name: str = None):
         """
         Initializes all components, auto-calibrates the platform, then saves all as default
         Should be used after assembling a new antenny or after wiping your previous configs
@@ -191,7 +191,7 @@ class CommandInvoker(NyanPyboard):
         :return:
         """
         try:
-            return self.eval_string_expr("api.antenny_start_calibrate_and_save_as_default(name=\"{}\")".format(name))
+            return self.eval_string_expr("api.antenny_calibrate(name=\"{}\")".format(name))
         except PyboardError as e:
             raise AntennyException(e)
 
@@ -380,36 +380,6 @@ class CommandInvoker(NyanPyboard):
         except PyboardError as e:
             raise AntennyException(e)
 
-    def imu_calibrate_accelerometer(self):
-        """
-        Starts the accelerometer calibration routine.
-        :return: calibration results
-        """
-        try:
-            return self.eval_string_expr("api.imu_calibrate_accelerometer()")
-        except PyboardError as e:
-            raise AntennyException(e)
-
-    def imu_calibrate_magnetometer(self):
-        """
-        Starts the magnetometer calibration routine
-        :return:
-        """
-        try:
-            return self.eval_string_expr("api.imu_calibrate_magnetometer()")
-        except PyboardError as e:
-            raise AntennyException(e)
-
-    def imu_calibrate_gyroscope(self):
-        """
-        Starts the gyroscope calibration routine
-        :return:
-        """
-        try:
-            return self.eval_string_expr("api.imu_calibrate_gyroscope()")
-        except PyboardError as e:
-            raise AntennyException(e)
-
     def imu_save(self, name: str = None, force: bool = False):
         """
         Saves the current calibration to the config
@@ -453,17 +423,7 @@ class CommandInvoker(NyanPyboard):
         except PyboardError as e:
             raise AntennyException(e)
 
-    def imu_reset_calibration(self):
-        """
-        Resets the calibration on the IMU
-        :return:
-        """
-        try:
-            return self.eval_string_expr("api.imu_reset_calibration()")
-        except PyboardError as e:
-            raise AntennyException(e)
-
-    #  Platform Functions
+#  Platform Functions
 
     def platform_init(self):
         """
