@@ -2,6 +2,24 @@
 
 Make your own base station to communicate with satellites!
 
+## First thing to do when you receive the kit
+
+When you receive the Antenny Kit, first thing you need to do is to solder the jumper resistor on the Board. "Jumper for PWM Dr" is responsible to control the Servo gimbal. "Jumper for IMU is" for the MEMS Fusion sensor.
+
+![Antenny KM7 jumper](doc_images/KM7-jumper.png)
+
+## Flash the Mircro-Python firmware on ESP32
+
+Please refer to this [Getting started with MicroPython on the ESP32](https://docs.micropython.org/en/latest/esp32/tutorial/intro.html) guide for flahsing the firmware on Antenny KM7 board. You can choose the firmware with SPIRAM support.
+
+- Important: When you start to program the Antenny board with esptool, please hold the K2 Tact Button until the program detect the download mode.
+
+```
+example command: esptool.py --chip esp32 --port /dev/tty.SLAB_USBtoUART --baud 115200 write_flash -z 0x1000 ~/Downloads/esp32-idf3-20191220-v1.12.bin
+```
+
+![Flash Firmware button](doc_images/K2_Button_flash_firmware.png)
+
 ## Setting Up
 
 These set up procedures expect that your base station is fully assembled and your ESP32 is flashed with Micropython firmware. If not, check the [NyanSat website](https://nyan-sat.com) for detailed steps on how to assemble your hardware, plus some tips on avoiding common pitfalls. If you have an official Antenny board, you can also take a look at our [Getting Started Guide](https://github.com/RedBalloonShenanigans/antenny/blob/master/hardware/Antenny_board_hardware_setup_guide.pdf).
@@ -14,7 +32,7 @@ NyanShell provides a convenient shell interface to communicate with your NyanSat
 
 Once your host is set up, you can install NyanSat on your ESP32. Before anything, make sure you have a fully erased, freshly flashed micropython installation on your ESP32.
 
- First, determine which serial port corresponds to your ESP32. Then from the project directory, run `make nyansat SERIAL=<your ESP32 serial port>` to install it on your ESP32. During this process, you will be asked for your WiFi SSID and Password; this is to establish an internet connection for upip, which will install some dependencies. Towards the end of the install process, the script will ask you to setup webrepl on the ESP32.
+First, determine which serial port corresponds to your ESP32. Then from the project directory, run `make nyansat SERIAL=<your ESP32 serial port>` to install it on your ESP32. During this process, you will be asked for your WiFi SSID and Password; this is to establish an internet connection for upip, which will install some dependencies. Towards the end of the install process, the script will ask you to setup webrepl on the ESP32.
 
 ## Usage
 
@@ -63,9 +81,9 @@ To get more information about each documented command, you can type `help <comma
 
 ### Configuring AntKontrol
 
-The heart of NyanSat is AntKontrol, a scalable API that you can extend to add more features on your NyanSat device. An AntKontrol instance is usually started up when the ESP32 boots up. However, if you wish to create a new instance, you can run `antkontrol start`. 
+The heart of NyanSat is AntKontrol, a scalable API that you can extend to add more features on your NyanSat device. An AntKontrol instance is usually started up when the ESP32 boots up. However, if you wish to create a new instance, you can run `antkontrol start`.
 
-AntKontrol attempts to integrate different hardware into one interface. It is usually able to recover from misbehaving hardware and provide reduced functionality. However, if the motor implementation does not initialize properly, AntKontrol enters SAFE MODE. In this state, any commands issued will not move your base station's motors until you determine what the fault is. To determine if your device is in SAFE MODE, run `antkontrol status`. 
+AntKontrol attempts to integrate different hardware into one interface. It is usually able to recover from misbehaving hardware and provide reduced functionality. However, if the motor implementation does not initialize properly, AntKontrol enters SAFE MODE. In this state, any commands issued will not move your base station's motors until you determine what the fault is. To determine if your device is in SAFE MODE, run `antkontrol status`.
 
 ![Querying AntKontrol's Status](doc_images/safe_mode.png)
 
@@ -102,12 +120,12 @@ While servo motors can take a position as input and try to reach it, the motor w
 ## Gotchas
 
 As with any project, you may come across a few snags in the road— we certainly did! Here’s a few that we encountered and how we solved them. As a general rule, when you try to debug:
-Use the command `python3 -m nyansat.host.shell` to interact with your device; this exposes *only* the shell to you
+Use the command `python3 -m nyansat.host.shell` to interact with your device; this exposes _only_ the shell to you
 Reset the device by pressing the `BOOT`/`ENABLE` button on your ESP32, or pressing `Control + D` when using the `repl` interface
 
 ### After a NyanSat install, the device reports `no module named ‘logging’`
 
-This usually occurs after a *reinstall* and appears to be an issue with upip, the MicroPython equivalent of PyPI. If you come across this issue,  enter the command `repl` in `nyanshell` and type the following commands:
+This usually occurs after a _reinstall_ and appears to be an issue with upip, the MicroPython equivalent of PyPI. If you come across this issue, enter the command `repl` in `nyanshell` and type the following commands:
 
 ```
 >>> import upip
@@ -122,7 +140,7 @@ SAFE MODE is a last resort for your NyanSat when it cannot properly initialize y
 
 1. **Your physical pin configuration may not match up with what NyanSat is using:** To verify this, run `configs` to list out the parameters your NyanSat is using. If you see a mismatch for your motor driver’s I2C pinout, you can change the configuration parameter using the `set` command. Take a look at the section for “Devices are not detected” for a more thorough discussion.
 2. **Your motor driver’s I2C address may not match up with what NyanSat is using:** To verify this, run `configs` to list out the parameters your NyanSat is using. Then, use `i2ctest` or `pwmtest` to verify which address your motor driver is using; if you see multiple addresses, the first one is usually correct. If you see a mismatch, you can change the configuration parameter by using the `set` command.
-3. **Your motor driver is not at PCA9685:** To verify this, run `pwmtest`. If `PWM connection established?` is `False`, but the other values are `True`, you *may* have a different motor driver. Fear not! `AntKontrol`’s API is designed to be extended, so you can create a new motor implementation for your unique motor driver! If you choose to do so, make sure to submit a Pull Request on the main [Antenny Project Repo](https://github.com/RedBalloonShenanigans/antenny)
+3. **Your motor driver is not at PCA9685:** To verify this, run `pwmtest`. If `PWM connection established?` is `False`, but the other values are `True`, you _may_ have a different motor driver. Fear not! `AntKontrol`’s API is designed to be extended, so you can create a new motor implementation for your unique motor driver! If you choose to do so, make sure to submit a Pull Request on the main [Antenny Project Repo](https://github.com/RedBalloonShenanigans/antenny)
 4. **Your motor driver is broken!** To verify this, first make sure the cause isn’t any of the ones listed above. If `i2ctest` or `pwmtest` don’t return any address and you are sure your wiring is correct, you might have a defective motor driver :( Unfortunately, you need to replace your motor driver to move your base station.
 
 ### Devices are not detected
@@ -149,17 +167,19 @@ Try to go through your physical configuration and ensure you’re using the best
 
 I2C devices use addresses to know how to communicate with each other. Some devices allow you to change the address physically by breaking out the pins responsible. If these pins are not connected to anything, it is possible that their voltage is undefined, or “floating”. This results in the device configuring itself with unexpected addresses from run to run. To ensure a stable I2C address, make sure each address pin has a defined voltage value. This is usually done by tying each pin to ground, but consult your device’s data sheet to properly handle this scenario.
 
-
 ## Requirements & Dependencies
 
 General:
+
 - Python >= 3.6
 
 NyanShell:
+
 - MPFShell
 - TUI-DOM
 
 NyanSat:
+
 - Logging
 - PCA9685 Adafruit Library
 - BNO055 Adafruit Library, adapted for use in Micropython by Peter Hinch
