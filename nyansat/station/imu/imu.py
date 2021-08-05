@@ -78,7 +78,7 @@ class ImuController(object):
         """
         raise NotImplementedError()
 
-    def download_accelerometer_calibration(self):
+    def save_accelerometer_calibration(self):
         """
         Downloads the calibration registers from the device
         :return:
@@ -99,7 +99,7 @@ class ImuController(object):
         """
         raise NotImplementedError()
 
-    def download_magnetometer_calibration(self):
+    def save_magnetometer_calibration(self):
         """
         Downloads the calibration registers from the device
         :return:
@@ -120,7 +120,7 @@ class ImuController(object):
         """
         raise NotImplementedError()
 
-    def download_gyroscope_calibration(self):
+    def save_gyroscope_calibration(self):
         """
         Downloads the calibration registers from the device
         :return:

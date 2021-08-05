@@ -29,8 +29,8 @@ class PIDPlatformController(PlatformController):
         self.azimuth_pid_loop_timer = machine.Timer(1)
         self.elevation.set_position(int((self.elevation.get_max_position() - self.elevation.get_min_position()) / 2))
         self.azimuth.set_position(int((self.azimuth.get_max_position() - self.azimuth.get_min_position()) / 2))
-        self.new_elevation = imu.get_elevation()
-        self.new_azimuth = imu.get_azimuth()
+        self.new_elevation = 0
+        self.new_azimuth = 0
         self.elevation_pid = PID.PID(
             setpoint=self.new_elevation,
             output_limits=(
@@ -61,8 +61,8 @@ class PIDPlatformController(PlatformController):
         if self.deadzone is None:
             print("You must orient the device before setting its coordinates!")
             return
-        for deadzone_min, deadzone_max in self.deadzone:
-            if deadzone_min < azimuth < deadzone_max :
+        for dead_zone_min, dead_zone_max in self.deadzone:
+            if dead_zone_min < azimuth < dead_zone_max:
                 print("That coordinate is out of the servo limit, please realign your platform and re-orient")
                 return
         self.new_azimuth = azimuth
@@ -95,6 +95,10 @@ class PIDPlatformController(PlatformController):
         Initializes the PID timer interrupt
         :return:
         """
+        self.new_elevation = self.imu.get_elevation()
+        self.new_azimuth = self.imu.get_azimuth()
+        self.azimuth_pid.setpoint = self.new_azimuth
+        self.elevation_pid.setpoint = self.new_elevation
         self.elevation_pid_loop_timer.init(period=10, mode=machine.Timer.PERIODIC, callback=self.__pid_loop)
 
     def stop_pid_loop(self):
@@ -115,8 +119,8 @@ class PIDPlatformController(PlatformController):
         if self.deadzone is None:
             print("You must orient the device before setting its coordinates!")
             return
-        for deadzone_min, deadzone_max in self.deadzone:
-            if deadzone_min < azimuth < deadzone_max :
+        for dead_zone_min, dead_zone_max in self.deadzone:
+            if dead_zone_min < azimuth < dead_zone_max:
                 print("That coordinate is out of the servo limit, please realign your platform and re-orient")
                 return
         azimuth = azimuth % 360
@@ -147,10 +151,9 @@ class PIDPlatformController(PlatformController):
             _elevation = self.get_elevation()
             _azimuth = self.get_azimuth()
 
-    def __pid_loop(self, timer):
+    def __pid_loop(self):
         """
         PID ISR
-        :param timer:
         :return:
         """
         self.elevation_pid.setpoint = self.new_elevation
@@ -194,7 +197,7 @@ class PIDPlatformController(PlatformController):
                 prev_accel_level = accel_level
         print("Accelerometer calibration done!")
         self.imu.mode(old_mode)
-        return self.imu.download_accelerometer_calibration()
+        return self.imu.save_accelerometer_calibration()
 
     def auto_calibrate_magnetometer(self):
         """
@@ -227,7 +230,7 @@ class PIDPlatformController(PlatformController):
                 prev_magnet_level = magnet_level
         print("Magnetometer calibration done!")
         self.imu.mode(old_mode)
-        return self.imu.download_magnetometer_calibration()
+        return self.imu.save_magnetometer_calibration()
 
     def auto_calibrate_gyroscope(self):
         """
@@ -246,7 +249,7 @@ class PIDPlatformController(PlatformController):
                 prev_gyro_level = gyro_level
         print("Gyr calibration done!")
         self.imu.mode(old_mode)
-        return self.imu.download_gyroscope_calibration()
+        return self.imu.save_gyroscope_calibration()
 
     @staticmethod
     def get_delta(current, prev):

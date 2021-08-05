@@ -11,6 +11,7 @@ from gps.gps_basic import BasicGPSController
 from gps.mock_gps_controller import MockGPSController
 from imu.imu import ImuController
 from imu.imu_bno055 import Bno055ImuController
+from imu.imu_bno08x import Bno08xImuController
 from imu.mock_imu import MockImuController
 from motor.mock_motor import MockPWMController
 from motor.motor import PWMController, ServoController
@@ -22,6 +23,7 @@ from antenny_threading import Queue
 from sender.sender import TelemetrySender
 from sender.sender_udp import UDPTelemetrySender
 from sender.mock_sender import MockTelemetrySender
+
 
 _DEFAULT_MOTOR_POSITION = 90.
 _DEFAULT_MOTION_DELAY = 0.75
@@ -191,7 +193,7 @@ class AntennyAPI:
         self.telemetry_init()
         self.platform_init()
 
-    def antenny_save_all_configs_as_default(self, name: str = None):
+    def antenny_save(self, name: str = None):
         """
         Will save all current configs to be started on device startup
         :param name: A new name for the config, if not specified, will overwrite the current
@@ -205,7 +207,7 @@ class AntennyAPI:
         self.elevation_servo_save(name)
         self.servo_config.save_as_default_config()
 
-    def antenny_start_calibrate_and_save_as_default(self, name: str = None):
+    def antenny_calibrate(self, name: str = None):
         """
         Initializes all components, auto-calibrates the platform, then saves all as default
         Should be used after assembling a new antenny or after wiping your previous configs
@@ -213,8 +215,13 @@ class AntennyAPI:
         :return:
         """
         self.antenny_init_components()
-        self.platform_auto_calibrate()
-        self.antenny_save_all_configs_as_default(name)
+        self.imu.reset_calibration()
+        self.platform.auto_calibrate_elevation_servo()
+        self.platform.auto_calibrate_azimuth_servo()
+        self.platform.auto_calibrate_magnetometer()
+        self.platform.auto_calibrate_gyroscope()
+        self.platform.auto_calibrate_accelerometer()
+        self.antenny_save(name)
 
 #  PWM Controller Functions
 
@@ -427,34 +434,53 @@ class AntennyAPI:
 
 #  IMU Functions
 
-    def imu_init(self, chain: machine.I2C = None):
+    def imu_init(self, chain: machine.I2C = None, freq=400000, debug=False):
         """
         Initialize the antenny system IMU
+        :param debug:
+        :param freq:
         :param chain: provide your own I2C channel
         :return: Bno055ImuController class
         """
-        if self.antenny_config.get("use_imu"):
-            print("use_imu found in config: {}".format(self.antenny_config.get_name()))
+        if self.antenny_config.get("use_bno055"):
+            print("use_bno055 found in config: {}".format(self.antenny_config.get_name()))
             if chain is None:
                 i2c_bno_scl = self.antenny_config.get("i2c_bno_scl")
                 i2c_bno_sda = self.antenny_config.get("i2c_bno_sda")
-                self.i2c_bno = self.i2c_init(-1, i2c_bno_scl, i2c_bno_sda, freq=5000)
+                self.i2c_bno = self.i2c_init(1, i2c_bno_scl, i2c_bno_sda, freq=freq)
             else:
                 self.i2c_bno = chain
-            imu = Bno055ImuController(
+            self.imu = Bno055ImuController(
                 self.i2c_bno,
                 crystal=False,
                 address=self.antenny_config.get("i2c_bno_address"),
                 sign=(0, 0, 0)
             )
+            self.imu_load()
+            self.imu.upload_calibration_profile()
+            print("IMU connected")
+        elif self.antenny_config.get("use_bno08x"):
+            print("use_bno08x found in config: {}".format(self.antenny_config.get_name()))
+            if chain is None:
+                i2c_bno_scl = self.antenny_config.get("i2c_bno_scl")
+                i2c_bno_sda = self.antenny_config.get("i2c_bno_sda")
+                self.i2c_bno = self.i2c_init(1, i2c_bno_scl, i2c_bno_sda, freq=freq)
+            else:
+                self.i2c_bno = chain
+            self.imu = Bno08xImuController(
+                self.i2c_bno,
+                debug=debug,
+                reset=machine.Pin(
+                               self.antenny_config.get("bno_rst"),
+                               machine.Pin.OUT,
+                               machine.Pin.PULL_DOWN
+                           ),
+            )
             print("IMU connected")
         else:
-            imu = MockImuController()
+            self.imu = MockImuController()
             print("According to your config, ou do not have an IMU connected")
-        self.imu = imu
-        self.imu_load()
-        self.imu.upload_calibration_profile()
-        return imu
+        return self.imu
 
     def imu_scan(self):
         """
@@ -466,34 +492,6 @@ class AntennyAPI:
             raise AntennyIMUException("No I2C bus set for the IMU")
         return self.i2c_bno.scan()
 
-    def imu_is_calibrated(self) -> bool:
-        """
-        Checks if the IMU is calibrated
-        :return: bool
-        """
-        return self.imu.is_calibrated()
-
-    def imu_calibrate_accelerometer(self):
-        """
-        Starts the accelerometer calibration routine.
-        :return: calibration results
-        """
-        return self.imu.calibrate_accelerometer()
-
-    def imu_calibrate_magnetometer(self):
-        """
-        Starts the magnetometer calibration routine
-        :return:
-        """
-        return self.imu.calibrate_magnetometer()
-
-    def imu_calibrate_gyroscope(self):
-        """
-        Starts the gyroscope calibration routine
-        :return:
-        """
-        return self.imu.calibrate_gyroscope()
-
     def imu_save(self, name: str = None, force: bool = False):
         """
         Saves the current calibration to the config
@@ -501,19 +499,20 @@ class AntennyAPI:
         :param force:
         :return:
         """
-        self.imu_config.set(
-            "accelerometer",
-            self.imu.get_accelerometer_calibration()
-        )
-        self.imu_config.set(
-            "magnetometer",
-            self.imu.get_magnetometer_calibration()
-        )
-        self.imu_config.set(
-            "gyroscope",
-            self.imu.get_gyroscope_calibration()
-        )
-        self.imu_config.save(name=name, force=force)
+        if not self.antenny_config.get("use_bno08x"):
+            self.imu_config.set(
+                "accelerometer",
+                self.imu.get_accelerometer_calibration()
+            )
+            self.imu_config.set(
+                "magnetometer",
+                self.imu.get_magnetometer_calibration()
+            )
+            self.imu_config.set(
+                "gyroscope",
+                self.imu.get_gyroscope_calibration()
+            )
+            self.imu_config.save(name=name, force=force)
 
     def imu_load(self, name: str = None):
         """
@@ -521,17 +520,18 @@ class AntennyAPI:
         :param name: A different config to be loaded if specified
         :return:
         """
-        self.imu_config.load(name)
-        self.imu.set_accelerometer_calibration(
-            self.imu_config.get("accelerometer")
-        )
-        self.imu.set_magnetometer_calibration(
-            self.imu_config.get("magnetometer")
-        )
-        self.imu.set_gyroscope_calibration(
-            self.imu_config.get("gyroscope")
-        )
-        self.imu.upload_calibration_profile()
+        if not self.antenny_config.get("use_bno08x"):
+            self.imu_config.load(name)
+            self.imu.set_accelerometer_calibration(
+                self.imu_config.get("accelerometer")
+            )
+            self.imu.set_magnetometer_calibration(
+                self.imu_config.get("magnetometer")
+            )
+            self.imu.set_gyroscope_calibration(
+                self.imu_config.get("gyroscope")
+            )
+            self.imu.upload_calibration_profile()
 
     def imu_make_default(self):
         """
@@ -546,13 +546,6 @@ class AntennyAPI:
         :return:
         """
         return self.imu_config.load_default_config()
-
-    def imu_reset_calibration(self):
-        """
-        Resets the calibration on the IMU
-        :return:
-        """
-        return self.imu.reset_calibration()
 
 #  Platform Functions
 
@@ -603,10 +596,10 @@ class AntennyAPI:
         Uses the servos to automatically perform the IMU calibration
         :return:
         """
-        self.imu_reset_calibration()
-        self.platform_auto_calibrate_magnetometer()
-        self.platform_auto_calibrate_gyroscope()
-        self.platform_auto_calibrate_accelerometer()
+        self.imu.reset_calibration()
+        self.platform.auto_calibrate_magnetometer()
+        self.platform.auto_calibrate_gyroscope()
+        self.platform.auto_calibrate_accelerometer()
 
     def platform_auto_calibrate_elevation_servo(self):
         """
@@ -629,8 +622,8 @@ class AntennyAPI:
         Uses the IMU to automatically detect the min and max of the servos
         :return:
         """
-        self.platform_auto_calibrate_elevation_servo()
-        self.platform_auto_calibrate_azimuth_servo()
+        self.platform.auto_calibrate_elevation_servo()
+        self.platform.auto_calibrate_azimuth_servo()
 
     def platform_auto_calibrate(self):
         """

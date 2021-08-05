@@ -19,8 +19,12 @@
               "msg": "Use Telemetry",
               "type": "bool"
             },
-            "use_imu": {
-              "msg": "Use IMU {ue or False}",
+            "use_bno055": {
+              "msg": "Use BNO055 IMU {ue or False}",
+              "type": "bool"
+            },
+            "use_bno08x": {
+              "msg": "Use BNO08x IMU {ue or False}",
               "type": "bool"
             },
             "use_webrepl": {
@@ -73,6 +77,10 @@
             },
             "i2c_bno_sda": {
               "msg": "BNO055 SDA pin#",
+              "type": "int"
+            },
+            "bno_rst": {
+              "msg":  "BNO Reset Pin#",
               "type": "int"
             },
             "i2c_bno_address": {
