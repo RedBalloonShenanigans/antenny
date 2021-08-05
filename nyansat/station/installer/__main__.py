@@ -30,8 +30,8 @@ PACKAGES_TO_INSTALL = [
 LIBRARY_FILES = [
     'lib/BNO055/bno055.py',
     'lib/BNO055/bno055_base.py',
-    'lib/BNO08x/bno08x.py',
-    'lib/BNO08x/bno08x_base.py',
+    'lib/BNO08x/i2c.py',
+    'lib/BNO08x/__init__.py',
     'lib/BNO08x/debug.py',
     'lib/PCA9685/pca9685.py',
     'lib/micropython/drivers/display/ssd1306.py',
@@ -199,11 +199,15 @@ class AntennyInstaller(object):
             try:
                 LOG.info("Putting {} onto device".format(file_))
                 start = time.time()
-                self._file_explorer.put(file_, os.path.basename(file_))
+                if os.path.basename(file_) == "__init__.py":
+                    filename = os.path.basename(os.path.dirname(file_))
+                else:
+                    filename = os.path.basename(file_)
+                self._file_explorer.put(file_, filename)
                 LOG.info("Took {} seconds".format(time.time()-start))
             except Exception as e:
                 LOG.error("Failed to put library file {}".format(file_))
-                raise AntennyInstallationException("Failed to install libraryy file {}".format(file_))
+                raise AntennyInstallationException("Failed to install library file {}".format(file_))
         LOG.info("Library files installed")
         return True
 

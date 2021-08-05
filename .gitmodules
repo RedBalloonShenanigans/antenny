@@ -16,3 +16,6 @@
 [submodule "lib/simple-pid"]
 	path = lib/simple-pid
 	url = https://github.com/m-lundberg/simple-pid.git
+[submodule "lib/Adafruit_CircuitPython_BNO08x"]
+	path = lib/Adafruit_CircuitPython_BNO08x
+	url = https://github.com/DanPesce/Adafruit_CircuitPython_BNO08x.git
