@@ -5,6 +5,7 @@ import argparse
 import getpass
 import json
 import os
+import re
 import sys
 import time
 import logging
@@ -22,21 +23,11 @@ WIFI_CONFIG_PATH = 'configs/wifi_config.json'
 WEBREPL_CONFIG_PATH = 'webrepl_cfg.py'
 REPO_NAME = 'antenny'
 UP_ONE_DIRECTORY = '..'
-STATION_CODE_RELATIVE_PATH = 'nyansat/station'
+cwd = os.getcwd()
+STATION_CODE_RELATIVE_PATH = os.path.join(cwd, 'nyansat/station')
+
 
 PACKAGES_TO_INSTALL = [
-]
-# File paths in the antenny repo, not on the board
-LIBRARY_FILES = [
-    'lib/BNO055/bno055.py',
-    'lib/BNO055/bno055_base.py',
-    'lib/BNO08x/i2c.py',
-    'lib/BNO08x/__init__.py',
-    'lib/BNO08x/debug.py',
-    'lib/PCA9685/pca9685.py',
-    'lib/micropython/drivers/display/ssd1306.py',
-    'lib/micropygps/micropyGPS.py',
-    'lib/simple-pid/simple_pid/PID.py',
 ]
 
 LOG = logging.getLogger('antenny_installer')
@@ -87,18 +78,26 @@ class AntennyInstaller(object):
             LOG.info("Entering root")
             self._file_explorer.cd("/")
         files = self._file_explorer.ls()
-        libs = set([os.path.basename(f) for f in LIBRARY_FILES])
+        libs = set(os.listdir("lib/"))
         if not in_subdirectory:
             LOG.info(f"Cleaning {len(files)} file(s) on the device")
         for file_ in files:
             if ignore_lib and not in_subdirectory and (os.path.basename(file_) in libs or file_ == "lib"):
+                LOG.info("Ignoring Library File {}".format(file_))
                 continue
 
             if ignore_configs and file_ == "configs":
+                LOG.info("Ignoring Config File {}".format(file_))
+                continue
+
+            if (components is not None and file_ not in components):
+                LOG.info("Ignoring Component {}".format(file_))
                 continue
 
             if self._file_explorer.isdir(file_):
-                if components is not None and file_ not in components:
+
+                if (ignore_lib and file_ in libs):
+                    LOG.info("Ignoring Library {}".format(file_))
                     continue
                 LOG.info("Attempting to clean directory {}".format(file_))
                 self._file_explorer.cd(file_)
@@ -112,7 +111,7 @@ class AntennyInstaller(object):
         else:
             LOG.info("Done cleaning FS")
 
-    def _recursive_put_files(
+    def _recursive_put_station_files(
             self,
             sub_directory=None,
             ignore_configs=False,
@@ -122,10 +121,11 @@ class AntennyInstaller(object):
         Recursively copy all files from a starting directory to the pyboard.
         """
         current_path = os.path.basename(os.getcwd())
-        if components is not None and current_path not in components + ["station"]:
-            return
         LOG.info("Copying files from the directory {}".format(current_path))
         for path_ in os.listdir():
+            if components is not None and path_ not in components:
+                LOG.info("Ignoring file {} not in components list".format(path_))
+                continue
             if path_.startswith('.'):
                 LOG.warning("Dotfile found, skipping file {}".format(path_))
                 continue
@@ -143,21 +143,20 @@ class AntennyInstaller(object):
             filename_ = os.path.basename(path_)
 
             if os.path.isdir(filename_):
-                if components is None or filename_ in components:
-                    try:
-                        self._file_explorer.md(path_)
-                    except RemoteIOError:
-                        LOG.error("Failed to make directory {} on antenny board, see mpf error information for more details"
-                                  "".format(path_), exc_info=True)
-                        raise AntennyFilesystemException("Failed to make directory {} on antenny board".format(path_))
-                    except PyboardError:
-                        LOG.error("A problem was detected with the antenny board while trying to put files", exc_info=True)
-                        raise AntennyHardwareException("A problem was detected with the antenny board while trying to put files")
+                try:
+                    self._file_explorer.md(path_)
+                except RemoteIOError:
+                    LOG.error("Failed to make directory {} on antenny board, see mpf error information for more details"
+                              "".format(path_), exc_info=True)
+                    raise AntennyFilesystemException("Failed to make directory {} on antenny board".format(path_))
+                except PyboardError:
+                    LOG.error("A problem was detected with the antenny board while trying to put files", exc_info=True)
+                    raise AntennyHardwareException("A problem was detected with the antenny board while trying to put files")
 
-                    os.chdir(filename_)
-                    self._recursive_put_files(
-                            sub_directory=path_,
-                    )
+                os.chdir(filename_)
+                self._recursive_put_station_files(
+                        sub_directory=path_,
+                )
             else:
                 try:
                     if sub_directory is not None:
@@ -175,6 +174,7 @@ class AntennyInstaller(object):
         """
         Copy antenny source files to the device
         """
+        os.chdir(STATION_CODE_RELATIVE_PATH)
         curr_working_dir = os.getcwd()
         LOG.info("Executing file copy from {}".format(curr_working_dir))
         if os.path.basename(curr_working_dir) != REPO_NAME:
@@ -187,28 +187,66 @@ class AntennyInstaller(object):
             while os.path.basename(os.getcwd()) != REPO_NAME:
                 os.chdir(UP_ONE_DIRECTORY)
         os.chdir(STATION_CODE_RELATIVE_PATH)
-        self._recursive_put_files(ignore_configs=ignore_configs, components=components)
+        self._recursive_put_station_files(ignore_configs=ignore_configs, components=components)
 
-    #TODO: Should not have to edit this script to add more libraries, seperate station and host libraries. 
+    def _recursive_put_library_files(
+            self,
+            sub_directory=None,
+            components: list = None
+    ):
+        """
+        Recursively copy all files from a starting directory to the pyboard.
+        """
+        current_path = os.path.basename(os.getcwd())
+        LOG.info("Copying library files from the directory {}".format(current_path))
+        for path_ in os.listdir():
+            filename_ = os.path.basename(path_)
+            if filename_.startswith("."):
+                LOG.info("Ignoring Dot File {}".format(filename_))
+                continue
+            if os.path.isdir(filename_):
+                if components is None or filename_ in components:
+                    try:
+                        self._file_explorer.md(path_)
+                    except RemoteIOError:
+                        LOG.warning("THE FILE {} WAS FOUND ON THE DEVICE. SOME FILES MIGHT BE OVERWRITTEN".format(
+                            filename_))
+                    except PyboardError:
+                        LOG.error("A problem was detected with the antenny board while trying to put files",
+                                  exc_info=True)
+                        raise AntennyHardwareException(
+                            "A problem was detected with the antenny board while trying to put files")
+
+                    os.chdir(filename_)
+                    self._file_explorer.cd(filename_)
+                    self._recursive_put_library_files(
+                        sub_directory=path_,
+                    )
+            else:
+                try:
+                    if sub_directory is not None:
+                        LOG.info("Adding library file {}".format(path_))
+                        self._file_explorer.put(filename_, path_)
+                    else:
+                        self._file_explorer.put(filename_)
+                except Exception as e:
+                    LOG.error("Failed to put file {}".format(path_))
+                    raise AntennyFilesystemException("Could not find file {}".format(path_))
+        if sub_directory is not None:
+            os.chdir(UP_ONE_DIRECTORY)
+            self._file_explorer.cd(UP_ONE_DIRECTORY)
+
+    #TODO: Should not have to edit this script to add more libraries, seperate station and host libraries.
     def _put_library_files_on_device(self):
         """
         Copy required antenny library files.
         """
-        LOG.info(f"Putting {len(LIBRARY_FILES)} library files on the device.")
-        for file_ in LIBRARY_FILES:
-            try:
-                LOG.info("Putting {} onto device".format(file_))
-                start = time.time()
-                if os.path.basename(file_) == "__init__.py":
-                    filename = os.path.basename(os.path.dirname(file_))
-                else:
-                    filename = os.path.basename(file_)
-                self._file_explorer.put(file_, filename)
-                LOG.info("Took {} seconds".format(time.time()-start))
-            except Exception as e:
-                LOG.error("Failed to put library file {}".format(file_))
-                raise AntennyInstallationException("Failed to install library file {}".format(file_))
-        LOG.info("Library files installed")
+        os.chdir("lib/")
+        # this is messy but people put dashes in repo names, and i want things to look nice in an IDE and track properly
+        for dir in os.listdir():
+            os.chdir(dir)
+            self._recursive_put_library_files()
+            os.chdir("..")
         return True
 
     def _query_user_for_wifi_credentials(self):
@@ -405,7 +443,7 @@ if __name__ == '__main__':
     if fresh_install:
         confirm = input(f"Are you sure you want to erase all files on the device? (y/N) ").strip().lower() == 'y'
         if not confirm:
-            print("Exiting installer; please backup existing files before running the installer!")
+            LOG.info("Exiting installer; please backup existing files before running the installer!")
             sys.exit(0)
         installer.install(ignore_lib=args.core_install, ignore_configs=ignore_configs)
     else:

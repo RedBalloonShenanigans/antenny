@@ -1,7 +1,7 @@
 import math
 
-from bno08x import BNO08X_I2C
-from bno08x_base import BNO_REPORT_GEOMAGNETIC_ROTATION_VECTOR
+from adafruit_bno08x.i2c import BNO08X_I2C
+from adafruit_bno08x import BNO_REPORT_GEOMAGNETIC_ROTATION_VECTOR
 from imu.imu import ImuController
 
 _BNO08X_DEFAULT_ADDRESS = 0x4B

@@ -1,5 +1,4 @@
 import machine
-import pca9685
 
 from config.config import Config
 from controller.controller import PlatformController
@@ -15,7 +14,7 @@ from imu.imu_bno08x import Bno08xImuController
 from imu.mock_imu import MockImuController
 from motor.mock_motor import MockPWMController
 from motor.motor import PWMController, ServoController
-from motor.motor_pca9685 import Pca9685ServoController
+from motor.motor_pca9685 import Pca9685ServoController, pca9685
 from screen.mock_screen import MockScreenController
 from screen.screen import ScreenController
 from screen.screen_ssd1306 import Ssd1306ScreenController

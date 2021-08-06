@@ -17,6 +17,7 @@ def _file_does_not_exist_error(exception):
     :return:
     """
     stre = str(exception)
+    # return any(err in stre for err in ("ENOENT", "ENODEV", "EINVAL"))
     return any(err in stre for err in ("ENOENT", "ENODEV", "EINVAL"))
 
 
@@ -32,8 +33,12 @@ class AntennyMpFileExplorer(MpFileExplorer):
             ret = self.eval("len([item for item in uos.listdir(\"{}\")])>=0".format(os.path.join(self.pwd(), target)))
         except PyboardError as e:
             if _file_does_not_exist_error(e):
-                LOG.error("The file or directory {} does not exist".format(target), exc_info=True)
-                raise AntennyFilesystemException("No such directory: {}".format(self.dir))
+                # new versions of micropython throw ENOENT for everything...
+
+                #LOG.error("The file or directory {} does not exist".format(target), exc_info=True)
+                #raise AntennyFilesystemException("No such directory: {}".format(self.dir))
+                ret = False
+                pass
             elif _file_exists_error(e):
                 ret = False
                 pass

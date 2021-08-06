@@ -1,5 +1,5 @@
 import machine
-import pca9685
+import pca9685 as pca9685
 from motor.motor import ServoController, PWMController
 
 

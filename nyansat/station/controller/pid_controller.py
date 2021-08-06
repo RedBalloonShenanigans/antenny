@@ -1,8 +1,7 @@
 import random
 import time
 import machine
-import PID
-
+from simple_pid.PID import PID
 from controller.controller import PlatformController
 from imu.imu import ImuController
 from motor.motor import ServoController
@@ -31,14 +30,14 @@ class PIDPlatformController(PlatformController):
         self.azimuth.set_position(int((self.azimuth.get_max_position() - self.azimuth.get_min_position()) / 2))
         self.new_elevation = 0
         self.new_azimuth = 0
-        self.elevation_pid = PID.PID(
+        self.elevation_pid = PID(
             setpoint=self.new_elevation,
             output_limits=(
                 -1000,
                 1000
             )
         )
-        self.azimuth_pid = PID.PID(
+        self.azimuth_pid = PID(
             setpoint=self.new_azimuth,
             output_limits=(
                -1000,
@@ -128,14 +127,14 @@ class PIDPlatformController(PlatformController):
         _azimuth = self.get_azimuth()
         _elevation = self.get_elevation()
 
-        elevation_pid = PID.PID(
+        elevation_pid = PID(
             setpoint=elevation,
             output_limits=(
                 -1000,
                 1000
             )
         )
-        azimuth_pid = PID.PID(
+        azimuth_pid = PID(
             setpoint=azimuth,
             output_limits=(
                -1000,

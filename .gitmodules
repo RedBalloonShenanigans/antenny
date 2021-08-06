@@ -4,9 +4,6 @@
 [submodule "lib/BNO055"]
 	path = lib/BNO055
 	url = https://github.com/micropython-IMU/micropython-bno055.git
-[submodule "lib/micropython"]
-	path = lib/micropython
-	url = https://github.com/micropython/micropython.git
 [submodule "lib/micropygps"]
 	path = lib/micropygps
 	url = https://github.com/inmcm/micropyGPS.git
@@ -19,3 +16,6 @@
 [submodule "lib/Adafruit_CircuitPython_BNO08x"]
 	path = lib/Adafruit_CircuitPython_BNO08x
 	url = https://github.com/DanPesce/Adafruit_CircuitPython_BNO08x.git
+[submodule "lib/antenny-micropython-drivers"]
+	path = lib/antenny-micropython-drivers
+	url = https://github.com/DanPesce/antenny-micropython-drivers
