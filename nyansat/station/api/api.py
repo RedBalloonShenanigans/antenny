@@ -655,7 +655,7 @@ class AntennyAPI:
         """
         self.platform.start()
 
-    def platfor_stop(self):
+    def platform_stop(self):
         """
         Stops the platform movement
         :return:

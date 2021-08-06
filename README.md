@@ -1,4 +1,4 @@
-# NyanSat
+# Antenny
 
 Make your own base station to communicate with satellites!
 
@@ -20,41 +20,38 @@ example command: esptool.py --chip esp32 --port /dev/tty.SLAB_USBtoUART --baud 1
 
 ![Flash Firmware button](doc_images/K2_Button_flash_firmware.png)
 
-## Setting Up
+## Installing the Antenny package
 
-These set up procedures expect that your base station is fully assembled and your ESP32 is flashed with Micropython firmware. If not, check the [NyanSat website](https://nyan-sat.com) for detailed steps on how to assemble your hardware, plus some tips on avoiding common pitfalls. If you have an official Antenny board, you can also take a look at our [Getting Started Guide](https://github.com/RedBalloonShenanigans/antenny/blob/master/hardware/Antenny_board_hardware_setup_guide.pdf).
+If you are developing on the board, you may end up in a situation where you would like to start from a clean slate. The steps to do so are simple:
 
-### Set up your host environment
+1. Erase your ESP32 using `esptool.py`
+2. Reflash the Micropython firmware using `esptool.py` (as above)
 
-NyanShell provides a convenient shell interface to communicate with your NyanSat base station. To install this interface, simply type `make nyanshell` in the project directory.
+(Steps 1 and 2 should not need to happen except in drastic cases.)
 
-### Set up your base station environment
+3. To install Antenny software onto your ESP32, run `make nyansat SERIAL=<your serial port>`
+4. Once this has completed, reboot the device with the terminal open to verify installation completed correctly.
 
-Once your host is set up, you can install NyanSat on your ESP32. Before anything, make sure you have a fully erased, freshly flashed micropython installation on your ESP32.
+Note: Any import errors will only be seen at boot. You cannot re-import the 
+API class outside of the boot sequence. You should see the following at boot.
 
-First, determine which serial port corresponds to your ESP32. Then from the project directory, run `make nyansat SERIAL=<your ESP32 serial port>` to install it on your ESP32. During this process, you will be asked for your WiFi SSID and Password; this is to establish an internet connection for upip, which will install some dependencies. Towards the end of the install process, the script will ask you to setup webrepl on the ESP32.
+## Getting Started
 
-## Usage
-
-To enter NyanShell, type the following in a terminal window:
-
-```
-python3 -m nyansat.host
-```
-
-You should be greeted with a terminal window that looks like this:
-
-![Initial Terminal Window](doc_images/start_terminal.png)
-
-The device is not connected automatically. You have several options to connect to the device; type the commands listed under your preferred connection option
-
-### Connecting Via Serial
+To enter device shell, type the following in a terminal window:
 
 ```
-open <your ESP32's serial port>
+screen <block device> 115200
 ```
 
-**Note:** If you're on a UNIX or Linux based system, your serial port is likely at `/dev/tty.<port>`. You can leave out `/dev/` for this step.
+or
+
+```
+minicom -D <block device> -b 115200
+``` 
+
+Your block device will be the newest /dev/* device created once connected to your computer.
+
+You should be greeted with an open Python3 interpreter.
 
 ### Connecting Via WebREPL
 
@@ -64,112 +61,122 @@ WebREPL is not enabled by default. To enable it, connect via serial port first a
 open ws:<your ESP32's IP address>,<your webrepl password>
 ```
 
-### Clean Install
+### Configuring Antenny
 
-If you are developing on the board, you may end up in a situation where you would like to start from a clean slate. The steps to do so are simple:
+Your hardware is described by a series of .json files. These files are exposed
+via classes implemented in `nyansat/station/config/config.py`
 
-1. Erase your ESP32 using `esptool.py`
-2. Reflash the Micropython firmware using `esptool.py`
-3. To get a fresh install of your shell, type `make nyanshell`
-4. To install NyanSat software onto your ESP32, run `make nyansat SERIAL=<your serial port>`
+##### api.antenny_config
+- `configs/antenny/default.json` describes the general base station integration with pin connections as well as high-level attributes like current longitude and latitude.
+- Help information for each antenny_config member can be retrieved via `api.antenny_config_help()`
 
-### Exploring the Shell
+##### api.imu_config
+- `configs/imu/default.json` describes the calibration profile of an IMU (if available). Can be used when switching between IMUs and switching between different profiles.
 
-Once you have connected to your ESP32, we still need to configure it to properly use NyanSat. However, this is a good opportunity to check out all of the available commands at your disposal! Type `help` to get the list.
+##### api.servo_config
+- `configs/servo/default.json` describes the limits of the servo motors. Can be used to change gimbals or to finely tune the current limits.
 
-To get more information about each documented command, you can type `help <command>` to get a brief description of the command including how to use it.
+To get or set these values from the interpreter simply `<class instance>.get/.set`
 
-### Configuring AntKontrol
+Also available are `.save()` and `.load()`.
 
-The heart of NyanSat is AntKontrol, a scalable API that you can extend to add more features on your NyanSat device. An AntKontrol instance is usually started up when the ESP32 boots up. However, if you wish to create a new instance, you can run `antkontrol start`.
+To use the config on boot, run `.save_as_default()`.
 
-AntKontrol attempts to integrate different hardware into one interface. It is usually able to recover from misbehaving hardware and provide reduced functionality. However, if the motor implementation does not initialize properly, AntKontrol enters SAFE MODE. In this state, any commands issued will not move your base station's motors until you determine what the fault is. To determine if your device is in SAFE MODE, run `antkontrol status`.
+### Initializing the Antenny system
+After setting up your `antenny_config` to match your hardware, you have to initialize the api to use the drivers.
 
-![Querying AntKontrol's Status](doc_images/safe_mode.png)
-
-One of the main reasons why AntKontrol would enter SAFE MODE is an incorrect configuration. Depending on your setup, you may have a different pin layout, device addresses, or hardware than what NyanSat is expecting. Accordingly, you can use the `setup`, `i2ctest`, `pwmtest`, and `bnotest` commands to resolve the first two issues. For different hardware, the `repl` command provides you with a full Python interpreter, which you can use to implement your own exciting hardware. **Note:** If you wish to use the `repl` command, start nyanshell with the command `python3 -m nyansat.host.shell`; this command removes all decorative and telemetry elements, providing a focused environment for debugging.
-
-By default, several features are disabled for the initial setup; this is to reduce debugging complexity. As you get familiar with the shell and hardware, you can choose to enable them using the `configs` and `set` commands to query and modify your configuration respectively.
+Run `api.antenny_initialize_components()` to adjust your antenny to the current config state. This will error if your
+ antenny can not detect the proper hardware. 
 
 ### Moving Your Motors
 
-After you are comfortable with your setup and everything appears to be initialized, you can start your base station by running the command `startmotion <azimuth> <elevation>`, where `<azimuth>` and `<elevation>` correspond to the initial position you would like your base station to be. **Note:** Please only run this command once after starting `antkontrol`. To tweak either the azimuth or elevation, type `azimuth/elevation <your desired value>` into the nyanshell commandline. A reasonable value would be any float from 10-90.
+If `api.antenny_config.get('use_motor')` is `True` your PWM driver is initialized.
 
-## Features
+You may move your servo gimbal with a command like:
 
-### Easy Pin Setup and Profile Management
+`api.elevation_servo.set_position(<duty cycle>)`
 
-If your pin configuration is different from the default values, you can easily change to them by running the `setup <profile_name>` command. This command creates a new profile with your given name and switches to it.
+Duty cycle to angle mapping is hardware-dependent and must be calibrated. See Calibration.
 
-If you have multiple pin configurations on the ESP32, you can switch between them using the `switch <profile_name>` command. This command switches to your chosen profile, leaving the original one intact, but not in use.
+### Checking your IMU
+If `api.antenny_config.get('use_bno08x')` is `True` you now have access to your bno08x, and likewise for the `use_bno055`
 
-### Telemetry
+To check your IMU reports you can run `api.imu.get_euler()` to see reported yaw, roll and pitch angles (in that order)
 
-The NyanShell interface puts key metrics front and center from your base station. The interface displays the azimuth, elevation, and (if equipped with GPS module) your ground coordinates.
+In the case of the `bno08x`, we must calculate the euler values ourselves, to see the raw quaternion values, you can 
+access the underlying `bno08x` driver and run `api.imu.bno.geomagnetic_quaternion` which prints x, y, z, w values (in
+ that order).
+ 
+### Calibrating your IMU
+The Antenny gives you the option to manually calibrate the IMU (This is difficult and not suggested).
 
-### IMU Calibration Guide (BNO055 specific)
+To do so, run `api.imu.calibrate_<accelerometer, gyroscope, magnetometer>` and follow the instructions printed. Other
+ calibration options are listed below. 
+ 
+### Calibrating the assembled platform
+The preferred way to calibrate the system is to use the servo motors to assist in calibration motions. Additionally, 
+this step will auto calibrate the servo limits using the IMU motion. 
 
-Calibrating IMU's are difficult; the BNO055 is especially tough. NyanShell provides a calibration command to easily poll the calibration status of your BNO055. If the IMU is not calibrated, the command guides you through the process with on screen instructions and real time feedback on the calibration status. To start, simply type `calibrate` into the shell and follow the instructions until your IMU is calibrated.
+To do this run `api.antenny_calibrate(name=<name_of_calibration_config>(optional))`. This command will perform the 
+auto-calibration routine and then use this on startup. If you wish to save multiple, or switch between, you may 
+provide a name and switch as described in the config section above.
 
-If you have a predefined configuration with an IMU calibration profile, you can use the profile management commands to load the IMU calibration values.
+## Preparing and using the Antenny
+### Orientation
+Once your device is setup and calibrated, you have to orient the system. This is only required for servo motors, as 
+they are 
+unable to rotate 360 degrees. This will find the geomagnetic limits of the system and prevent you from setting the 
+desired position in that range. 
 
-### Motor Accuracy Measurement
+To set the orientation, place the platform in the space it will remain (you must repeat this process if you move it) 
+and run `api.platform_orient()`.
 
-While servo motors can take a position as input and try to reach it, the motor will not _exactly_ reach that position. Using the IMU, the `motortest` command cross references the position change of the motor with the measured change from the IMU. This allows you to see how accurately the motor assumes the desired position.
+### Starting the platform
+After orienting the device, you may start the antenna motion by running `api.platform_start()`. This will start the 
+internal PID loop. This will keep the device pointed at its current geomagnetic orientation if you move the platform 
+(Not recommended due to orientation issues described above. )
 
-## Gotchas
+### Setting a new antenna position
+To set the antenan to a specific geomagnetic orientation, you must set the azimuth and elevation. You may do this as 
+follows:
+`api.platform_set_azimuth(degrees)`
+`api.platform_set_elevation(degrees`
 
-As with any project, you may come across a few snags in the road— we certainly did! Here’s a few that we encountered and how we solved them. As a general rule, when you try to debug:
-Use the command `python3 -m nyansat.host.shell` to interact with your device; this exposes _only_ the shell to you
-Reset the device by pressing the `BOOT`/`ENABLE` button on your ESP32, or pressing `Control + D` when using the `repl` interface
+### Stopping the platform
+You may stop the automatic movement of the platform by running `api.platform_stop()`
 
-### After a NyanSat install, the device reports `no module named ‘logging’`
+### Satellite TLE Tracking
+Coming soon...
 
-This usually occurs after a _reinstall_ and appears to be an issue with upip, the MicroPython equivalent of PyPI. If you come across this issue, enter the command `repl` in `nyanshell` and type the following commands:
+## The Antenny Host System
+Under Development...
 
-```
->>> import upip
->>> upip.install(‘logging’)
-```
+Cooperation between the antenny board and another system is possible through the antenny client as well as the UDP 
+Sender. Use of the client is not suggested while developing on or debugging the system, but could be useful for more 
+interesting applications such as beacon tracking. 
 
-This will install the `logging` module again. You can verify that it is installed by checking the `lib` directory on your base station.
+### The Command Invoker
+The `command_invoker` is a 1:1 library to the antenny `api` class found at `nyansat/host/shell/command_invoker.py`. The 
+`command_invoker` calls out to the board through MPFShell to exec API commands. Feedback and error handling does not 
+work very well so work should be offloaded to the board when possible. 
 
-### NyanSat stuck in SAFE MODE
+### Antenny Client
+The `antenny_client`, found at `nyansat/host/shell/antenny_client.py` should use the command invoker to implement 
+higher level functions in conjunction with more computationally expensive libraries. 
 
-SAFE MODE is a last resort for your NyanSat when it cannot properly initialize your motor driver. In this mode, it initializes a software mock motor system so you can at least play around with the interface. This is useful for debugging and developing features, but can be a pain when you’re trying to use the base station! Your NyanSat might be in SAFE MODE for several reasons:
+### Shell
+Current depricated. 
 
-1. **Your physical pin configuration may not match up with what NyanSat is using:** To verify this, run `configs` to list out the parameters your NyanSat is using. If you see a mismatch for your motor driver’s I2C pinout, you can change the configuration parameter using the `set` command. Take a look at the section for “Devices are not detected” for a more thorough discussion.
-2. **Your motor driver’s I2C address may not match up with what NyanSat is using:** To verify this, run `configs` to list out the parameters your NyanSat is using. Then, use `i2ctest` or `pwmtest` to verify which address your motor driver is using; if you see multiple addresses, the first one is usually correct. If you see a mismatch, you can change the configuration parameter by using the `set` command.
-3. **Your motor driver is not at PCA9685:** To verify this, run `pwmtest`. If `PWM connection established?` is `False`, but the other values are `True`, you _may_ have a different motor driver. Fear not! `AntKontrol`’s API is designed to be extended, so you can create a new motor implementation for your unique motor driver! If you choose to do so, make sure to submit a Pull Request on the main [Antenny Project Repo](https://github.com/RedBalloonShenanigans/antenny)
-4. **Your motor driver is broken!** To verify this, first make sure the cause isn’t any of the ones listed above. If `i2ctest` or `pwmtest` don’t return any address and you are sure your wiring is correct, you might have a defective motor driver :( Unfortunately, you need to replace your motor driver to move your base station.
+The antenny client can then be integrated into the MPFShell environment through `nyansat/host/shell/__main__.py`. 
+Commands of the format `do_<cmd>()` will be used as shell commands. See the file for examples. This shell can then be
+ run through the command `make nyanshell`.
 
-### Devices are not detected
+## Known Issues
+- The BNO08x calibration never finishes :(
+- The BNO08x euler angles are incorrect (maybe calibration, maybe I'm bad at math, probably both.)
 
-Assuming your devices are not defective, this could happen if your software or physical pin configurations are not correct. The first thing to do is verify the software pin configurations by running the `configs` command. If any pins are misconfigured in your software configuration, you can use the `set` command to fix it.
 
-It is also possible that your physical pin configurations are not correct. Here are some possible pin misconfigurations:
-
-- SDA & SCL are switched
-- Logical GND pins are not all shared (connected to the same place)
-- Logical Power supply is not outputting the minimum voltage (3.3-5V usually)
-- Logical Power supply is shared with Motor Power supply (VERY bad practice)
-
-Try to go through your physical configuration and ensure you’re using the best practices to connect everything:
-
-- If you have exposed pads that directly contact metal, cover it with an insulator
-- Make sure your soldering job actually makes a connection
-- Ensure distinct power rails for logic and motors
-- Be organized with your wiring
-- Leave some slack in your wiring so there’s not significant stress on the connections
-- Secure connections that can potentially come loose
-
-### I2C Addresses seem to change
-
-I2C devices use addresses to know how to communicate with each other. Some devices allow you to change the address physically by breaking out the pins responsible. If these pins are not connected to anything, it is possible that their voltage is undefined, or “floating”. This results in the device configuring itself with unexpected addresses from run to run. To ensure a stable I2C address, make sure each address pin has a defined voltage value. This is usually done by tying each pin to ground, but consult your device’s data sheet to properly handle this scenario.
-
-## Requirements & Dependencies
-
-General:
+##Requirements
 
 - Python >= 3.6
 
@@ -177,10 +184,3 @@ NyanShell:
 
 - MPFShell
 - TUI-DOM
-
-NyanSat:
-
-- Logging
-- PCA9685 Adafruit Library
-- BNO055 Adafruit Library, adapted for use in Micropython by Peter Hinch
-- SSD1306
