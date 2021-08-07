@@ -13,9 +13,14 @@ When you receive the Antenny Kit, first thing you need to do is to solder the ju
 Please refer to this [Getting started with MicroPython on the ESP32](https://docs.micropython.org/en/latest/esp32/tutorial/intro.html) guide for flahsing the firmware on Antenny KM7 board. You can choose the firmware with SPIRAM support.
 
 - Important: When you start to program the Antenny board with esptool, please hold the K2 Tact Button until the program detect the download mode.
+```
+example command to erase flash: python3 -m esptool --port /dev/tty.SLAB_USBtoUART erase_flash
 
 ```
-example command: python3 -m esptool --chip esp32 --port /dev/tty.SLAB_USBtoUART --baud 115200 write_flash -z 0x1000 ~/Downloads/esp32spiram-20210623-v1.16.bin
+
+```
+example command to flash micropython: python3 -m esptool --chip esp32 --port /dev/tty.SLAB_USBtoUART --baud 115200 
+write_flash -z 0x1000 ~/Downloads/esp32spiram-20210623-v1.16.bin
 ```
 
 ![Flash Firmware button](doc_images/K2_Button_flash_firmware.png)
