@@ -76,6 +76,9 @@ class AntennyAPI:
                            freq=freq
                            )
 
+    def uart_init(self, id, rx, tx, baud=9600):
+        return machine.uart(id, baud).init(rx, tx)
+
     def antenny_config_check(self):
         """
         Checks if the current config is valid
@@ -309,6 +312,24 @@ class AntennyAPI:
         )
         self.servo_config.save(name, force=force)
 
+    def elevation_servo_set_position(self, position: int):
+        """
+        Sets the elveation servo position
+        :param duty:
+        :return:
+        """
+        return self.elevation_servo.set_position(position)
+
+    def elevation_servo_set_min_max(self, min: int, max: int):
+        """
+        Sets the min and max position for the servos.
+        :param min:
+        :param max:
+        :return:
+        """
+        self.elevation_servo.set_min_position(min)
+        self.elevation_servo.set_max_position(max)
+
     def azimuth_servo_init(self):
         """
         Initializes the azimuth servo
@@ -351,7 +372,29 @@ class AntennyAPI:
         )
         self.servo_config.save(name, force=force)
 
+    def azimuth_servo_set_position(self, position: int):
+        """
+        Sets the azimuth servo position
+        :param position:
+        :return:
+        """
+        return self.azimuth_servo.set_position(position)
+
+    def azimuth_servo_set_min_max(self, min: int, max: int):
+        """
+        Sets the min and max position for the servos.
+        :param min:
+        :param max:
+        :return:
+        """
+        self.azimuth_servo.set_min_position(min)
+        self.azimuth_servo.set_max_position(max)
+
     def servo_make_default(self):
+        """
+        Makes the current servo config the default
+        :return:
+        """
         self.servo_config.save_as_default_config()
 
 #  Screen Functions
@@ -545,6 +588,36 @@ class AntennyAPI:
         :return:
         """
         return self.imu_config.load_default_config()
+
+    def imu_get_azimuth(self):
+        """
+        Gets the azimuth as reported by the IMU
+        :return:
+        """
+        return self.imu.get_azimuth()
+
+    def imu_get_elevation(self):
+        """
+        Gets the elevation as reported by the IMU
+        :return:
+        """
+        return self.imu.get_elevation()
+
+    def imu_get_euler(self):
+        """
+        Gets the euler angles as reported by the IMU
+        :return:
+        """
+        return self.imu.get_euler()
+
+    def imu_calibrate(self):
+        """
+        Begin the manual calibration routine of the IMU
+        :return:
+        """
+        self.imu.calibrate_accelerometer()
+        self.imu.calibrate_gyroscope()
+        self.imu.calibrate_magnetometer()
 
 #  Platform Functions
 

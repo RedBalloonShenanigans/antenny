@@ -2,156 +2,266 @@
 
 Make your own base station to communicate with satellites!
 
-## First thing to do when you receive the kit
+## Setting up the hardware
 
-When you receive the Antenny Kit, first thing you need to do is to solder the jumper resistor on the Board. "Jumper for PWM Dr" is responsible to control the Servo gimbal. "Jumper for IMU is" for the MEMS Fusion sensor.
+### Jumpers
+
+#### Required Jumpers
+- On the antenny MK7 there are two required jumpers, labeled `JUMPER FOR PWN DR` on the back of the board. This will 
+bridge the GPIO to the on board PWM Driver. 
+
+#### Optional Jumpers
+
+- The antenny MK7 provides jumpers to breakout pins 4, 26, 27, VCC and GND to the header labeled `P11` for the IMU. 
+To use this header, you must solder the jumpers labeled `JUMPER FOR IMU`, otherwise, just used the ESP32 GPIO headers.
+
+- To use wifi, either provide a antenna to the ESP32s on board jack, or solder the jumper next to the antenna 
+connector labeled `R15` on the ESP32. See below picture. 
 
 ![Antenny KM7 jumper](doc_images/KM7-jumper.png)
-
-## Flash the Mircro-Python firmware on ESP32
-
-Please refer to this [Getting started with MicroPython on the ESP32](https://docs.micropython.org/en/latest/esp32/tutorial/intro.html) guide for flahsing the firmware on Antenny KM7 board. You can choose the firmware with SPIRAM support.
+![Antenny KM7 jumper](doc_images/ESP-Wifi-jumper.jpg)
 
 - Important: When you start to program the Antenny board with esptool, please hold the K2 Tact Button until the program detect the download mode.
-```
-example command to erase flash: python3 -m esptool --port /dev/tty.SLAB_USBtoUART erase_flash
-
-```
-
-```
-example command to flash micropython: python3 -m esptool --chip esp32 --port /dev/tty.SLAB_USBtoUART --baud 115200 
-write_flash -z 0x1000 ~/Downloads/esp32spiram-20210623-v1.16.bin
-```
 
 ![Flash Firmware button](doc_images/K2_Button_flash_firmware.png)
 
-## Installing the Antenny package
+# Installing the Antenny package
 
-If you are developing on the board, you may end up in a situation where you would like to start from a clean slate. The steps to do so are simple:
+## Installing Micropython
+1. Download esptool from [here](https://github.com/espressif/esptool/)
 
-1. Erase your ESP32 using `esptool.py`
-2. Reflash the Micropython firmware using `esptool.py` (as above)
+2. Put the ESP into download mode (see above) and erase your ESP32
 
-(Steps 1 and 2 should not need to happen except in drastic cases.)
+    Example: ```python3 -m esptool --port /dev/tty.SLAB_USBtoUART erase_flash```
+    
+3. Download the micropython firmware from [here](https://micropython.org/resources/firmware/esp32spiram-20210623-v1.16.bin)
 
-3. To install Antenny software onto your ESP32, run `make nyansat SERIAL=<your serial port>`
-4. Once this has completed, reboot the device with the terminal open to verify installation completed correctly.
+4. Put the ESP into download mode (see above) and re-flash the Micropython firmware
 
-Note: Any import errors will only be seen at boot. You cannot re-import the 
-API class outside of the boot sequence. You should see the following at boot.
+    Example: ```python3 -m esptool --chip esp32 --port /dev/tty.SLAB_USBtoUART --baud 115200 
+write_flash -z 0x1000 ~/Downloads/esp32spiram-20210623-v1.16.bin```
 
-## Getting Started
+## Installing Antenny MP Code
+1. To begin install, first push the reset button on the antenny board, labeled `RET Button`.
+2. Next, from the root directory of this repository, run  the `make nyansat` make directive with the `SERIAL` 
+argument pointing to your antenny block device.
 
-To enter device shell, type the following in a terminal window:
+    Example: `make nyansat SERIAL=/dev/tty.SLAB_USBtoUART`
+3. The Installer will give you a series of prompts.
+    - `Do you want to keep the configs on the device? (Y/n)`. 
+        
+        - If this is your first install or if you would like to restart your antenny configs from the repository state,
+         select `N`, to keep your configs on 
+board select `Y`. 
+    - `Do you want to do an installation of all components and libraries?(Y/n)`
+    
+        - If this is your first install, or you would like to do a fresh install of all code select `Y`, otherwise, 
+        if you would only like to install specific components select `N`.
+        
+    - If you selected `Y` for the previous prompt you will see:
+    
+        - `Are you sure you want to erase all files on the device? (y/N)`
+    
+            - This is just a confirmation, as a full install will take a bit of time.
+        
+    - If you selected `N` you will see:
+    
+        - `Name a component you wish to install:`
+        
+            - If you are developing new components or making fixes to existing ones, you can upload one component at 
+            a time by typing its name into this prompt. That name should correspond to a sub directory found in the 
+            [station](https://github.com/RedBalloonShenanigans/antenny/tree/master/nyansat/station) directory. For 
+            example selecting `imu` would upload all code in the [imu](https://github.com/RedBalloonShenanigans/antenny/tree/master/nyansat/station/imu) sub directory.
+            
+        - `Do you wish to install more? (y/N)`
+        
+            - Use this to repeat the above step.
+            
+        - `Do you want to re-install the libraries (y/N)`
+        
+            - Select yes to reinstall the libraries found [here](https://github.com/RedBalloonShenanigans/antenny/tree/master/lib)
+            
+4. You should see the installer upload the code to the antenny. 
 
-```
-screen <block device> 115200
-```
+5. You will see the installer report `False` upon completion, press `Enter` to continue.
 
-or
+6. The installer will prompt you for your WiFi info. If the above steps were taken to enable WiFi, enter your info, 
+otherwise leave blank.
 
-```
-minicom -D <block device> -b 115200
-``` 
+Your installation is complete!     
 
-Your block device will be the newest /dev/* device created once connected to your computer.
+# Getting Started
 
-You should be greeted with an open Python3 interpreter.
+## Entering the Python interpreter
 
-### Connecting Via WebREPL
+1. Using a terminal utility of your choice, enter the devices python interpreter.
 
-WebREPL is not enabled by default. To enable it, connect via serial port first and run the `setup` command to enable it. Afterwards, you can connect via WebREPL using the following command:
+    - Examples:
 
-```
-open ws:<your ESP32's IP address>,<your webrepl password>
-```
+        `screen <block device> 115200`
+        
+        or
+        
+        `minicom -D <block device> -b 115200`
+        
+    - In the case of windows, Putty is suggested.
+
+2. Upon entering the interpreter you should be met with the python prompt `>>>`. If you are not try the reset button 
+on the side of the board or revisit the `Installing Micropython` section of this README.
+
+3. To view any potential import errors, press the reset button on the board as described in the installation section. 
+
+     - In micropython, the first script run on startup will always be `boot.py` followed by `main.py`. 
+     The `main.py` script will import all relevant antenny code and provide access to `api`, an instance of 
+[AntennyAPI](https://github.com/RedBalloonShenanigans/antenny/blob/master/nyansat/station/api/api.py). 
+
+## Using the Antenny API
+
+### Device Startup
+
+Once your hardware is properly setup and you have installed the antenny station code, you can begin working with the 
+device. To interface with the device from the python interpreter, we will use member methods of the `api` class. 
+
+#### High Level Methods
+
+High level methods start with `antenny_` are used to setup your antenny assembly, calibrate and save calibration data. 
+
+- `api.antenny_init_components()`
+
+    - Initializes the components described by the current config. For more info on device configuration, please see 
+    the "Configuring Antenny" section. 
+    
+- `api.antenny_calibrate(name: Optional)`
+
+    - Calibrates the antenny platform. 
+    - NOTE: This will start the automatic calibration routine. Currently only supported by the BNO055 IMU. BNO080 
+    support expected soon.
+    
+- `api.antenny_save(name: Optional)`
+
+    - Saves the current configuration of each components as default. With an optional name. Makes the state of the 
+    configuration and calibration persistent. 
+
+#### Platform Methods
+
+Platform methods start with `platform_` and are used to operate the platform, a term used in this project to describe 
+the pwm driver, the motors it is driving, the IMU and the antenny board as a single assembly. 
+
+- `api.platform_orient()`
+ 
+    - Orients the platform to its current position. Should be run after repositioning the gimbal platform. This finds
+     the 90 degree dead zone of the azimuth servo.
+     
+- `api.platform_start()`
+
+    - Enables movement of the platform. Commands can be issued to point at specific coordinates.
+    
+- `api.platform_stop()`
+
+    - Disables movement of the platform. Commands can be issues to manually move the servods or re-orient the platform.
+    
+- `api.platform_set_azimuth(az: int)`
+
+    - Sets the azimuth coordinate of the platform while movement is enabled. 
+    
+- `api.platform_set_elevation(el: int)`
+
+    - Sets the azimuth coordinate of the platform while movement is enabled. 
+
+- `api.platform_set_coordinates(az: int, el: int)`
+
+    - Sets both coordinates of the platform while movement is enabled.
+    
+#### Servo Methods
+
+Each individual servo can be operated manually through these methods. Without access to the IMU the servos will not 
+know they're orientation.
+
+- `api.elevation_servo_set_position`
+- `api.azimuth_servo_set_position`
+
+    - Sets the position of the elevation servo. The current specs for the servos provided with the antenny put the 
+    position argument in range(0, 4096), however only a subset of that range will actually move the servo.
+    
+- `api.elevation_servo_set_min_max(min: int, max: int)`
+- `api.azimuth_servo_set_min_max(min: int, max: int)`
+
+    - Sets the minimum and maximum `position` arguments that allow the servo to move, part of the higher level 
+    calibration step. 
+
+#### IMU Methods
+
+IMU data can be accessed directly from the API as well. 
+
+- `api.imu_get_azimuth()`
+
+    - Returns the azimuth in degrees as reported by the IMU
+    
+- `api.imu_get_elevation()`
+
+    - Returns the elevation in degrees as reported by the IMU
+    
+- `api.imu_get_euler()`
+
+    - Returns the euler angles in order of yaw, roll, pitch. 
+    
+The IMU can also be manually calibrated
+
+- `api.imu_calibrate()`
+
+    - Begins the calibration routine. For best results, follow the printed instructions from the console. 
+    
+#### Other
+
+There are plenty of other methods, most used for debugging, available to the user, as well as direct access to 
+underlying components. For more information, reading through the antenny code is advised.      
+
 
 ### Configuring Antenny
+NOTE: These configs have wrappers to properly alter the config members before saving in the API. In general only the 
+High Level `api.antenny_save(name: Optional)` should be used by users. 
 
-Your hardware is described by a series of .json files. These files are exposed
-via classes implemented in `nyansat/station/config/config.py`
+Your hardware is described by a series of 
+[configs](https://github.com/RedBalloonShenanigans/antenny/tree/master/nyansat/station/configs) that can be updated 
+through your installer or on the antenny board itself. This section will go over on baord config modification. To use 
+the installer re-visit the above guide.
 
-##### api.antenny_config
-- `configs/antenny/default.json` describes the general base station integration with pin connections as well as high-level attributes like current longitude and latitude.
-- Help information for each antenny_config member can be retrieved via `api.antenny_config_help()`
-
-##### api.imu_config
-- `configs/imu/default.json` describes the calibration profile of an IMU (if available). Can be used when switching between IMUs and switching between different profiles.
-
-##### api.servo_config
-- `configs/servo/default.json` describes the limits of the servo motors. Can be used to change gimbals or to finely tune the current limits.
-
-To get or set these values from the interpreter simply `<class instance>.get/.set`
-
-Also available are `.save()` and `.load()`.
-
-To use the config on boot, run `.save_as_default()`.
-
-### Initializing the Antenny system
-After setting up your `antenny_config` to match your hardware, you have to initialize the api to use the drivers.
-
-Run `api.antenny_initialize_components()` to adjust your antenny to the current config state. This will error if your
- antenny can not detect the proper hardware. 
-
-### Moving Your Motors
-
-If `api.antenny_config.get('use_motor')` is `True` your PWM driver is initialized.
-
-You may move your servo gimbal with a command like:
-
-`api.elevation_servo.set_position(<duty cycle>)`
-
-Duty cycle to angle mapping is hardware-dependent and must be calibrated. See Calibration.
-
-### Checking your IMU
-If `api.antenny_config.get('use_bno08x')` is `True` you now have access to your bno08x, and likewise for the `use_bno055`
-
-To check your IMU reports you can run `api.imu.get_euler()` to see reported yaw, roll and pitch angles (in that order)
-
-In the case of the `bno08x`, we must calculate the euler values ourselves, to see the raw quaternion values, you can 
-access the underlying `bno08x` driver and run `api.imu.bno.geomagnetic_quaternion` which prints x, y, z, w values (in
- that order).
+The api uses the 
+[Config](https://github.com/RedBalloonShenanigans/antenny/blob/master/nyansat/station/config/config.py) class to 
+manage configs and are exposed by the `AntennyAPI`. There are currently three configs used by the antenny system, but
+ any components that require information to be stored across boots should use its own config.
  
-### Calibrating your IMU
-The Antenny gives you the option to manually calibrate the IMU (This is difficult and not suggested).
+#### Antenny API Config classes
+    
+- `api.antenny_config`
+    - The [antenny_config](https://github.com/RedBalloonShenanigans/antenny/tree/master/nyansat/station/configs/antenny) 
+describes the base station integration with pin connections as well as high-level attributes like current longitude and latitude.
+    - Help information for each antenny_config member can be retrieved via `api.antenny_config_help()`
 
-To do so, run `api.imu.calibrate_<accelerometer, gyroscope, magnetometer>` and follow the instructions printed. Other
- calibration options are listed below. 
- 
-### Calibrating the assembled platform
-The preferred way to calibrate the system is to use the servo motors to assist in calibration motions. Additionally, 
-this step will auto calibrate the servo limits using the IMU motion. 
+- `api.imu_config`
+    - The [imu_config](https://github.com/RedBalloonShenanigans/antenny/tree/master/nyansat/station/configs/imu) 
+    describes calibration data of the IMU. Currently only available for the BNO055, for more details on this you can 
+    view the BNO055 and BNO08x data sheets.
 
-To do this run `api.antenny_calibrate(name=<name_of_calibration_config>(optional))`. This command will perform the 
-auto-calibration routine and then use this on startup. If you wish to save multiple, or switch between, you may 
-provide a name and switch as described in the config section above.
+- `api.servo_config`
+    - The [servo_config](https://github.com/RedBalloonShenanigans/antenny/tree/master/nyansat/station/configs/servo) 
+    describes the limits of the servo motors.
 
-## Preparing and using the Antenny
-### Orientation
-Once your device is setup and calibrated, you have to orient the system. This is only required for servo motors, as 
-they are 
-unable to rotate 360 degrees. This will find the geomagnetic limits of the system and prevent you from setting the 
-desired position in that range. 
+#### Config Methods
 
-To set the orientation, place the platform in the space it will remain (you must repeat this process if you move it) 
-and run `api.platform_orient()`.
+- `Config.set(<member>, <value>)`: Sets a config to a new value.
 
-### Starting the platform
-After orienting the device, you may start the antenna motion by running `api.platform_start()`. This will start the 
-internal PID loop. This will keep the device pointed at its current geomagnetic orientation if you move the platform 
-(Not recommended due to orientation issues described above. )
+- `Config.get(<member>)`: Gets the current value of a config member.
 
-### Setting a new antenna position
-To set the antenan to a specific geomagnetic orientation, you must set the azimuth and elevation. You may do this as 
-follows:
-`api.platform_set_azimuth(degrees)`
-`api.platform_set_elevation(degrees`
+- `Config.save(name: Optional)`: Saves the current config to the device, with a new name option for multiple configs.
 
-### Stopping the platform
-You may stop the automatic movement of the platform by running `api.platform_stop()`
+- `Config.load(name: Optional)`: Loads the currently saved values, if name is specified, loads from a previously 
+saved config, if it is not, reloads the last save of the current config.
 
-### Satellite TLE Tracking
-Coming soon...
+- `Config.save_as_default_config()`: The current config will be loaded on reboot. 
+
+- `Config.load_default_config()`: Load the config that was present on reboot.
+
 
 ## The Antenny Host System
 Under Development...
