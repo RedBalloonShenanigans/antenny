@@ -21,4 +21,4 @@
 	url = https://github.com/DanPesce/antenny-micropython-drivers
 [submodule "lib/Adafruit_CircuitPython_BNO08x_RVC"]
 	path = lib/Adafruit_CircuitPython_BNO08x_RVC
-	url = git@github.com-DanPesce:DanPesce/Adafruit_CircuitPython_BNO08x_RVC.git
+	url = https://github.com/DanPesce/Adafruit_CircuitPython_BNO08x_RVC.git
