@@ -24,8 +24,7 @@ class PIDPlatformController(PlatformController):
         self._motion_started = False
         self.pin_interrupt = True
         self.deadzone = None
-        self.elevation_pid_loop_timer = machine.Timer(0)
-        self.azimuth_pid_loop_timer = machine.Timer(1)
+        self.pid_loop_timer = machine.Timer(0)
         self.elevation.set_position(int((self.elevation.get_max_position() - self.elevation.get_min_position()) / 2))
         self.azimuth.set_position(int((self.azimuth.get_max_position() - self.azimuth.get_min_position()) / 2))
         self.new_elevation = 0
@@ -98,14 +97,14 @@ class PIDPlatformController(PlatformController):
         self.new_azimuth = self.imu.get_azimuth()
         self.azimuth_pid.setpoint = self.new_azimuth
         self.elevation_pid.setpoint = self.new_elevation
-        self.elevation_pid_loop_timer.init(period=10, mode=machine.Timer.PERIODIC, callback=self.__pid_loop)
+        self.pid_loop_timer.init(period=10, mode=machine.Timer.PERIODIC, callback=self.__pid_loop)
 
     def stop_pid_loop(self):
         """
         Stops the PID timer
         :return:
         """
-        self.elevation_pid_loop_timer.deinit()
+        self.pid_loop_timer.deinit()
 
     def set_coordinates(self, azimuth, elevation, error=1):
         """
@@ -150,7 +149,7 @@ class PIDPlatformController(PlatformController):
             _elevation = self.get_elevation()
             _azimuth = self.get_azimuth()
 
-    def __pid_loop(self):
+    def __pid_loop(self, timer):
         """
         PID ISR
         :return:
@@ -263,7 +262,7 @@ class PIDPlatformController(PlatformController):
             d = 360 - d
         return d
 
-    def auto_calibrate_elevation_servo(self, duty=100, d=.5):
+    def auto_calibrate_elevation_servo(self, duty=100, d=.5, t=.1):
         """
         Uses the IMU to calibrate the elevation servo
         :param duty:
@@ -278,6 +277,7 @@ class PIDPlatformController(PlatformController):
         prev_elevation = self.imu.get_elevation()
         for i in range(self.elevation.get_min_position(), self.elevation.get_max_position(), duty):
             self.elevation.set_position(i)
+            time.sleep(t)
             current = self.imu.get_elevation()
             delta = self.get_delta(current, prev_elevation)
             print("{}: {}".format(i, delta))
@@ -308,7 +308,7 @@ class PIDPlatformController(PlatformController):
                 return
             prev_elevation = current
 
-    def auto_calibrate_azimuth_servo(self, duty=100, d=.5):
+    def auto_calibrate_azimuth_servo(self, duty=100, d=.5, t=.1):
         """
         Uses the IMU to calibrate the azimuth servo
         :param duty:
@@ -325,6 +325,7 @@ class PIDPlatformController(PlatformController):
         prev_azimuth = self.imu.get_azimuth()
         for i in range(self.azimuth.get_min_position(), self.azimuth.get_max_position(), duty):
             self.azimuth.set_position(i)
+            time.sleep(t)
             current = self.imu.get_azimuth()
             delta = self.get_delta(current, prev_azimuth)
             print("{}: {}".format(i, delta))

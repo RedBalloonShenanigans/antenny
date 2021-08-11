@@ -1,3 +1,5 @@
+import time
+
 import machine
 
 from config.config import Config
@@ -10,7 +12,8 @@ from gps.gps_basic import BasicGPSController
 from gps.mock_gps_controller import MockGPSController
 from imu.imu import ImuController
 from imu.imu_bno055 import Bno055ImuController
-from imu.imu_bno08x import Bno08xImuController
+from imu.imu_bno08x_i2c import Bno08xImuController
+from imu.imu_bno08x_rvc import Bno08xUARTImuController
 from imu.mock_imu import MockImuController
 from motor.mock_motor import MockPWMController
 from motor.motor import PWMController, ServoController
@@ -77,7 +80,7 @@ class AntennyAPI:
                            )
 
     def uart_init(self, id, rx, tx, baud=9600):
-        return machine.uart(id, baud).init(rx, tx)
+        return machine.UART(id, baudrate=baud, rx=rx, tx=tx)
 
     def antenny_config_check(self):
         """
@@ -220,9 +223,10 @@ class AntennyAPI:
         self.imu.reset_calibration()
         self.platform.auto_calibrate_elevation_servo()
         self.platform.auto_calibrate_azimuth_servo()
-        self.platform.auto_calibrate_magnetometer()
-        self.platform.auto_calibrate_gyroscope()
-        self.platform.auto_calibrate_accelerometer()
+        if self.antenny_config.get("use_bno055"):
+            self.platform.auto_calibrate_magnetometer()
+            self.platform.auto_calibrate_gyroscope()
+            self.platform.auto_calibrate_accelerometer()
         self.antenny_save(name)
 
 #  PWM Controller Functions
@@ -501,23 +505,43 @@ class AntennyAPI:
             self.imu_load()
             self.imu.upload_calibration_profile()
             print("IMU connected")
-        elif self.antenny_config.get("use_bno08x"):
-            print("use_bno08x found in config: {}".format(self.antenny_config.get_name()))
+        elif self.antenny_config.get("use_bno08x_i2c"):
+            print("use_bno08x_i2c found in config: {}".format(self.antenny_config.get_name()))
             if chain is None:
                 i2c_bno_scl = self.antenny_config.get("i2c_bno_scl")
                 i2c_bno_sda = self.antenny_config.get("i2c_bno_sda")
                 self.i2c_bno = self.i2c_init(1, i2c_bno_scl, i2c_bno_sda, freq=freq)
             else:
                 self.i2c_bno = chain
+            ps0 = machine.Pin(self.antenny_config.get("bno_ps0"), machine.Pin.OUT)
+            ps1 = machine.Pin(self.antenny_config.get("bno_ps1"), machine.Pin.OUT)
+            reset = machine.Pin(self.antenny_config.get("bno_rst"), machine.Pin.OUT)
+            ps0.off()
+            ps1.off()
             self.imu = Bno08xImuController(
                 self.i2c_bno,
                 debug=debug,
-                reset=machine.Pin(
-                               self.antenny_config.get("bno_rst"),
-                               machine.Pin.OUT,
-                               machine.Pin.PULL_DOWN
-                           ),
+                reset=reset
             )
+            self.imu.reset_calibration()
+            print("IMU connected")
+        elif self.antenny_config.get("use_bno08x_rvc"):
+            print("use_bno08x_rvc found in config: {}".format(self.antenny_config.get_name()))
+            tx = self.antenny_config.get("i2c_bno_scl")
+            rx = self.antenny_config.get("i2c_bno_sda")
+            ps0 = machine.Pin(self.antenny_config.get("bno_ps0"), machine.Pin.OUT)
+            ps1 = machine.Pin(self.antenny_config.get("bno_ps1"), machine.Pin.OUT)
+            reset = machine.Pin(self.antenny_config.get("bno_rst"), machine.Pin.OUT)
+            ps0.on()
+            ps1.off()
+            uart_bno = self.uart_init(1, rx, tx, baud=115200)
+            self.imu = Bno08xUARTImuController(
+                uart_bno,
+                reset=reset
+            )
+            self.imu.reset_calibration()
+            time.sleep(.5)
+            self.imu.start()
             print("IMU connected")
         else:
             self.imu = MockImuController()
@@ -541,7 +565,7 @@ class AntennyAPI:
         :param force:
         :return:
         """
-        if not self.antenny_config.get("use_bno08x"):
+        if self.antenny_config.get("use_bno055"):
             self.imu_config.set(
                 "accelerometer",
                 self.imu.get_accelerometer_calibration()
