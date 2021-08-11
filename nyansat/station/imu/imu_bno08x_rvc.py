@@ -45,14 +45,26 @@ class Bno08xUARTImuController(ImuController):
         Gets the reported elevation
         :return:
         """
-        return self.euler[1]
+        elevation = abs(self.euler[1])
+        new_elevation = abs(self.euler[1])
+        while new_elevation != elevation:
+            elevation = abs(self.euler[1])
+            new_elevation = abs(self.euler[1])
+        return elevation
 
     def get_azimuth(self):
         """
         Gets the reported azimuth
         :return:
         """
-        return self.euler[0]
+        azimuth = self.euler[0]
+        new_azimuth = self.euler[0]
+        while new_azimuth != azimuth:
+            azimuth = self.euler[0]
+            new_azimuth = self.euler[0]
+        if azimuth < 0:
+            azimuth = 360 + azimuth
+        return azimuth
 
     def mode(self, mode):
         """
