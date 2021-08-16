@@ -48,11 +48,6 @@ argument pointing to your antenny block device.
 
     Example: `make nyansat SERIAL=/dev/tty.SLAB_USBtoUART`
 3. The Installer will give you a series of prompts.
-    - `Do you want to keep the configs on the device? (Y/n)`. 
-        
-        - If this is your first install or if you would like to restart your antenny configs from the repository state,
-         select `N`, to keep your configs on 
-board select `Y`. 
     - `Do you want to do an installation of all components and libraries?(Y/n)`
     
         - If this is your first install, or you would like to do a fresh install of all code select `Y`, otherwise, 
@@ -76,6 +71,11 @@ board select `Y`.
         - `Do you wish to install more? (y/N)`
         
             - Use this to repeat the above step.
+            
+        - `Do you want to keep the configs on the device? (Y/n)`. 
+        
+            - If you would like to restart your antenny configs from the repository state, select `N`, to keep your 
+            configs on board select `Y`. 
             
         - `Do you want to re-install the libraries (y/N)`
         

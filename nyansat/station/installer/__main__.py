@@ -437,7 +437,6 @@ if __name__ == '__main__':
     installer = AntennyInstaller(args.serial_path)
     installer.connect()
     LOG.info("Connected, welcome to the Antenny installer!")
-    ignore_configs = input("Do you want to keep the configs on the device? (Y/n)").strip().lower() in ('y', '')
     fresh_install = input("Do you want to do an installation of all components and libraries?(Y/n)").strip().lower() \
                     in ('y', '')
     if fresh_install:
@@ -445,15 +444,16 @@ if __name__ == '__main__':
         if not confirm:
             LOG.info("Exiting installer; please backup existing files before running the installer!")
             sys.exit(0)
-        installer.install(ignore_lib=args.core_install, ignore_configs=ignore_configs)
+        installer.install(ignore_lib=False, ignore_configs=False)
     else:
         done = False
         components = []
         while not done:
             components.append(input("Name a component you wish to install: ").strip().lower())
             done = input("Do you wish to install more? (y/N)").strip().lower() in ("n", "")
-            if not ignore_configs:
-                components.append("configs")
+        ignore_configs = input("Do you want to keep the configs on the device? (Y/n)").strip().lower() in ('y', '')
+        if not ignore_configs:
+            components.append("configs")
         ignore_libs = input("Do you want to re-install the libraries (y/N)").strip().lower() != 'y'
         installer.install(ignore_lib=ignore_libs, ignore_configs=ignore_configs, components=components)
     LOG.info("Installation complete!")
