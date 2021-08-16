@@ -37,8 +37,9 @@ class Bno08xUARTImuController(ImuController):
                 self.stop()
                 self.start()
         except Exception as e:
-            self.read_timer.deinit()
-            print("The IMU has lost connection, please re-initialize the IMU")
+            self.stop()
+            self.start()
+            print("The IMU has lost connection, re-starting")
 
     def get_elevation(self):
         """

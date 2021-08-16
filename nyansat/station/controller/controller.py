@@ -77,7 +77,7 @@ class PlatformController:
         """
         raise NotImplementedError
 
-    def auto_calibrate_elevation_servo(self, duty=25, d=.5):
+    def auto_calibrate_elevation_servo(self, duty=25, d=.5, t=.1):
         """
         Uses the IMU to calibrate the elevation servo
         :param duty:
@@ -86,7 +86,7 @@ class PlatformController:
         """
         raise NotImplementedError()
 
-    def auto_calibrate_azimuth_servo(self, duty=25, d=.5):
+    def auto_calibrate_azimuth_servo(self, duty=25, d=.5, t=.1):
         """
         Uses the IMU to calibrate the azimuth servo
         :param duty:

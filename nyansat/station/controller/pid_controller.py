@@ -32,15 +32,15 @@ class PIDPlatformController(PlatformController):
         self.elevation_pid = PID(
             setpoint=self.new_elevation,
             output_limits=(
-                -1000,
-                1000
+                -20,
+                20
             )
         )
         self.azimuth_pid = PID(
             setpoint=self.new_azimuth,
             output_limits=(
-               -1000,
-               1000
+               -20,
+               20
             )
         )
 
@@ -97,7 +97,7 @@ class PIDPlatformController(PlatformController):
         self.new_azimuth = self.imu.get_azimuth()
         self.azimuth_pid.setpoint = self.new_azimuth
         self.elevation_pid.setpoint = self.new_elevation
-        self.pid_loop_timer.init(period=10, mode=machine.Timer.PERIODIC, callback=self.__pid_loop)
+        self.pid_loop_timer.init(period=100, mode=machine.Timer.PERIODIC, callback=self.__pid_loop)
 
     def stop_pid_loop(self):
         """
@@ -106,7 +106,7 @@ class PIDPlatformController(PlatformController):
         """
         self.pid_loop_timer.deinit()
 
-    def set_coordinates(self, azimuth, elevation, error=1):
+    def set_coordinates(self, azimuth, elevation):
         """
         Sets relative coordinates to point at
         :param error:
@@ -114,40 +114,8 @@ class PIDPlatformController(PlatformController):
         :param elevation:
         :return:
         """
-        if self.deadzone is None:
-            print("You must orient the device before setting its coordinates!")
-            return
-        for dead_zone_min, dead_zone_max in self.deadzone:
-            if dead_zone_min < azimuth < dead_zone_max:
-                print("That coordinate is out of the servo limit, please realign your platform and re-orient")
-                return
-        azimuth = azimuth % 360
-        elevation = elevation % 90
-        _azimuth = self.get_azimuth()
-        _elevation = self.get_elevation()
-
-        elevation_pid = PID(
-            setpoint=elevation,
-            output_limits=(
-                -1000,
-                1000
-            )
-        )
-        azimuth_pid = PID(
-            setpoint=azimuth,
-            output_limits=(
-               -1000,
-               1000
-            )
-        )
-        while not (azimuth - error <= _azimuth <= azimuth + error) or not (elevation - error <= _elevation <=
-                                                                           elevation + error):
-            el_duty = int(elevation_pid(_elevation))
-            az_duty = int(azimuth_pid(_azimuth)) * -1
-            self.elevation.step(el_duty)
-            self.azimuth.step(az_duty)
-            _elevation = self.get_elevation()
-            _azimuth = self.get_azimuth()
+        self.set_elevation(elevation)
+        self.set_azimuth(azimuth)
 
     def __pid_loop(self, timer):
         """
@@ -162,6 +130,12 @@ class PIDPlatformController(PlatformController):
         az_duty = int(self.azimuth_pid(_azimuth)) * -1
         self.elevation.step(el_duty)
         self.azimuth.step(az_duty)
+        # print("""
+        # azimuth: {}
+        # azimuth_duty: {}
+        # elevation: {}
+        # elevation_duty: {}
+        # """.format(_azimuth, az_duty, _elevation, el_duty))
 
     def auto_calibrate_accelerometer(self):
         """
@@ -274,6 +248,7 @@ class PIDPlatformController(PlatformController):
         self.elevation.set_min_position(0)
         self.elevation.set_max_position(4095)
         self.elevation.set_position(int((self.azimuth.get_max_position() - self.azimuth.get_min_position()) / 2))
+        time.sleep(1)
         prev_elevation = self.imu.get_elevation()
         for i in range(self.elevation.get_min_position(), self.elevation.get_max_position(), duty):
             self.elevation.set_position(i)
@@ -320,9 +295,10 @@ class PIDPlatformController(PlatformController):
         self.azimuth.set_min_position(0)
         self.azimuth.set_max_position(4095)
         self.elevation.set_position(int((self.azimuth.get_max_position() - self.azimuth.get_min_position()) / 2))
-        self.imu.get_elevation()
         self.azimuth.set_position(int((self.azimuth.get_max_position() - self.azimuth.get_min_position()) / 2))
+        time.sleep(1)
         prev_azimuth = self.imu.get_azimuth()
+
         for i in range(self.azimuth.get_min_position(), self.azimuth.get_max_position(), duty):
             self.azimuth.set_position(i)
             time.sleep(t)

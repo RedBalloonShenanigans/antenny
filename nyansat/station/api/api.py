@@ -219,15 +219,20 @@ class AntennyAPI:
         :param name:
         :return:
         """
-        self.antenny_init_components()
-        self.imu.reset_calibration()
-        self.platform.auto_calibrate_elevation_servo()
-        self.platform.auto_calibrate_azimuth_servo()
+        if self.antenny_config.get("use_bno08x_rvc"):
+            t = 1
+            d = 1
+            duty=100
+        else:
+            t = .1
+            d = .5
+            duty = 100
+        self.platform.auto_calibrate_elevation_servo(duty=duty, t=t, d=d)
+        self.platform.auto_calibrate_azimuth_servo(duty=duty, t=t, d=d)
         if self.antenny_config.get("use_bno055"):
             self.platform.auto_calibrate_magnetometer()
             self.platform.auto_calibrate_gyroscope()
             self.platform.auto_calibrate_accelerometer()
-        self.antenny_save(name)
 
 #  PWM Controller Functions
 
