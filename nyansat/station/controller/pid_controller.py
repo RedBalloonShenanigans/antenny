@@ -16,7 +16,12 @@ class PIDPlatformController(PlatformController):
             self,
             azimuth: ServoController,
             elevation: ServoController,
-            imu: ImuController
+            imu: ImuController,
+            pid_output_limits: tuple = (-20, 20),
+            pid_frequency: int = 100,
+            p: float = 1.0,
+            i: float = 0.0,
+            d: float = 0.0,
     ):
         self.azimuth = azimuth
         self.elevation = elevation
@@ -29,19 +34,29 @@ class PIDPlatformController(PlatformController):
         self.azimuth.set_position(int((self.azimuth.get_max_position() - self.azimuth.get_min_position()) / 2))
         self.new_elevation = 0
         self.new_azimuth = 0
+        self.pid_output_limits = pid_output_limits
+        self.pid_frequency = pid_frequency
+        self.p = p
+        self.i = i
+        self.d = d
+        self.elevation_pid = None
+        self.azimuth_pid = None
+        self.init_pid()
+
+    def init_pid(self):
         self.elevation_pid = PID(
             setpoint=self.new_elevation,
-            output_limits=(
-                -20,
-                20
-            )
+            output_limits=self.pid_output_limits,
+            Kp=self.p,
+            Ki=self.i,
+            Kd=self.d
         )
         self.azimuth_pid = PID(
             setpoint=self.new_azimuth,
-            output_limits=(
-               -20,
-               20
-            )
+            output_limits=self.pid_output_limits,
+            Kp=self.p,
+            Ki=self.i,
+            Kd=self.d
         )
 
     def start(self):
@@ -97,7 +112,7 @@ class PIDPlatformController(PlatformController):
         self.new_azimuth = self.imu.get_azimuth()
         self.azimuth_pid.setpoint = self.new_azimuth
         self.elevation_pid.setpoint = self.new_elevation
-        self.pid_loop_timer.init(period=100, mode=machine.Timer.PERIODIC, callback=self.__pid_loop)
+        self.pid_loop_timer.init(period=self.pid_frequency, mode=machine.Timer.PERIODIC, callback=self.__pid_loop)
 
     def stop_pid_loop(self):
         """
@@ -130,12 +145,12 @@ class PIDPlatformController(PlatformController):
         az_duty = int(self.azimuth_pid(_azimuth)) * -1
         self.elevation.step(el_duty)
         self.azimuth.step(az_duty)
-        print("""
-        azimuth: {}
-        azimuth_duty: {}
-        elevation: {}
-        elevation_duty: {}
-        """.format(_azimuth, az_duty, _elevation, el_duty))
+        # print("""
+        # azimuth: {}
+        # azimuth_duty: {}
+        # elevation: {}
+        # elevation_duty: {}
+        # """.format(_azimuth, az_duty, _elevation, el_duty))
 
     def auto_calibrate_accelerometer(self):
         """

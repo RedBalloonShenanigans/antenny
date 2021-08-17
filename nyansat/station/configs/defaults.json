@@ -5,5 +5,7 @@
   "original_imu": "default",
   "servo": "default",
   "original_servo": "default",
+  "pid": "default",
+  "original_pid": "default",
   "wifi": "wifi_config.json"
 }

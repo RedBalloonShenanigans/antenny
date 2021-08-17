@@ -40,6 +40,7 @@ class AntennyAPI:
         self.antenny_config: Config = Config("antenny")
         self.imu_config: Config = Config("imu")
         self.servo_config: Config = Config("servo")
+        self.pid_config: Config = Config("pid")
         self.safe_mode: bool = True
         self.imu: ImuController = ImuController()
         self.pwm_controller: PWMController = PWMController()
@@ -246,11 +247,12 @@ class AntennyAPI:
                 A) Set up the Antenny hardware and pin configuration
                 B) Manually input your servo limits (in us)
                 C) Set your longitude and latitude
-                D) All of the above
+                D) Tune your PID loop
+                Z) All of the above
             """
         )
-        choice = input("(A, B, C, D): ").strip().lower()
-        if choice == "a" or choice == "d":
+        choice = input("(A, B, C, D, Z): ").strip().lower()
+        if choice == "a" or choice == "z":
             if choice == "a":
                 print("You have chosen <Set up the Antenny pin configuration>, a fine choice!")
             if choice == "d":
@@ -348,7 +350,7 @@ class AntennyAPI:
                 self.antenny_config.set("elevation_servo_index", elevation_index)
                 self.antenny_config.set("azimuth_servo_index", azimuth_index)
 
-        if choice == "b" or choice == "d":
+        if choice == "b" or choice == "z":
             if choice == "b":
                 print("You have chosen <Manually input your servo limits (in us)>. I hope it exists!")
             print("What are the max and minimum values we can pump into your servos? Please give the values in "
@@ -369,7 +371,7 @@ class AntennyAPI:
             self.servo_config.set("elevation", {"min": elevation_min, "max": elevation_max})
             self.servo_config.set("azimuth", {"min": azimuth_min, "max": azimuth_max})
 
-        if choice == "c" or choice == "d":
+        if choice == "c" or choice == "z":
             if choice == "c":
                 print("You have chosen <Set your longitude and latitude>. I hope it's somewhere warm.")
             print("I hope I'm not being too forward but where are you?")
@@ -382,6 +384,45 @@ class AntennyAPI:
                 latitude = int(input("Latitude: ").strip())
             self.antenny_config.set("latitude", latitude)
             self.antenny_config.set("longitude", longitude)
+
+        if choice == "d" or choice == "z":
+            if choice == "d":
+                print("You have chosen <Tune your PID loop>. I hope you brought your tuning fork.")
+            print("These values are mostly experimental, but there are plent of online resources for PID tuning best "
+                  "practices.")
+            try:
+                print("What should the minimum output value be?")
+                min_limit = float(input("Min Output: ").strip())
+                print("What should the maximum output be?")
+                max_limit = float(input("Max Output: ").strip())
+                print("What should be the period of each PID iteration?")
+                period = int(input("Period (ms): ").strip())
+            except ValueError as e:
+                print("I need a number!")
+                print("What should the minimum output value be?")
+                min_limit = float(input("Min Output: ").strip())
+                print("What should the maximum output be?")
+                max_limit = float(input("Max Output: ").strip())
+                print("What should be the period of each PID iteration?")
+                period = int(input("Period (ms): ").strip())
+            self.pid_config.set("output_limits", [min_limit, max_limit])
+            self.pid_config.set("period", period)
+            print("And now the PID constants, it is recommended leaving them default in the begining.")
+            try:
+                p = float(input("P (Default is 1.0): ").strip())
+                self.pid_config.set("p", p)
+            except ValueError as e:
+                self.pid_config.set("p", 1.0)
+            try:
+                i = float(input("I (Default is 0.0): ").strip())
+                self.pid_config.set("i", i)
+            except ValueError as e:
+                self.pid_config.set("i", 0.0)
+            try:
+                d = float(input("D (Default is 0.0): ").strip())
+                self.pid_config.set("d", d)
+            except ValueError as e:
+                self.pid_config.set("d", 0.0)
 
         print("You have completed the Antenny manual setup! Please remember to save your config as the default with "
               "api.antenny_save() once you're happy with it.")
@@ -814,7 +855,12 @@ class AntennyAPI:
             platform = PIDPlatformController(
                 self.azimuth_servo,
                 self.elevation_servo,
-                self.imu
+                self.imu,
+                pid_output_limits=self.pid_config.get("output_limits"),
+                pid_frequency=self.pid_config.get("frequency"),
+                p=self.pid_config.get("p"),
+                i=self.pid_config.get("i"),
+                d=self.pid_config.get("d")
             )
         self.platform = platform
         return platform
