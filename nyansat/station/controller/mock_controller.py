@@ -84,19 +84,19 @@ class MockPlatformController(PlatformController):
         """
         pass
 
-    def auto_calibrate_elevation_servo(self, duty=25, d=.5):
+    def auto_calibrate_elevation_servo(self, us=25, d=.5):
         """
         Uses the IMU to calibrate the elevation servo
-        :param duty:
+        :param us:
         :param d:
         :return:
         """
         pass
 
-    def auto_calibrate_azimuth_servo(self, duty=25, d=.5):
+    def auto_calibrate_azimuth_servo(self, us=25, d=.5):
         """
         Uses the IMU to calibrate the azimuth servo
-        :param duty:
+        :param us:
         :param d:
         :return:
         """

@@ -40,10 +40,10 @@ class MockPWMController(object):
 
 
 class MockServoController(ServoController):
-    def set_min_position(self, min_duty):
+    def set_min_position(self, min_us):
         """
         Sets the minimum duty cycle that will move the servo
-        :param min_duty:
+        :param min_us:
         :return:
         """
         pass
@@ -55,10 +55,10 @@ class MockServoController(ServoController):
         """
         pass
 
-    def set_max_position(self, max_duty):
+    def set_max_position(self, max_us):
         """
         Sets the maximum duty cycle that will move the servo
-        :param max_duty:
+        :param max_us:
         :return:
         """
         pass

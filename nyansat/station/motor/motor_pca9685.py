@@ -1,3 +1,5 @@
+import math
+
 import machine
 import pca9685 as pca9685
 from motor.motor import ServoController, PWMController
@@ -5,8 +7,10 @@ from motor.motor import ServoController, PWMController
 
 class Pca9685Controller(PWMController):
     """Controller for the PCA9685 servomotor PWM mux driver for antenny."""
-    def __init__(self, i2c: machine.I2C):
+    def __init__(self, i2c: machine.I2C, freq: int = 333):
         self.pca9685 = pca9685.PCA9685(i2c)
+        self.frequency = freq
+        self.pca9685.freq(self.frequency)
 
     def reset(self):
         """
@@ -14,14 +18,6 @@ class Pca9685Controller(PWMController):
         :return:
         """
         return self.pca9685.reset()
-
-    def freq(self, freq=None):
-        """
-        Sets the output pwm frequency for all channels in Hz
-        :param freq:
-        :return:
-        """
-        return self.pca9685.freq(freq=freq)
 
     def pwm(self, index, on=None, off=None):
         """
@@ -45,41 +41,47 @@ class Pca9685Controller(PWMController):
 
 
 class Pca9685ServoController(ServoController):
-    def __init__(self, pwm_controller: pca9685.PCA9685, index: int):
+    def __init__(self, pwm_controller: Pca9685Controller, index: int):
         self.pwm_controller = pwm_controller
         self.index = index
-        self.min_duty = 0
-        self.max_duty = 4095
+        self.min_us = None
+        self.max_us = None
 
-    def set_min_position(self, min_duty):
+    def _us2duty(self, us):
+        return int(4095 * us / (1000000 / self.pwm_controller.frequency))
+
+    def _duty2us(self, duty):
+        return int(duty * (1000000 / self.pwm_controller.frequency) / 4095)
+
+    def set_min_position(self, min_us):
         """
         Sets the minimum duty cycle that will move the servo
-        :param min_duty:
+        :param min_us:
         :return:
         """
-        self.min_duty = min_duty
+        self.min_us = min_us
 
     def get_min_position(self):
         """
         Gets the minimum duty cycle that will move the servo
         :return:
         """
-        return self.min_duty
+        return self.min_us
 
-    def set_max_position(self, max_duty):
+    def set_max_position(self, max_us):
         """
         Sets the maximum duty cycle that will move the servo
-        :param max_duty:
+        :param max_us:
         :return:
         """
-        self.max_duty = max_duty
+        self.max_us = max_us
 
     def get_max_position(self):
         """
         Gets the maximum duty cycle that will move the servo
         :return:
         """
-        return self.max_duty
+        return self.max_us
 
     def set_position(self, position):
         """
@@ -87,16 +89,21 @@ class Pca9685ServoController(ServoController):
         :param position:
         :return:
         """
-        if self.min_duty is None or self.max_duty is None:
+
+        if self.min_us is None or self.max_us is None:
             print("Servo motor must be initialized!")
             raise Exception("Servo motor must be initialized!")
-        if position < self.min_duty:
-            self.pwm_controller.duty(self.index, self.min_duty)
+
+        position = self._us2duty(position)
+
+        if position < self.min_us:
+            self.pwm_controller.duty(self.index, self.min_us)
             return False
-        elif position > self.max_duty:
-            self.pwm_controller.duty(self.index, self.max_duty)
+        elif position > self.max_us:
+            self.pwm_controller.duty(self.index, self.max_us)
             return False
         self.pwm_controller.duty(self.index, position)
+
         return True
 
     def get_position(self):
@@ -104,7 +111,7 @@ class Pca9685ServoController(ServoController):
         Gets the position of the servo
         :return:
         """
-        return self.pwm_controller.duty(self.index)
+        return self._duty2us(self.pwm_controller.duty(self.index))
 
     def step(self, d=1):
         """

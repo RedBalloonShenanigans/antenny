@@ -77,19 +77,21 @@ class PlatformController:
         """
         raise NotImplementedError
 
-    def auto_calibrate_elevation_servo(self, duty=25, d=.5, t=.1):
+    def auto_calibrate_elevation_servo(self, us=25, d=.5, t=.1):
         """
         Uses the IMU to calibrate the elevation servo
-        :param duty:
+        :param t:
+        :param us:
         :param d:
         :return:
         """
         raise NotImplementedError()
 
-    def auto_calibrate_azimuth_servo(self, duty=25, d=.5, t=.1):
+    def auto_calibrate_azimuth_servo(self, us=25, d=.5, t=.1):
         """
         Uses the IMU to calibrate the azimuth servo
-        :param duty:
+        :param t:
+        :param us:
         :param d:
         :return:
         """

@@ -130,12 +130,12 @@ class PIDPlatformController(PlatformController):
         az_duty = int(self.azimuth_pid(_azimuth)) * -1
         self.elevation.step(el_duty)
         self.azimuth.step(az_duty)
-        # print("""
-        # azimuth: {}
-        # azimuth_duty: {}
-        # elevation: {}
-        # elevation_duty: {}
-        # """.format(_azimuth, az_duty, _elevation, el_duty))
+        print("""
+        azimuth: {}
+        azimuth_duty: {}
+        elevation: {}
+        elevation_duty: {}
+        """.format(_azimuth, az_duty, _elevation, el_duty))
 
     def auto_calibrate_accelerometer(self):
         """
@@ -236,10 +236,10 @@ class PIDPlatformController(PlatformController):
             d = 360 - d
         return d
 
-    def auto_calibrate_elevation_servo(self, duty=100, d=.5, t=.1):
+    def auto_calibrate_elevation_servo(self, us=100, d=.5, t=.1):
         """
         Uses the IMU to calibrate the elevation servo
-        :param duty:
+        :param us:
         :param d:
         :return:
         """
@@ -250,7 +250,7 @@ class PIDPlatformController(PlatformController):
         self.elevation.set_position(int((self.azimuth.get_max_position() - self.azimuth.get_min_position()) / 2))
         time.sleep(1)
         prev_elevation = self.imu.get_elevation()
-        for i in range(self.elevation.get_min_position(), self.elevation.get_max_position(), duty):
+        for i in range(self.elevation.get_min_position(), self.elevation.get_max_position(), us):
             self.elevation.set_position(i)
             time.sleep(t)
             current = self.imu.get_elevation()
@@ -269,7 +269,7 @@ class PIDPlatformController(PlatformController):
                 print("Previous: {}".format(prev_elevation))
                 print("Current: {}".format(current))
                 print("Delta: {}".format(delta))
-                self.elevation.min_duty = i + 100
+                self.elevation.min_us = i + 100
             elif (delta < d) and moving:
                 self.elevation.set_position(i+100)
                 try_again_delta = self.get_delta(self.imu.get_elevation(), current)
@@ -279,14 +279,14 @@ class PIDPlatformController(PlatformController):
                 print("Previous: {}".format(prev_elevation))
                 print("Current: {}".format(current))
                 print("Delta: {}".format(delta))
-                self.elevation.max_duty = i - 100
+                self.elevation.max_us = i - 100
                 return
             prev_elevation = current
 
-    def auto_calibrate_azimuth_servo(self, duty=100, d=.5, t=.1):
+    def auto_calibrate_azimuth_servo(self, us=100, d=.5, t=.1):
         """
         Uses the IMU to calibrate the azimuth servo
-        :param duty:
+        :param us:
         :param d:
         :return:
         """
@@ -299,7 +299,7 @@ class PIDPlatformController(PlatformController):
         time.sleep(1)
         prev_azimuth = self.imu.get_azimuth()
 
-        for i in range(self.azimuth.get_min_position(), self.azimuth.get_max_position(), duty):
+        for i in range(self.azimuth.get_min_position(), self.azimuth.get_max_position(), us):
             self.azimuth.set_position(i)
             time.sleep(t)
             current = self.imu.get_azimuth()
@@ -318,7 +318,7 @@ class PIDPlatformController(PlatformController):
                 print("Previous: {}".format(prev_azimuth))
                 print("Current: {}".format(current))
                 print("Delta: {}".format(delta))
-                self.azimuth.min_duty = i + 100
+                self.azimuth.min_us = i + 100
             elif (delta < d) and moving:
                 self.azimuth.set_position(i+100)
                 try_again_delta = self.get_delta(self.imu.get_azimuth(), current)
@@ -328,7 +328,7 @@ class PIDPlatformController(PlatformController):
                 print("Previous: {}".format(prev_azimuth))
                 print("Current: {}".format(current))
                 print("Delta: {}".format(delta))
-                self.azimuth.max_duty = i - 100
+                self.azimuth.max_us = i - 100
                 return
             prev_azimuth = current
 

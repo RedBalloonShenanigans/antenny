@@ -17,7 +17,7 @@ from imu.imu_bno08x_rvc import Bno08xUARTImuController
 from imu.mock_imu import MockImuController
 from motor.mock_motor import MockPWMController
 from motor.motor import PWMController, ServoController
-from motor.motor_pca9685 import Pca9685ServoController, pca9685
+from motor.motor_pca9685 import Pca9685ServoController, Pca9685Controller
 from screen.mock_screen import MockScreenController
 from screen.screen import ScreenController
 from screen.screen_ssd1306 import Ssd1306ScreenController
@@ -220,21 +220,173 @@ class AntennyAPI:
         :return:
         """
         if self.antenny_config.get("use_bno08x_rvc"):
-            t = 1
-            d = 1
-            duty=100
+            t = .25
+            d = .5
+            us = 50
         else:
             t = .1
             d = .5
-            duty = 100
-        self.platform.auto_calibrate_elevation_servo(duty=duty, t=t, d=d)
-        self.platform.auto_calibrate_azimuth_servo(duty=duty, t=t, d=d)
+            us = 100
+        self.platform.auto_calibrate_elevation_servo(us=us, t=t, d=d)
+        self.platform.auto_calibrate_azimuth_servo(us=us, t=t, d=d)
         if self.antenny_config.get("use_bno055"):
             self.platform.auto_calibrate_magnetometer()
             self.platform.auto_calibrate_gyroscope()
             self.platform.auto_calibrate_accelerometer()
 
-#  PWM Controller Functions
+    def antenny_manual_setup(self):
+        """
+        Manually input calibration and configuration fields
+        :return:
+        """
+        print(
+            """
+            Welcome to the Antenny Manual Setup Menu!
+            Would you like to:
+                A) Set up the Antenny hardware and pin configuration
+                B) Manually input your servo limits (in us)
+                C) Set your longitude and latitude
+                D) All of the above
+            """
+        )
+        choice = input("(A, B, C, D): ").strip().lower()
+        if choice == "a" or choice == "d":
+            if choice == "a":
+                print("You have chosen <Set up the Antenny pin configuration>, a fine choice!")
+            if choice == "d":
+                print("You have chosen <All of the above>, one of my favorite choices.")
+            keep_name = input("The config is currently \"{}\", would you like to name it something else? (Y/n)".format(
+                self.antenny_config.get_name())).strip( ).lower() == "n"
+            if not keep_name:
+                name = input("Select a new name: ")
+                self.antenny_config.save(name)
+                self.servo_config.save(name)
+                self.imu_config.save(name)
+            print("First, lets see what hardware you are using.")
+            print("Beware, some (or all) functionality might be disabled if you are missing hardware.")
+            imu = input("Are you using an IMU (y, N)").strip().lower() == "y"
+            if not imu:
+                print("It appears you are not using an IMU. Beware, core functionality will be disabled")
+            else:
+                print("You are using an IMU! I'M proud of U...")
+                print("But which one are you using?")
+                bno055 = input("Is it the BNO055? (y/N)").strip().lower() == "y"
+                if not bno055:
+                    print("Ah, so it must be the BNO080!")
+                    print("But do you have it hooked up for Robotic Vacuum Cleaner mode?")
+                    print("This is the suggested mode, otherwise conversion from quaternion is required, "
+                          "check the Antenny manual and BNO080 datasheet for more details.")
+                    bno08x_rvc = input("BNO080 in UART RVC mode? (y/N)").strip().lower() == "y"
+                    if not bno08x_rvc:
+                        print("So it's I2C then...")
+                        print("Beware, this is not well supported by the Antenny ground station at this time.")
+                        bno08x_i2c = True
+
+                    else:
+                        bno08x_i2c = False
+                        use_ps_pins = input("Have you soldered the proper jumpers on the back of the IMU? ("
+                                            "y/N)").strip().lower() == "y"
+                        if not use_ps_pins:
+                            print("That's fine, you just have to let me know which ESP32 pins you wired to PS0 and PS1 "
+                                  "on the IMU")
+                            try:
+                                ps0 = int(input("PS0: ").strip())
+                                ps1 = int(input("PS1: ").strip())
+                            except ValueError as e:
+                                print("I need a number!")
+                                ps0 = int(input("PS0: ").strip())
+                                ps1 = int(input("PS1: ").strip())
+                            self.antenny_config.set("bno_ps0", ps0)
+                            self.antenny_config.set("bno_ps1", ps1)
+
+                    print("Alright, now that we figured that out, which ESP32 pins are you using for the IMU "
+                          "communication? ")
+                    print("If you are confused, it should be printed on the back of your Antenny PCB.")
+                    print("And in the case of Robotic Vacuum Cleaner mode, I can do the I2C->UART translation for you.")
+                    try:
+                        bno_scl = int(input("SCL: "))
+                        bno_sda = int(input("SDA: "))
+                        bno_rst = int(input("RESET: "))
+                    except ValueError as e:
+                        print("I need a number!")
+                        bno_scl = int(input("SCL: "))
+                        bno_sda = int(input("SDA: "))
+                        bno_rst = int(input("RESET: "))
+                    self.antenny_config.set("use_bno055", bno055)
+                    self.antenny_config.set("use_bno08x_i2c", bno08x_i2c)
+                    self.antenny_config.set("use_bno08x_rvc", bno08x_rvc)
+                    self.antenny_config.set("i2c_bno_scl", bno_scl)
+                    self.antenny_config.set("i2c_bno_sda", bno_sda)
+                    self.antenny_config.set("bno_rst", bno_rst)
+
+            pwm_controller = input("Are you using a motor/servo assembly? (y/N)").strip().lower()
+            if not pwm_controller:
+                print("It appears you are not using a motor assembly. Beware, core functionality will be disabled.")
+            else:
+                print("So you are using a motor. Let's get movin'!")
+                print("Which pins are you using for the PWM controller communication? If you are unsure it should be "
+                      "printed on the back of your board.")
+                try:
+                    pwm_scl = int(input("SCL: ").strip())
+                    pwm_sda = int(input("SDA: ").strip())
+                except ValueError as e:
+                    print("I need a number!")
+                    pwm_scl = int(input("SCL: ").strip())
+                    pwm_sda = int(input("SDA: ").strip())
+
+                print("Great!, Now which PWM indexes are your servos/motors plugged into? The indexes should be "
+                      "printed on the board.")
+                try:
+                    elevation_index = int(input("Elevation index: ").strip())
+                    azimuth_index = int(input("Azimuth index: ").strip())
+                except ValueError as e:
+                    print("I need a number!")
+                    elevation_index = int(input("Elevation index: ").strip())
+                    azimuth_index = int(input("Azimuth index: ").strip())
+                self.antenny_config.set("i2c_pwm_controller_scl", pwm_scl)
+                self.antenny_config.set("i2c_pwm_controller_sda", pwm_sda)
+                self.antenny_config.set("elevation_servo_index", elevation_index)
+                self.antenny_config.set("azimuth_servo_index", azimuth_index)
+
+        if choice == "b" or choice == "d":
+            if choice == "b":
+                print("You have chosen <Manually input your servo limits (in us)>. I hope it exists!")
+            print("What are the max and minimum values we can pump into your servos? Please give the values in "
+                  "microseconds")
+            print("If you are unsure you can play around with your antenny, or you can skip this setup and use the "
+                  "api.antenny_calibrate() to find something close enough.")
+            try:
+                elevation_min = int(input("Elevation minimum (us): ").strip())
+                elevation_max = int(input("Elevation maximum (us): ").strip())
+                azimuth_min = int(input("Azimuth minimum (us): ").strip())
+                azimuth_max = int(input("Azimuth maximum (us): ").strip())
+            except ValueError as e:
+                print("I need a number!")
+                elevation_min = int(input("Elevation minimum (us): ").strip())
+                elevation_max = int(input("Elevation maximum (us): ").strip())
+                azimuth_min = int(input("Azimuth minimum (us): ").strip())
+                azimuth_max = int(input("Azimuth maximum (us): ").strip())
+            self.servo_config.set("elevation", {"min": elevation_min, "max": elevation_max})
+            self.servo_config.set("azimuth", {"min": azimuth_min, "max": azimuth_max})
+
+        if choice == "c" or choice == "d":
+            if choice == "c":
+                print("You have chosen <Set your longitude and latitude>. I hope it's somewhere warm.")
+            print("I hope I'm not being too forward but where are you?")
+            try:
+                longitude = int(input("Longitude: ").strip())
+                latitude = int(input("Latitude: ").strip())
+            except ValueError as e:
+                print("I need a number!")
+                longitude = int(input("Longitude: ").strip())
+                latitude = int(input("Latitude: ").strip())
+            self.antenny_config.set("latitude", latitude)
+            self.antenny_config.set("longitude", longitude)
+
+        print("You have completed the Antenny manual setup! Please remember to save your config as the default with "
+              "api.antenny_save() once you're happy with it.")
+
+    #  PWM Controller Functions
 
     def pwm_controller_init(self, chain: machine.I2C = None, freq: int = 333):
         """
@@ -255,8 +407,7 @@ class AntennyAPI:
                 )
             else:
                 self.i2c_pwm_controller = chain
-            pwm_controller = pca9685.PCA9685(self.i2c_pwm_controller)
-            pwm_controller.freq(freq)
+            pwm_controller = Pca9685Controller(self.i2c_pwm_controller, freq=freq)
             print("Motor connected")
             safe_mode = False
         else:
@@ -324,7 +475,7 @@ class AntennyAPI:
     def elevation_servo_set_position(self, position: int):
         """
         Sets the elveation servo position
-        :param duty:
+        :param position:
         :return:
         """
         return self.elevation_servo.set_position(position)

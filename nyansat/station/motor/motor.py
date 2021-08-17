@@ -37,10 +37,10 @@ class PWMController(object):
 
 
 class ServoController(object):
-    def set_min_position(self, min_duty):
+    def set_min_position(self, min_us):
         """
         Sets the minimum duty cycle that will move the servo
-        :param min_duty:
+        :param min_us:
         :return:
         """
         raise NotImplementedError()
@@ -52,10 +52,10 @@ class ServoController(object):
         """
         raise NotImplementedError()
 
-    def set_max_position(self, max_duty):
+    def set_max_position(self, max_us):
         """
         Sets the maximum duty cycle that will move the servo
-        :param max_duty:
+        :param max_us:
         :return:
         """
         raise NotImplementedError()
@@ -70,6 +70,7 @@ class ServoController(object):
     def set_position(self, position):
         """
         Sets the position of the servo
+        :param us: Use microseconds instead of duty cycle width
         :param position:
         :return:
         """
