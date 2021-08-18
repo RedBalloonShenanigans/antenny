@@ -1,5 +1,5 @@
 {
-      "antenny_board_version": 5,
+      "antenny_board_version": 7,
       "use_gps": false,
       "use_motor": true,
       "use_screen": false,

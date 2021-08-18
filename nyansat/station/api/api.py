@@ -80,7 +80,8 @@ class AntennyAPI:
                            freq=freq
                            )
 
-    def uart_init(self, id, rx, tx, baud=9600):
+    @staticmethod
+    def uart_init(id, rx, tx, baud=9600):
         return machine.UART(id, baudrate=baud, rx=rx, tx=tx)
 
     def antenny_config_check(self):
@@ -292,12 +293,16 @@ class AntennyAPI:
                             print("That's fine, you just have to let me know which ESP32 pins you wired to PS0 and PS1 "
                                   "on the IMU")
                             try:
-                                ps0 = int(input("PS0: ").strip())
-                                ps1 = int(input("PS1: ").strip())
+                                ps0 = int(input("PS0 (Your current value is {}): ".format(
+                                    self.antenny_config.get("bno_ps0"))).strip())
+                                ps1 = int(input("PS1 (Your current value is {}): ".format(
+                                    self.antenny_config.get("bno_ps1"))).strip())
                             except ValueError as e:
                                 print("I need a number!")
-                                ps0 = int(input("PS0: ").strip())
-                                ps1 = int(input("PS1: ").strip())
+                                ps0 = int(input("PS0 (Your current value is {}): ".format(
+                                    self.antenny_config.get("bno_ps0"))).strip())
+                                ps1 = int(input("PS1 (Your current value is {}): ".format(
+                                    self.antenny_config.get("bno_ps1"))).strip())
                             self.antenny_config.set("bno_ps0", ps0)
                             self.antenny_config.set("bno_ps1", ps1)
 
@@ -306,14 +311,20 @@ class AntennyAPI:
                     print("If you are confused, it should be printed on the back of your Antenny PCB.")
                     print("And in the case of Robotic Vacuum Cleaner mode, I can do the I2C->UART translation for you.")
                     try:
-                        bno_scl = int(input("SCL: "))
-                        bno_sda = int(input("SDA: "))
-                        bno_rst = int(input("RESET: "))
+                        bno_scl = int(input("SCL (Your current value is {}): ").format(self.antenny_config.get(
+                            "i2c_bno_scl")))
+                        bno_sda = int(input("SDA (Your current value is {}): ").format(self.antenny_config.get(
+                            "i2c_bno_sda")))
+                        bno_rst = int(input("RESET (Your current value is {}): ").format(self.antenny_config.get(
+                            "bno_rst")))
                     except ValueError as e:
                         print("I need a number!")
-                        bno_scl = int(input("SCL: "))
-                        bno_sda = int(input("SDA: "))
-                        bno_rst = int(input("RESET: "))
+                        bno_scl = int(input("SCL (Your current value is {}): ").format(self.antenny_config.get(
+                            "i2c_bno_scl")))
+                        bno_sda = int(input("SDA (Your current value is {}): ").format(self.antenny_config.get(
+                            "i2c_bno_sda")))
+                        bno_rst = int(input("RESET (Your current value is {}): ").format(self.antenny_config.get(
+                            "bno_rst")))
                     self.antenny_config.set("use_bno055", bno055)
                     self.antenny_config.set("use_bno08x_i2c", bno08x_i2c)
                     self.antenny_config.set("use_bno08x_rvc", bno08x_rvc)
@@ -329,22 +340,30 @@ class AntennyAPI:
                 print("Which pins are you using for the PWM controller communication? If you are unsure it should be "
                       "printed on the back of your board.")
                 try:
-                    pwm_scl = int(input("SCL: ").strip())
-                    pwm_sda = int(input("SDA: ").strip())
+                    pwm_scl = int(input("SCL: (Your current value is {})".format(self.antenny_config.get(
+                        "i2c_pwm_controller_scl"))).strip())
+                    pwm_sda = int(input("SDA: (Your current value is {})".format(self.antenny_config.get(
+                        "i2c_pwm_controller_sda"))).strip())
                 except ValueError as e:
                     print("I need a number!")
-                    pwm_scl = int(input("SCL: ").strip())
-                    pwm_sda = int(input("SDA: ").strip())
+                    pwm_scl = int(input("SCL: (Your current value is {})".format(self.antenny_config.get(
+                        "i2c_pwm_controller_scl"))).strip())
+                    pwm_sda = int(input("SDA: (Your current value is {})".format(self.antenny_config.get(
+                        "i2c_pwm_controller_sda"))).strip())
 
                 print("Great!, Now which PWM indexes are your servos/motors plugged into? The indexes should be "
                       "printed on the board.")
                 try:
-                    elevation_index = int(input("Elevation index: ").strip())
-                    azimuth_index = int(input("Azimuth index: ").strip())
+                    elevation_index = int(input("Elevation index: (Your current value is {})".format(
+                        "elevation_servo_index")).strip())
+                    azimuth_index = int(input("Azimuth index: (Your current value is {})".format(
+                        "azimuth_servo_index")).strip())
                 except ValueError as e:
                     print("I need a number!")
-                    elevation_index = int(input("Elevation index: ").strip())
-                    azimuth_index = int(input("Azimuth index: ").strip())
+                    elevation_index = int(input("Elevation index: (Your current value is {})".format(
+                        "elevation_servo_index")).strip())
+                    azimuth_index = int(input("Azimuth index: (Your current value is {})".format(
+                        "azimuth_servo_index")).strip())
                 self.antenny_config.set("i2c_pwm_controller_scl", pwm_scl)
                 self.antenny_config.set("i2c_pwm_controller_sda", pwm_sda)
                 self.antenny_config.set("elevation_servo_index", elevation_index)
@@ -358,16 +377,24 @@ class AntennyAPI:
             print("If you are unsure you can play around with your antenny, or you can skip this setup and use the "
                   "api.antenny_calibrate() to find something close enough.")
             try:
-                elevation_min = int(input("Elevation minimum (us): ").strip())
-                elevation_max = int(input("Elevation maximum (us): ").strip())
-                azimuth_min = int(input("Azimuth minimum (us): ").strip())
-                azimuth_max = int(input("Azimuth maximum (us): ").strip())
+                elevation_min = int(input("Elevation minimum(us) (Your current value is {}): ".format(
+                    self.servo_config.get("elevation")["min"])).strip())
+                elevation_max = int(input("Elevation maximum(us) (Your current value is {}): ".format(
+                    self.servo_config.get("elevation")["max"])).strip())
+                azimuth_min = int(input("Azimuth minimum(us) (Your current value is {}): ".format(
+                    self.servo_config.get("azimuth")["min"])).strip())
+                azimuth_max = int(input("Azimuth maximum(us) (Your current value is {}): ".format(
+                    self.servo_config.get("azimuth")["max"])).strip())
             except ValueError as e:
                 print("I need a number!")
-                elevation_min = int(input("Elevation minimum (us): ").strip())
-                elevation_max = int(input("Elevation maximum (us): ").strip())
-                azimuth_min = int(input("Azimuth minimum (us): ").strip())
-                azimuth_max = int(input("Azimuth maximum (us): ").strip())
+                elevation_min = int(input("Elevation minimum(us) (Your current value is {}): ".format(
+                    self.servo_config.get("elevation")["min"])).strip())
+                elevation_max = int(input("Elevation maximum(us) (Your current value is {}): ".format(
+                    self.servo_config.get("elevation")["max"])).strip())
+                azimuth_min = int(input("Azimuth minimum(us) (Your current value is {}): ".format(
+                    self.servo_config.get("azimuth")["min"])).strip())
+                azimuth_max = int(input("Azimuth maximum(us) (Your current value is {}): ".format(
+                    self.servo_config.get("azimuth")["max"])).strip())
             self.servo_config.set("elevation", {"min": elevation_min, "max": elevation_max})
             self.servo_config.set("azimuth", {"min": azimuth_min, "max": azimuth_max})
 
@@ -376,12 +403,16 @@ class AntennyAPI:
                 print("You have chosen <Set your longitude and latitude>. I hope it's somewhere warm.")
             print("I hope I'm not being too forward but where are you?")
             try:
-                longitude = int(input("Longitude: ").strip())
-                latitude = int(input("Latitude: ").strip())
+                longitude = int(input("Longitude (Your current value is {}): ".format(self.antenny_config.get(
+                    "longitude"))).strip())
+                latitude = int(input("Latitude (Your current value is {}): ".format(self.antenny_config.get(
+                    "latitude"))).strip())
             except ValueError as e:
                 print("I need a number!")
-                longitude = int(input("Longitude: ").strip())
-                latitude = int(input("Latitude: ").strip())
+                longitude = int(input("Longitude (Your current value is {}): ".format(self.antenny_config.get(
+                    "longitude"))).strip())
+                latitude = int(input("Latitude (Your current value is {}): ".format(self.antenny_config.get(
+                    "latitude"))).strip())
             self.antenny_config.set("latitude", latitude)
             self.antenny_config.set("longitude", longitude)
 
@@ -391,35 +422,45 @@ class AntennyAPI:
             print("These values are mostly experimental, but there are plent of online resources for PID tuning best "
                   "practices.")
             try:
-                print("What should the minimum output value be?")
-                min_limit = float(input("Min Output: ").strip())
+                print("What should the minimum output value be? (in microseconds)")
+                min_limit = float(input("Min Output(us) (Your current value is {}): ".format(
+                    self.pid_config.get("output_limits")[0])).strip())
                 print("What should the maximum output be?")
-                max_limit = float(input("Max Output: ").strip())
-                print("What should be the period of each PID iteration?")
-                period = int(input("Period (ms): ").strip())
+                max_limit = float(input("Max Output(us)  (Your current value is {}): ".format(
+                    self.pid_config.get("output_limits")[1])).strip())
+                print("What should be the period of each PID iteration? (in milliseconds")
+                period = int(input("Period(ms) (Your current value is {}): ".format(self.pid_config.get(
+                    "period"))).strip())
             except ValueError as e:
                 print("I need a number!")
                 print("What should the minimum output value be?")
-                min_limit = float(input("Min Output: ").strip())
+                print("What should the minimum output value be? (in microseconds)")
+                min_limit = float(input("Min Output(us) (Your current value is {}): ".format(
+                    self.pid_config.get("output_limits")[0])).strip())
                 print("What should the maximum output be?")
-                max_limit = float(input("Max Output: ").strip())
-                print("What should be the period of each PID iteration?")
-                period = int(input("Period (ms): ").strip())
+                max_limit = float(input("Max Output(us)  (Your current value is {}): ".format(
+                    self.pid_config.get("output_limits")[1])).strip())
+                print("What should be the period of each PID iteration? (in milliseconds")
+                period = int(input("Period(ms) (Your current value is {}): ".format(self.pid_config.get(
+                    "period"))).strip())
             self.pid_config.set("output_limits", [min_limit, max_limit])
             self.pid_config.set("period", period)
-            print("And now the PID constants, it is recommended leaving them default in the begining.")
+            print("And now the PID constants, it is recommended leaving them default in the beginning.")
             try:
-                p = float(input("P (Default is 1.0): ").strip())
+                p = float(input("P (Default is 1.0 and current value is {}): ".format(self.pid_config.get(
+                    "p"))).strip())
                 self.pid_config.set("p", p)
             except ValueError as e:
                 self.pid_config.set("p", 1.0)
             try:
-                i = float(input("I (Default is 0.0): ").strip())
+                i = float(input("I (Default is 0.0 and current value is {}): ".format(self.pid_config.get(
+                    "i"))).strip())
                 self.pid_config.set("i", i)
             except ValueError as e:
                 self.pid_config.set("i", 0.0)
             try:
-                d = float(input("D (Default is 0.0): ").strip())
+                d = float(input("D (Default is 0.0 and current value is {}): ".format(self.pid_config.get(
+                    "d"))).strip())
                 self.pid_config.set("d", d)
             except ValueError as e:
                 self.pid_config.set("d", 0.0)

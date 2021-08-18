@@ -2,6 +2,8 @@
 
 Make your own base station to communicate with satellites!
 
+We have a [discord server](https://discord.com/invite/nsSMEdv) for collaboration, questions and to just show off!
+
 ## Setting up the hardware
 
 ### Jumpers
@@ -42,6 +44,8 @@ connector labeled `R15` on the ESP32. See below picture.
 write_flash -z 0x1000 ~/Downloads/esp32spiram-20210623-v1.16.bin```
 
 ## Installing Antenny MP Code
+0. We use MPFShell to upload the python files to the board. First you must install this on your host computer with 
+`python3 -m pip install mpfshell`.
 1. To begin install, first push the reset button on the antenny board, labeled `RET Button`.
 2. Next, from the root directory of this repository, run  the `make nyansat` make directive with the `SERIAL` 
 argument pointing to your antenny block device.
@@ -141,6 +145,11 @@ High level methods start with `antenny_` are used to setup your antenny assembly
 
     - Saves the current configuration of each components as default. With an optional name. Makes the state of the 
     configuration and calibration persistent. 
+    
+- `api.antenny_manual_setup()`
+
+    - This will walk you through manual configuration of the antenny board and its components. Useful if it is your 
+    first time setting up, or for easier access to some of the more useful config entries.
 
 #### Platform Methods
 
