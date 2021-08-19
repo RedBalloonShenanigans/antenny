@@ -93,7 +93,7 @@ class PIDPlatformController(PlatformController):
         :param elevation:
         :return:
         """
-        elevation = elevation % 90
+        elevation = elevation
         self.new_elevation = elevation
 
     def get_elevation(self):
