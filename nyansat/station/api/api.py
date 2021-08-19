@@ -214,7 +214,7 @@ class AntennyAPI:
         self.elevation_servo_save(name)
         self.servo_config.save_as_default_config()
 
-    def antenny_calibrate(self, name: str = None):
+    def antenny_calibrate(self):
         """
         Initializes all components, auto-calibrates the platform, then saves all as default
         Should be used after assembling a new antenny or after wiping your previous configs
@@ -767,11 +767,14 @@ class AntennyAPI:
             print("use_bno08x_rvc found in config: {}".format(self.antenny_config.get_name()))
             tx = self.antenny_config.get("i2c_bno_scl")
             rx = self.antenny_config.get("i2c_bno_sda")
-            ps0 = machine.Pin(self.antenny_config.get("bno_ps0"), machine.Pin.OUT)
-            ps1 = machine.Pin(self.antenny_config.get("bno_ps1"), machine.Pin.OUT)
             reset = machine.Pin(self.antenny_config.get("bno_rst"), machine.Pin.OUT)
-            ps0.on()
-            ps1.off()
+            ps0 = self.antenny_config.get("bno_ps0")
+            ps1 = self.antenny_config.get("bno_ps1")
+            if ps0 is not None and ps1 is not None:
+                ps0 = machine.Pin(ps0, machine.Pin.OUT)
+                ps1 = machine.Pin(ps1, machine.Pin.OUT)
+                ps0.on()
+                ps1.off()
             uart_bno = self.uart_init(1, rx, tx, baud=115200)
             self.imu = Bno08xUARTImuController(
                 uart_bno,
@@ -898,7 +901,7 @@ class AntennyAPI:
                 self.elevation_servo,
                 self.imu,
                 pid_output_limits=self.pid_config.get("output_limits"),
-                pid_frequency=self.pid_config.get("frequency"),
+                pid_frequency=self.pid_config.get("period"),
                 p=self.pid_config.get("p"),
                 i=self.pid_config.get("i"),
                 d=self.pid_config.get("d")

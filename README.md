@@ -135,15 +135,15 @@ High level methods start with `antenny_` are used to setup your antenny assembly
     - Initializes the components described by the current config. For more info on device configuration, please see 
     the "Configuring Antenny" section. 
     
-- `api.antenny_calibrate(name: Optional)`
+- `api.antenny_calibrate()`
 
     - Calibrates the antenny platform. 
-    - NOTE: This will start the automatic calibration routine. Currently only supported by the BNO055 IMU. BNO080 
-    support expected soon.
+    - NOTE: This will start the automatic calibration routine. Currently, IMU calibration only supported by the BNO055 
+    IMU. BNO080 support expected soon.
     
 - `api.antenny_save(name: Optional)`
 
-    - Saves the current configuration of each components as default. With an optional name. Makes the state of the 
+    - Saves the current configuration of each component as default. With an optional name. Makes the state of the 
     configuration and calibration persistent. 
     
 - `api.antenny_manual_setup()`
