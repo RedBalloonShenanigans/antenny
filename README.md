@@ -8,11 +8,11 @@ We have a [discord server](https://discord.com/invite/nsSMEdv) for collaboration
 
 ### Jumpers
 
-#### Required Jumpers
+#### Required Antenny Jumpers
 - On the antenny MK7 there are two required jumpers, labeled `JUMPER FOR PWN DR` on the back of the board. This will 
 bridge the GPIO to the on board PWM Driver. 
 
-#### Optional Jumpers
+#### Optional Antenny Jumpers
 
 - The antenny MK7 provides jumpers to breakout pins 4, 26, 27, VCC and GND to the header labeled `P11` for the IMU. 
 To use this header, you must solder the jumpers labeled `JUMPER FOR IMU`, otherwise, just used the ESP32 GPIO headers.
@@ -27,7 +27,60 @@ connector labeled `R15` on the ESP32. See below picture.
 
 ![Flash Firmware button](doc_images/K2_Button_flash_firmware.png)
 
-# Installing the Antenny package
+#### Optional IMU Jumper
+There is one optional IMU jumper. This is used to select the IMU mode. More info can be found in the [BNO080 
+datasheet](https://cdn.sparkfun.com/assets/1/3/4/5/9/BNO080_Datasheet_v1.3.pdf)
+If you do not want to use the jumper, you can use pins to select the correct mode. This can also be useful for 
+switching between modes in software. 
+
+The mode we use is the Robotic Vacuum Cleaner (RVC) mode. To enable this you can provide power to the PS0 pin using 
+the jumper as shown below. 
+
+![BNO080 Jumper](doc_images/IMU_jumper.jpg)
+
+### Setting up the platform
+This will go over how to setup the servo gimbal, IMU and antenny board. I used hot glue to secure the hardware, but 
+more creative approaches are welcome. 
+
+####Step 1: Position the IMU
+Position the IMU on the gimbal arm. The position show below will give the correct orientation. If you want a 
+different IMU position, you can correct the elevation angle in software. 
+
+![Platform Step 1](doc_images/Platform_setup_1.jpg)
+
+#### Step 2: Position the Antenny
+Next we secure the Antenny to the platform. It is advised to isolate the pins from any metal contact.
+
+![Platform Step 2](doc_images/Platform_setup_2.jpg)
+
+### Step 3: Wire the IMU Communication Lines
+NOTE: From this point on, the pins you use are configurable from the `antenny_config`, as described in the software 
+guide below. To verify your pins or reconfigure as you wish, it is suggested you edit the config through the 
+`antenny_manual_setup` command described in the software guide. 
+
+The IMU communication lines are labeled on both the IMU PCB and the Antenny PCB, just match them up, as shown. 
+
+![Platform Step 3](doc_images/Platform_setup_3.jpg)
+
+### Step 4: Wire the IMU Reset Line
+Same as step 3, it is labeled.
+
+![Platform Step 4](doc_images/Platform_setup_4.jpg)
+
+### Step 5: Wiring the Program Select Pins (Optional):
+If you did not solder the IMU jumper, you must pick two pins to use to control PS0 and PS1. If using this approach, 
+its suggested you setup these pins using the `antenny_manual_setup`. 
+
+![Platform Step 5](doc_images/Platform_setup_5.jpg)
+
+### Step 6: Wiring the Servos
+Next we wire the servos to the PWM controller. By default the elevation(top) servo goes to pwm index 0 and azimuth
+(bottom) goes to index 1, but this is, again, configurable. 
+
+![Platform Step 6](doc_images/Platform_setup_6.jpg)
+
+
+# Installing the Antenny software
 
 ## Installing Micropython
 1. Download esptool from [here](https://github.com/espressif/esptool/)

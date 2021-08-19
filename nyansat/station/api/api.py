@@ -305,26 +305,28 @@ class AntennyAPI:
                                     self.antenny_config.get("bno_ps1"))).strip())
                             self.antenny_config.set("bno_ps0", ps0)
                             self.antenny_config.set("bno_ps1", ps1)
-
+                        else:
+                            self.antenny_config.set("bno_ps0", None)
+                            self.antenny_config.set("bno_ps1", None)
                     print("Alright, now that we figured that out, which ESP32 pins are you using for the IMU "
                           "communication? ")
                     print("If you are confused, it should be printed on the back of your Antenny PCB.")
                     print("And in the case of Robotic Vacuum Cleaner mode, I can do the I2C->UART translation for you.")
                     try:
-                        bno_scl = int(input("SCL (Your current value is {}): ").format(self.antenny_config.get(
-                            "i2c_bno_scl")))
-                        bno_sda = int(input("SDA (Your current value is {}): ").format(self.antenny_config.get(
-                            "i2c_bno_sda")))
-                        bno_rst = int(input("RESET (Your current value is {}): ").format(self.antenny_config.get(
-                            "bno_rst")))
+                        bno_scl = int(input("SCL (Your current value is {}): ".format(self.antenny_config.get(
+                            "i2c_bno_scl"))))
+                        bno_sda = int(input("SDA (Your current value is {}): ".format(self.antenny_config.get(
+                            "i2c_bno_sda"))))
+                        bno_rst = int(input("RESET (Your current value is {}): ".format(self.antenny_config.get(
+                            "bno_rst"))))
                     except ValueError as e:
                         print("I need a number!")
-                        bno_scl = int(input("SCL (Your current value is {}): ").format(self.antenny_config.get(
-                            "i2c_bno_scl")))
-                        bno_sda = int(input("SDA (Your current value is {}): ").format(self.antenny_config.get(
-                            "i2c_bno_sda")))
-                        bno_rst = int(input("RESET (Your current value is {}): ").format(self.antenny_config.get(
-                            "bno_rst")))
+                        bno_scl = int(input("SCL (Your current value is {}): ".format(self.antenny_config.get(
+                            "i2c_bno_scl"))))
+                        bno_sda = int(input("SDA (Your current value is {}): ".format(self.antenny_config.get(
+                            "i2c_bno_sda"))))
+                        bno_rst = int(input("RESET (Your current value is {}): ".format(self.antenny_config.get(
+                            "bno_rst"))))
                     self.antenny_config.set("use_bno055", bno055)
                     self.antenny_config.set("use_bno08x_i2c", bno08x_i2c)
                     self.antenny_config.set("use_bno08x_rvc", bno08x_rvc)
@@ -355,15 +357,15 @@ class AntennyAPI:
                       "printed on the board.")
                 try:
                     elevation_index = int(input("Elevation index: (Your current value is {})".format(
-                        "elevation_servo_index")).strip())
+                        self.antenny_config.get("elevation_servo_index"))).strip())
                     azimuth_index = int(input("Azimuth index: (Your current value is {})".format(
-                        "azimuth_servo_index")).strip())
+                        self.antenny_config.get("azimuth_servo_index"))).strip())
                 except ValueError as e:
                     print("I need a number!")
                     elevation_index = int(input("Elevation index: (Your current value is {})".format(
-                        "elevation_servo_index")).strip())
+                        self.antenny_config.get("elevation_servo_index"))).strip())
                     azimuth_index = int(input("Azimuth index: (Your current value is {})".format(
-                        "azimuth_servo_index")).strip())
+                        self.antenny_config.get("azimuth_servo_index"))).strip())
                 self.antenny_config.set("i2c_pwm_controller_scl", pwm_scl)
                 self.antenny_config.set("i2c_pwm_controller_sda", pwm_sda)
                 self.antenny_config.set("elevation_servo_index", elevation_index)
