@@ -83,15 +83,17 @@ Next we wire the servos to the PWM controller. By default the elevation(top) ser
 # Installing the Antenny software
 
 ## Installing Micropython
-1. Download esptool from [here](https://github.com/espressif/esptool/)
+1. Download and install the USB driver for the CP210 USB to UART chip [here](https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers)
 
-2. Put the ESP into download mode (see above) and erase your ESP32
+2. Download esptool from [here](https://github.com/espressif/esptool/)
+
+3. Put the ESP into download mode (see above) and erase your ESP32
 
     Example: ```python3 -m esptool --port /dev/tty.SLAB_USBtoUART erase_flash```
     
-3. Download the micropython firmware from [here](https://micropython.org/resources/firmware/esp32spiram-20210623-v1.16.bin)
+4. Download the micropython firmware from [here](https://micropython.org/resources/firmware/esp32spiram-20210623-v1.16.bin)
 
-4. Put the ESP into download mode (see above) and re-flash the Micropython firmware
+5. Put the ESP into download mode (see above) and re-flash the Micropython firmware
 
     Example: ```python3 -m esptool --chip esp32 --port /dev/tty.SLAB_USBtoUART --baud 115200 
 write_flash -z 0x1000 ~/Downloads/esp32spiram-20210623-v1.16.bin```
