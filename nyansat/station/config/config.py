@@ -113,7 +113,10 @@ class Config:
             self._config_name = name
 
         with open(self._get_this_config_path(), "r") as fh:
-            self._config = json.load(fh)
+            try:
+                self._config = json.load(fh)
+            except ValueError:
+                print("JSON parse error %s" % (self._get_this_config_path()))
 
     def save(self, name: str = None, force=False):
         """

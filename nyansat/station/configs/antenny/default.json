@@ -29,9 +29,8 @@
     "i2c_screen_address": 0,
     "latitude": 40.0,
     "longitude": -73.0,
-
     "pid_timer_id": 0,
     "imu_timer_id": 1,
-    'gps_timer_id': 2,
-    'screen_timer_id': 3,
+    "gps_timer_id": 2,
+    "screen_timer_id": 3
 }
