@@ -30,6 +30,7 @@ class PIDPlatformController(PlatformController):
         self.pin_interrupt = True
         self.deadzone = None
         self.timer_id = Config('antenny').get('pid_timer_id')
+        print("PID controller using timer hardware id: %d" % (self.timer_id))
         self.pid_loop_timer = machine.Timer(self.timer_id)
         self.elevation.set_position(int((self.elevation.get_max_position() - self.elevation.get_min_position()) / 2))
         self.azimuth.set_position(int((self.azimuth.get_max_position() - self.azimuth.get_min_position()) / 2))

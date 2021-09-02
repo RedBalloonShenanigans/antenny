@@ -20,8 +20,9 @@ class Ssd1306ScreenController(ScreenController):
         """
         self.ssd_screen = SSD1306_I2C(width, height, i2c)
         self._line_buffers = ['a: ', 'b: ', 'c: ', 'd: ']
-        self.screen_id = Config('antenny').get('screen_timer_id')
-        self.screen_loop_timer = machine.Timer(self.screen_id) #hardcoded 2. need to fix
+        self.timer_id = Config('antenny').get('screen_timer_id')
+        print("Screen controller using timer hardware id: %d" % (self.timer_id))
+        self.screen_loop_timer = machine.Timer(self.timer_id) #hardcoded 2. need to fix
         self.loop_frequency = 1000
         
     def start(self):

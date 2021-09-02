@@ -8,6 +8,7 @@ class GPSLocationController(PlatformController):
 
     def __init__(self, gps_controller):
         self.timer_id = Config('antenny').get('gps_timer_id')
+        print("GPS-UART controller using timer hardware id: %d" % (self.timer_id))
         self.gps_loop_timer = machine.Timer(self.timer_id) #hardcoded 2. need to fix
         self.gps_controller = gps_controller
         self.loop_frequency = 200

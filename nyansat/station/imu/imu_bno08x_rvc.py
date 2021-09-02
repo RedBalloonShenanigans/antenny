@@ -22,6 +22,7 @@ class Bno08xUARTImuController(ImuController):
         self.reset = reset
         self.euler = None
         self.timer_id = Config('antenny').get('imu_timer_id')
+        print("IMU-UARTD controller using timer hardware id: %d" % (self.timer_id))
         self.read_timer = machine.Timer(self.timer_id)
 
     def start(self):
