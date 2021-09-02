@@ -1,11 +1,14 @@
 import time
-
 import machine
 
 from config.config import Config
+
 from controller.controller import PlatformController
 from controller.mock_controller import MockPlatformController
 from controller.pid_controller import PIDPlatformController
+from controller.gps_location_controller import GPSLocationController
+from controller.screen_ss1306_controller import Ssd1306ScreenController
+
 from exceptions import AntennyIMUException, AntennyMotorException, AntennyTelemetryException, AntennyScreenException
 from gps.gps import GPSController
 from gps.gps_basic import BasicGPSController
@@ -20,7 +23,6 @@ from motor.motor import PWMController, ServoController
 from motor.motor_pca9685 import Pca9685ServoController, Pca9685Controller
 from screen.mock_screen import MockScreenController
 from screen.screen import ScreenController
-from screen.screen_ssd1306 import Ssd1306ScreenController
 from antenny_threading import Queue
 from sender.sender import TelemetrySender
 from sender.sender_udp import UDPTelemetrySender
@@ -50,9 +52,10 @@ class AntennyAPI:
         self.elevation_servo: ServoController = ServoController()
         self.azimuth_servo: ServoController = ServoController()
         self.platform: PlatformController = PlatformController()
+
         self.i2c_bno: machine.I2C = self.i2c_init(0, 0, 0)
-        self.i2c_pwm_controller: machine.I2C = self.i2c_init(0, 0, 0)
-        self.i2c_screen: machine.I2C = self.i2c_init(0, 0, 0)
+        self.i2c_pwm_controller: machine.I2C = self.i2c_init(1, 0, 0)
+        self.i2c_screen: machine.I2C = self.i2c_init(-1, 0, 0)
 
 #  Antenny Generic Functions
 
@@ -653,7 +656,8 @@ class AntennyAPI:
             if chain is None:
                 i2c_screen_scl = self.antenny_config.get("i2c_screen_scl")
                 i2c_screen_sda = self.antenny_config.get("i2c_screen_sda")
-                self.i2c_screen = self.i2c_init(0, i2c_screen_scl, i2c_screen_sda)
+                self.i2c_screen = self.i2c_init(1, i2c_screen_scl, i2c_screen_sda)
+                # HARDCODED id to 1. need to fix
             else:
                 self.i2c_screen = chain
             screen = Ssd1306ScreenController(
@@ -670,7 +674,7 @@ class AntennyAPI:
         Scan the screen I2C chain
         :return: List of I2C addresses
         """
-        if self.i2c_bno is None:
+        if self.i2c_screen is None:
             print("No I2C bus set for the Screen")
             raise AntennyScreenException("No I2C bus set for the Screen")
         return self.i2c_screen.scan()
@@ -908,7 +912,15 @@ class AntennyAPI:
                 i=self.pid_config.get("i"),
                 d=self.pid_config.get("d")
             )
+            
         self.platform = platform
+
+        if not isinstance(self.gps, MockGPSController):
+            self.gps_update_loop = GPSLocationController(self.gps)
+            self.gps_update_loop.start()
+        else:
+            self.gps_update_loop = None
+            
         return platform
 
     def platform_auto_calibrate_accelerometer(self):

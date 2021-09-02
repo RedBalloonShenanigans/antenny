@@ -5,7 +5,7 @@ from simple_pid.PID import PID
 from controller.controller import PlatformController
 from imu.imu import ImuController
 from motor.motor import ServoController
-
+from config.config import Config
 
 class PIDPlatformController(PlatformController):
     """
@@ -29,7 +29,8 @@ class PIDPlatformController(PlatformController):
         self._motion_started = False
         self.pin_interrupt = True
         self.deadzone = None
-        self.pid_loop_timer = machine.Timer(0)
+        self.timer_id = Config('antenny').get('pid_timer_id')
+        self.pid_loop_timer = machine.Timer(self.timer_id)
         self.elevation.set_position(int((self.elevation.get_max_position() - self.elevation.get_min_position()) / 2))
         self.azimuth.set_position(int((self.azimuth.get_max_position() - self.azimuth.get_min_position()) / 2))
         self.new_elevation = 0

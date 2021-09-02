@@ -3,6 +3,7 @@ import machine
 
 from adafruit_bno08x_rvc import BNO08x_RVC
 from imu.imu import ImuController
+from config.config import Config
 
 _BNO08X_DEFAULT_ADDRESS = 0x4B
 
@@ -20,7 +21,8 @@ class Bno08xUARTImuController(ImuController):
         self._is_calibrated = True
         self.reset = reset
         self.euler = None
-        self.read_timer = machine.Timer(1)
+        self.timer_id = Config('antenny').get('imu_timer_id')
+        self.read_timer = machine.Timer(self.timer_id)
 
     def start(self):
         self.read_timer.init(period=10, mode=machine.Timer.PERIODIC, callback=self.__collect_euler)
