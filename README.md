@@ -2,7 +2,7 @@
 
 Make your own base station to communicate with satellites!
 
-We have a [discord server](https://discord.com/invite/nsSMEdv) for collaboration, questions and to just show off!
+We have a [discord server](https://discord.com/invite/nsSMEdv) for collaboration, questions, and show and tell off!
 
 ## Setting up the hardware
 
