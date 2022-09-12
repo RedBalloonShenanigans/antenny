@@ -6,6 +6,21 @@ We have a [discord server](https://discord.com/invite/nsSMEdv) for collaboration
 
 ## Setting up the hardware
 
+### Important Notice:
+- Pin conflict: Do NOT use the folloing pins for GPIO if you are using SPIRAM firmware:
+```
+# known_confilit_pins = [
+#     0, 1, 3, 6, 7, 
+#     8, 9, 10, 11, 12, 
+#     13, 16, 17, 20, 24, 
+#     28, 29, 30, 31
+# ]
+```
+- Pin that is input only
+```
+# input_only_pins = [34, 35, 36, 37, 38, 39]
+```
+
 ### Jumpers
 
 #### Required Antenny Jumpers
